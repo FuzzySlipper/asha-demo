@@ -63,6 +63,19 @@ test('@live-agent asha-demo shows objective static ASHA readout', async ({ page,
   await expect(combatHud).toContainText('Payload');
   await expect(combatHud).toContainText('none');
 
+  const enemyPolicy = page.locator('[data-demo-readout="public-asha-enemy-policy"]');
+  await expect(enemyPolicy).toBeVisible();
+  await expect(enemyPolicy).toContainText('Enemy Policy');
+  await expect(enemyPolicy).toContainText('read-only proposal-only');
+  await expect(enemyPolicy).toContainText('enemy_policy.move_toward_target.v0');
+  await expect(enemyPolicy).toContainText('enemy_policy.primary_fire_intent.v0');
+  await expect(enemyPolicy).toContainText('e8e1ea7a09811ced');
+  await expect(enemyPolicy).toContainText('Date');
+  await enemyPolicy.getByRole('button', { name: 'Run Enemy Policy' }).click();
+  await expect(enemyPolicy).toContainText('Fire status');
+  await expect(enemyPolicy).toContainText('accepted');
+  await expect(enemyPolicy).toContainText('Health 0/40 defeated');
+
   const response = await request.get('/api/status');
   expect(response.ok()).toBe(true);
   const status = await response.json();
@@ -87,9 +100,24 @@ test('@live-agent asha-demo shows objective static ASHA readout', async ({ page,
   expect(status.publicAshaReadout.combatHud.combatReadout.outcome.kind).toBe('hit');
   expect(status.publicAshaReadout.combatHud.hudProjection.health.dead).toBe(true);
   expect(status.publicAshaReadout.combatHud.menuIntents.restart.kind).toBe('runtime.restart_session_intent');
+  expect(status.publicAshaReadout.enemyPolicy.status).toBe('public_enemy_policy_fixture');
+  expect(status.publicAshaReadout.enemyPolicy.view.readOnly).toBe(true);
+  expect(status.publicAshaReadout.enemyPolicy.view.proposalOnly).toBe(true);
+  expect(status.publicAshaReadout.enemyPolicy.view.navPathHash).toBe('e8e1ea7a09811ced');
+  expect(status.publicAshaReadout.enemyPolicy.frame.proposals.map((proposal) => proposal.kind)).toEqual([
+    'enemy_policy.move_toward_target.v0',
+    'enemy_policy.primary_fire_intent.v0',
+  ]);
+  expect(status.publicAshaReadout.enemyPolicy.frame.proposals[1].intent.source).toBe('enemy_policy');
+  expect(status.publicAshaReadout.enemyPolicy.fireReceipt.accepted).toBe(true);
+  expect(status.publicAshaReadout.enemyPolicy.fireReceipt.combatReadout.health[0].dead).toBe(true);
+  expect(status.publicAshaReadout.enemyPolicy.sourceValidation.cleanDiagnostics).toEqual([]);
+  expect(status.publicAshaReadout.enemyPolicy.sourceValidation.forbiddenDiagnostics.map((diagnostic) => diagnostic.token)).toEqual(
+    expect.arrayContaining(['Date', 'Math.random', 'fetch', 'window', 'node:fs', 'import(']),
+  );
   expect(status.nonClaims).toEqual(expect.arrayContaining([
-    'No enemy AI.',
-    'No combat loop.',
+    'No autonomous enemy gameplay loop.',
+    'No continuous combat loop.',
     'No live procedural dungeon gameplay.',
     'No death or restart loop.',
   ]));

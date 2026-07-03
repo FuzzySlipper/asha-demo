@@ -209,6 +209,10 @@ h2 {
   align-content: start;
 }
 
+.enemy-policy-panel {
+  align-content: start;
+}
+
 .movement-surface {
   display: grid;
   gap: 16px;
@@ -232,8 +236,16 @@ h2 {
   margin-bottom: 16px;
 }
 
+.enemy-policy-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 220px);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
 .movement-actions button,
-.combat-actions button {
+.combat-actions button,
+.enemy-policy-actions button {
   min-height: 40px;
   border: 1px solid #aebdad;
   border-radius: 6px;
@@ -247,7 +259,9 @@ h2 {
 .movement-actions button:hover,
 .movement-actions button:focus-visible,
 .combat-actions button:hover,
-.combat-actions button:focus-visible {
+.combat-actions button:focus-visible,
+.enemy-policy-actions button:hover,
+.enemy-policy-actions button:focus-visible {
   background: #dfe9e1;
 }
 
@@ -260,6 +274,11 @@ h2 {
 }
 
 .combat-facts {
+  grid-template-columns: minmax(130px, 0.42fr) minmax(0, 1fr);
+  margin-top: 16px;
+}
+
+.enemy-policy-facts {
   grid-template-columns: minmax(130px, 0.42fr) minmax(0, 1fr);
   margin-top: 16px;
 }

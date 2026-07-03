@@ -1,7 +1,9 @@
 import {
   BrowserFpsInputCollector,
   RuntimeBridgeError,
+  createGeneratedTunnelEnemyPolicyFixture,
   createMockRuntimeSession,
+  validateEnemyPolicySource,
 } from '@asha/runtime-bridge';
 
 const fallbackStatus = {
@@ -20,6 +22,7 @@ renderPublicAshaReadout(status.publicAshaReadout);
 renderGeneratedTunnelReadout(status.publicAshaReadout?.generatedTunnel);
 renderMovementReadout(movementDemo.readout());
 renderCombatHudReadout(status.publicAshaReadout?.combatHud);
+renderEnemyPolicyReadout(movementDemo.enemyPolicyReadout());
 wireMovementControls(movementDemo);
 renderList(document.querySelector('#allowed-imports'), status.allowedImports);
 renderList(document.querySelector('#source-roots'), status.sourceRoots);
@@ -52,6 +55,7 @@ function createMovementDemo() {
   let latestFrame = null;
   let latestCollision = null;
   let latestError = null;
+  let latestEnemyPolicy = null;
   let loop = null;
 
   return {
@@ -134,6 +138,50 @@ function createMovementDemo() {
         receipt,
       };
     },
+    runEnemyPolicy() {
+      tick += 1;
+      const fixture = createEnemyPolicyFixture(tick);
+      const fireProposal = fixture.frame.proposals.find(
+        (proposal) => proposal.kind === 'enemy_policy.primary_fire_intent.v0',
+      );
+      const fireReceipt = fireProposal === undefined ? null : session.submitRuntimeActionIntent(fireProposal.intent);
+      latestEnemyPolicy = {
+        tick,
+        fixture,
+        fireReceipt,
+      };
+      return this.enemyPolicyReadout();
+    },
+    enemyPolicyReadout() {
+      const policy = latestEnemyPolicy ?? {
+        tick,
+        fixture: createEnemyPolicyFixture(tick),
+        fireReceipt: null,
+      };
+      return {
+        statusVersion: 'asha-demo-enemy-policy.v0',
+        publicImports: ['@asha/runtime-bridge'],
+        policySourcePath: 'policies/README.md',
+        tick: policy.tick,
+        view: {
+          enemy: policy.fixture.view.enemy,
+          target: {
+            id: policy.fixture.view.target.id,
+            position: policy.fixture.view.target.position,
+          },
+          navPathHash: policy.fixture.view.nav.latestPath.pathHash,
+          readOnly: policy.fixture.view.readOnly,
+          proposalOnly: policy.fixture.view.proposalOnly,
+        },
+        frame: policy.fixture.frame,
+        fireReceipt: policy.fireReceipt,
+        sourceGuard: {
+          cleanDiagnostics: validateEnemyPolicySource('export const policy = (view) => [];'),
+          forbiddenDiagnostics: validateEnemyPolicySource('Date.now(); Math.random(); fetch("/state"); window.location.href;'),
+        },
+        nonClaims: policy.fixture.nonClaims,
+      };
+    },
     readout() {
       const inputReadout = input.readout();
       return {
@@ -153,6 +201,17 @@ function createMovementDemo() {
       };
     },
   };
+
+  function createEnemyPolicyFixture(policyTick) {
+    return createGeneratedTunnelEnemyPolicyFixture({
+      tick: policyTick,
+      nav: session.readNavPolicyView(),
+      target: {
+        camera: latestCamera.camera,
+        position: [1, 1, 1],
+      },
+    });
+  }
 
   function applyCollisionFrame(cameraInput, frame = null) {
     try {
@@ -237,6 +296,7 @@ function wireMovementControls(demo) {
   const stepButton = document.querySelector('#movement-step');
   const wallButton = document.querySelector('#movement-wall-probe');
   const fireButton = document.querySelector('#combat-fire');
+  const enemyPolicyButton = document.querySelector('#enemy-policy-run');
   const actionButtons = document.querySelectorAll('[data-movement-action]');
 
   pointerButton.addEventListener('click', () => {
@@ -247,6 +307,7 @@ function wireMovementControls(demo) {
   stepButton.addEventListener('click', () => renderMovementReadout(demo.step()));
   wallButton.addEventListener('click', () => renderMovementReadout(demo.probeWallStop()));
   fireButton.addEventListener('click', () => renderCombatActionReceipt(demo.firePrimary()));
+  enemyPolicyButton.addEventListener('click', () => renderEnemyPolicyReadout(demo.runEnemyPolicy()));
 
   for (const button of actionButtons) {
     button.addEventListener('click', () => {
@@ -462,6 +523,63 @@ function renderCombatActionReceipt(actionReceipt) {
   ];
   for (const [label, value] of rows) {
     appendFact(facts, label, value);
+  }
+}
+
+function renderEnemyPolicyReadout(readout) {
+  const facts = document.querySelector('#enemy-policy-summary');
+  const proposals = document.querySelector('#enemy-policy-proposals');
+  const diagnostics = document.querySelector('#enemy-policy-diagnostics');
+  facts.replaceChildren();
+  proposals.replaceChildren();
+  diagnostics.replaceChildren();
+
+  const fireProposal = readout.frame.proposals.find(
+    (proposal) => proposal.kind === 'enemy_policy.primary_fire_intent.v0',
+  );
+  const moveProposal = readout.frame.proposals.find(
+    (proposal) => proposal.kind === 'enemy_policy.move_toward_target.v0',
+  );
+  const combatReadout = readout.fireReceipt?.combatReadout;
+  const health = combatReadout?.health[0];
+  const forbiddenTokens = readout.sourceGuard.forbiddenDiagnostics.map((diagnostic) => diagnostic.token).join(', ');
+  const rows = [
+    ['Policy source', readout.policySourcePath],
+    ['Public imports', readout.publicImports.join(', ')],
+    ['Tick', String(readout.tick)],
+    ['Enemy', `${readout.view.enemy.id} at ${formatVector(readout.view.enemy.position)}`],
+    ['Target', `${readout.view.target.id} at ${formatVector(readout.view.target.position)}`],
+    ['Policy view', readout.view.readOnly && readout.view.proposalOnly ? 'read-only proposal-only' : 'invalid'],
+    ['Nav path hash', readout.view.navPathHash],
+    ['Move proposal', moveProposal?.nextWaypoint === null ? 'none' : formatVector(moveProposal?.nextWaypoint ?? [])],
+    ['Fire source', fireProposal?.intent.source ?? 'none'],
+    ['Proposal hash', readout.frame.proposalHash],
+    ['Fire status', readout.fireReceipt?.status ?? 'not submitted'],
+    ['Health', health === undefined ? 'not submitted' : `Health ${health.current}/${health.max}${health.dead ? ' defeated' : ''}`],
+    ['Forbidden guard', forbiddenTokens],
+  ];
+
+  for (const [label, value] of rows) {
+    appendFact(facts, label, value);
+  }
+
+  for (const proposal of readout.frame.proposals) {
+    const item = document.createElement('li');
+    item.textContent =
+      proposal.kind === 'enemy_policy.move_toward_target.v0'
+        ? `${proposal.kind} -> ${proposal.nextWaypoint === null ? 'none' : formatVector(proposal.nextWaypoint)}`
+        : `${proposal.kind} -> ${proposal.intent.action} ${proposal.intent.source}`;
+    proposals.append(item);
+  }
+
+  const diagnosticLines =
+    readout.frame.diagnostics.length === 0
+      ? ['none']
+      : readout.frame.diagnostics.map((diagnostic) => `${diagnostic.code}: ${diagnostic.detail}`);
+  for (const diagnostic of diagnosticLines) {
+    const item = document.createElement('li');
+    item.textContent = diagnostic;
+    diagnostics.append(item);
   }
 }
 

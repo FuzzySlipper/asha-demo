@@ -1,5 +1,14 @@
-# Policy Placeholder
+# Enemy Policy Fixture
 
-Policy authoring is intentionally deferred.
+This directory remains documentation-only for demo-owned policy source packages.
 
-The current ASHA public-surface policy does not approve a demo-owned TypeScript policy package or policy SDK import. This directory is documentation-only until ASHA main exposes an approved public policy-authoring surface.
+The current demo enemy behavior uses the public `@asha/runtime-bridge` root export:
+
+- `createGeneratedTunnelEnemyPolicyFixture`
+- `proposeEnemyPolicyFrame`
+- `validateEnemyPolicySource`
+
+The fixture consumes a read-only/proposal-only policy view from `RuntimeSession`,
+proposes movement/fire intents, and submits only the typed fire intent back through
+`RuntimeSession`. It does not import internal ASHA policy packages, does not own
+authority, and does not run a demo-local policy runtime.

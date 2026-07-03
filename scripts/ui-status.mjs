@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createStaticRoomRenderFrame, renderProjectedFrame, STATIC_ROOM_FIXTURE_NAME } from '@asha/renderer-three';
-import { createMockRuntimeSession } from '@asha/runtime-bridge';
+import {
+  createGeneratedTunnelEnemyPolicyFixture,
+  createMockRuntimeSession,
+  validateEnemyPolicySource,
+} from '@asha/runtime-bridge';
 import { buildHudProjection, hudControlToIntent } from '@asha/ui-dom';
 
 export function buildUiStatus(repoRoot) {
@@ -35,12 +39,12 @@ export function buildUiStatus(repoRoot) {
     nonClaims: [
       'Not a playable FPS.',
       'No live native RuntimeSession attach.',
-      'No enemy AI.',
-      'No combat loop.',
+      'No autonomous enemy gameplay loop.',
+      'No continuous combat loop.',
       'No live procedural dungeon gameplay.',
       'No death or restart loop.',
       'No interactive renderer or pixel-rendered gameplay claim.',
-      'No local generation algorithm, pathfinding, combat authority, or enemy AI.',
+      'No local generation algorithm, pathfinding, combat authority, or enemy movement authority.',
       'No Studio live inspection or control claim.',
     ],
   };
@@ -134,6 +138,19 @@ function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
     source: 'programmatic',
     pressed: true,
   });
+  const enemyPolicyFixture = createGeneratedTunnelEnemyPolicyFixture({
+    tick: 8,
+    nav: session.readNavPolicyView(),
+    target: {
+      camera: fireCamera,
+      position: [1, 1, 1],
+    },
+  });
+  const enemyFireProposal = enemyPolicyFixture.frame.proposals.find(
+    (proposal) => proposal.kind === 'enemy_policy.primary_fire_intent.v0',
+  );
+  const enemyFireReceipt =
+    enemyFireProposal === undefined ? null : session.submitRuntimeActionIntent(enemyFireProposal.intent);
   const combatReadout = fireReceipt.combatReadout;
   const hudProjection = buildHudProjection({
     health: combatReadout.health[0],
@@ -210,18 +227,90 @@ function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
         exit: hudControlToIntent('hud-exit'),
       },
     },
+    enemyPolicy: {
+      status: 'public_enemy_policy_fixture',
+      policySourcePath: 'policies/README.md',
+      publicImports: ['@asha/runtime-bridge'],
+      nonClaims: enemyPolicyFixture.nonClaims,
+      view: {
+        kind: enemyPolicyFixture.view.kind,
+        tick: enemyPolicyFixture.view.tick,
+        enemy: enemyPolicyFixture.view.enemy,
+        target: {
+          id: enemyPolicyFixture.view.target.id,
+          position: enemyPolicyFixture.view.target.position,
+        },
+        navPathHash: enemyPolicyFixture.view.nav.latestPath.pathHash,
+        readOnly: enemyPolicyFixture.view.readOnly,
+        proposalOnly: enemyPolicyFixture.view.proposalOnly,
+      },
+      frame: {
+        kind: enemyPolicyFixture.frame.kind,
+        tick: enemyPolicyFixture.frame.tick,
+        proposalHash: enemyPolicyFixture.frame.proposalHash,
+        proposals: summarizeEnemyPolicyProposals(enemyPolicyFixture.frame.proposals),
+        diagnostics: enemyPolicyFixture.frame.diagnostics,
+      },
+      fireReceipt: enemyFireReceipt === null ? null : {
+        accepted: enemyFireReceipt.accepted,
+        status: enemyFireReceipt.status,
+        rejection: enemyFireReceipt.rejection,
+        envelope: {
+          action: enemyFireReceipt.envelope.action,
+          phase: enemyFireReceipt.envelope.phase,
+          source: enemyFireReceipt.envelope.source,
+          tick: enemyFireReceipt.envelope.tick,
+        },
+        combatReadout: enemyFireReceipt.combatReadout,
+      },
+      sourceValidation: {
+        cleanDiagnostics: validateEnemyPolicySource('export const policy = (view) => [];'),
+        forbiddenDiagnostics: validateEnemyPolicySource(
+          'Date.now(); Math.random(); fetch("/state"); window.location.href; import("node:fs");',
+        ),
+      },
+    },
     nonClaims: [
       'movement_readout_only',
       'not_native_runtime',
       'not_interactive_renderer',
       'not_gameplay_loop',
-      'not_enemy_ai',
-      'not_combat_loop',
+      'not_autonomous_enemy_gameplay_loop',
+      'not_continuous_combat_loop',
       'not_demo_local_combat_authority',
+      'not_demo_local_enemy_movement_authority',
       'not_demo_local_generation_algorithm',
       'not_live_regenerate',
     ],
   };
+}
+
+function summarizeEnemyPolicyProposals(proposals) {
+  return proposals.map((proposal) => {
+    if (proposal.kind === 'enemy_policy.move_toward_target.v0') {
+      return {
+        kind: proposal.kind,
+        actor: proposal.actor,
+        target: proposal.target,
+        nextWaypoint: proposal.nextWaypoint,
+        pathHash: proposal.pathHash,
+        authority: proposal.authority,
+      };
+    }
+    return {
+      kind: proposal.kind,
+      actor: proposal.actor,
+      target: proposal.target,
+      intent: {
+        action: proposal.intent.action,
+        phase: proposal.intent.phase,
+        source: proposal.intent.source,
+        tick: proposal.intent.tick,
+      },
+      distanceUnits: proposal.distanceUnits,
+      authority: proposal.authority,
+    };
+  });
 }
 
 function stableHash(text) {
