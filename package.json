@@ -1,0 +1,18 @@
+{
+  "name": "asha-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Human-facing ASHA Game Project skeleton; not a playable FPS yet.",
+  "scripts": {
+    "check:dependencies": "node scripts/check-dependency-boundary.mjs",
+    "skeleton:status": "node scripts/print-skeleton-status.mjs",
+    "typecheck": "npm run check:dependencies",
+    "test": "npm run check:dependencies"
+  },
+  "dependencies": {
+    "@asha/contracts": "file:../asha/ts/packages/contracts",
+    "@asha/game-workspace": "file:../asha/ts/packages/game-workspace",
+    "@asha/runtime-bridge": "file:../asha/ts/packages/runtime-bridge"
+  }
+}
