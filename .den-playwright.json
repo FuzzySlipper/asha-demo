@@ -1,0 +1,21 @@
+{
+  "project": "asha-demo",
+  "serve": {
+    "command": "npm run dev -- --host {host} --port {port}",
+    "preferredPort": 5173,
+    "healthUrl": "/health",
+    "readyText": "\"project\": \"asha-demo\"",
+    "identityHeader": "X-Den-Project",
+    "reusePolicy": "broker_owned",
+    "startupTimeout": "45s"
+  },
+  "tests": {
+    "command": "npx playwright test",
+    "config": "playwright.config.mjs",
+    "defaultArgs": ["--grep", "@live-agent"],
+    "artifactPolicy": "live-ui",
+    "env": {
+      "PLAYWRIGHT_CHROMIUM_EXECUTABLE": "/usr/bin/chromium"
+    }
+  }
+}

@@ -17,7 +17,7 @@ catalog_packages = ["catalogs/actors", "catalogs/materials", "catalogs/weapons"]
 policy_packages = []
 
 [runtime]
-dev_command = "npm run skeleton:status"
+dev_command = "npm run dev"
 devtools_endpoint = "ws://127.0.0.1:7391"
 wasm_or_native_entry = "dist/runtime/index.js"
 backend_mode = "reference"
@@ -30,9 +30,9 @@ attach_enabled = false
 allowed_source_writes = ["levels/presets", "assets", "catalogs/actors", "catalogs/materials", "catalogs/weapons"]
 
 [publish]
-command = "npm run skeleton:status"
+command = "npm run build"
 artifact_dir = "dist"
-verify_command = "npm run check:dependencies"
+verify_command = "npm run typecheck"
 
 [dev_resource_profile]
 local_roots = ["assets", "catalogs/actors", "catalogs/materials", "catalogs/weapons"]

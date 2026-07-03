@@ -18,15 +18,18 @@ This repo now contains the first ASHA Game Project skeleton:
 - `catalogs/actors/`, `catalogs/materials/`, and `catalogs/weapons/` are game-content placeholders.
 - `levels/presets/`, `assets/`, and `replays/` are source roots for future demo-owned content and evidence.
 - `policies/` is documentation-only until ASHA exposes an approved public policy-authoring surface.
+- The served UI consumes public ASHA package roots to display a static RuntimeSession and static-room render/readout. This is an objective no-gameplay readout, not an interactive renderer or playable slice.
 
 Run `npm run check:dependencies` before adding code or package dependencies. The guard reads ASHA's public-surface manifest and rejects private ASHA packages, generated contract file paths, Rust crate paths, and package-internal `src/*` imports.
 
+Run `npm run test:live-ui` only with `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` set by the Den Playwright broker or an equivalent local dev-server wrapper. The live UI smoke checks objective text/readout values and writes screenshots under `PLAYWRIGHT_BROKER_ARTIFACT_ROOT` when provided.
+
 ## Current non-claims
 
-This is not yet a playable FPS and does not claim shooting, enemies, death/restart, procedural generation, collision/pathfinding authority, Studio live integration, or a human-facing renderer. Passing `asha-testing` synthetic proof does not equal `asha-demo` acceptance; demo claims need human-operable UI and browser-visible evidence.
+This is not yet a playable FPS and does not claim shooting, enemies, death/restart, procedural generation, collision/pathfinding authority, Studio live integration, movement, pointer lock, or an interactive gameplay renderer. Passing `asha-testing` synthetic proof does not equal `asha-demo` acceptance; demo claims need human-operable UI and browser-visible evidence.
 
 See `docs/no-claims.md` for the full current non-claim list.
 
 ## Live UI evidence
 
-`asha-demo` is not yet opted into the Den Playwright broker because it has no served browser UI. See `docs/playwright-broker.md` for the future command shape, required `BASE_URL`/`PLAYWRIGHT_BROKER_BASE_URL` behavior, and evidence expectations.
+Run `npm run dev -- --host 127.0.0.1 --port 5173` to serve the no-claims static readout UI. `asha-demo` is opted into the Den Playwright broker via `.den-playwright.json`; see `docs/playwright-broker.md` for the command shape, required `BASE_URL`/`PLAYWRIGHT_BROKER_BASE_URL` behavior, and evidence expectations.

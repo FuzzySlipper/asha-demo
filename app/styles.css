@@ -1,0 +1,248 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f6f7f4;
+  color: #1d2520;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    linear-gradient(135deg, rgba(43, 91, 73, 0.08) 25%, transparent 25%) 0 0 / 38px 38px,
+    linear-gradient(225deg, rgba(90, 112, 62, 0.08) 25%, transparent 25%) 0 0 / 38px 38px,
+    #f6f7f4;
+}
+
+.shell {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 40px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 24px;
+  align-items: stretch;
+  min-height: 280px;
+  padding: 32px;
+  border: 1px solid #d1d8ce;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(229, 198, 95, 0.28), transparent 26%),
+    linear-gradient(135deg, #fefdf9, #edf1e8 58%, #e6efe8);
+}
+
+.kicker {
+  margin: 0 0 18px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: #4d6759;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 18px;
+  font-size: clamp(2.7rem, 8vw, 5.8rem);
+  line-height: 0.95;
+  letter-spacing: 0;
+  color: #14221b;
+}
+
+h2 {
+  margin-bottom: 16px;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.lede {
+  max-width: 620px;
+  margin-bottom: 16px;
+  font-size: 1.15rem;
+  line-height: 1.55;
+  color: #33443b;
+}
+
+.non-claim-banner {
+  display: inline-block;
+  margin-bottom: 0;
+  padding: 10px 12px;
+  border: 1px solid #d7b0a6;
+  border-radius: 6px;
+  background: #fff8f3;
+  color: #7b3327;
+  font-weight: 750;
+}
+
+.status-board {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+}
+
+.status-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px;
+  border: 1px solid #c4cec1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  min-height: 56px;
+}
+
+.status-line span {
+  color: #526259;
+}
+
+.status-line strong {
+  text-align: right;
+  color: #23352b;
+}
+
+.status-line.strong strong {
+  color: #8b2f22;
+}
+
+.readout-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.panel {
+  min-height: 220px;
+  padding: 20px;
+  border: 1px solid #d6dbd2;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.panel.wide {
+  grid-column: span 2;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.55fr) minmax(0, 1fr);
+  gap: 10px 14px;
+  margin: 0;
+}
+
+.facts dt {
+  color: #607166;
+}
+
+.facts dd {
+  margin: 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.tag-list,
+.check-list,
+.path-list,
+.snapshot-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tag-list li,
+.path-list li {
+  padding: 8px 10px;
+  border: 1px solid #c7d1c4;
+  border-radius: 6px;
+  background: #f4f6f1;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.public-readout {
+  align-content: start;
+}
+
+.snapshot-list {
+  display: grid;
+  margin-top: 16px;
+}
+
+.snapshot-list li {
+  padding: 8px 10px;
+  border: 1px solid #c7d1c4;
+  border-radius: 6px;
+  background: #eef3ef;
+  color: #26382d;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.check-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.check-list li {
+  position: relative;
+  min-height: 42px;
+  padding: 9px 12px 9px 34px;
+  border: 1px solid #e1d6ce;
+  border-radius: 6px;
+  background: #fff8f3;
+  color: #4c352d;
+}
+
+.check-list li::before {
+  content: "!";
+  position: absolute;
+  left: 11px;
+  top: 9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #a64332;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
+@media (max-width: 820px) {
+  .hero,
+  .readout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding: 24px;
+  }
+
+  .panel.wide {
+    grid-column: span 1;
+  }
+
+  .check-list {
+    grid-template-columns: 1fr;
+  }
+}

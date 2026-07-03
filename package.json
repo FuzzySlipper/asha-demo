@@ -5,14 +5,22 @@
   "type": "module",
   "description": "Human-facing ASHA Game Project skeleton; not a playable FPS yet.",
   "scripts": {
+    "build": "node scripts/build-ui.mjs",
     "check:dependencies": "node scripts/check-dependency-boundary.mjs",
+    "check:ui": "node scripts/check-ui-assets.mjs",
+    "dev": "node scripts/serve-ui.mjs",
     "skeleton:status": "node scripts/print-skeleton-status.mjs",
-    "typecheck": "npm run check:dependencies",
-    "test": "npm run check:dependencies"
+    "test:live-ui": "playwright test -c playwright.config.mjs",
+    "typecheck": "npm run check:dependencies && npm run check:ui",
+    "test": "npm run typecheck"
   },
   "dependencies": {
     "@asha/contracts": "file:../asha/ts/packages/contracts",
     "@asha/game-workspace": "file:../asha/ts/packages/game-workspace",
+    "@asha/renderer-three": "file:../asha/ts/packages/renderer-three",
     "@asha/runtime-bridge": "file:../asha/ts/packages/runtime-bridge"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
   }
 }

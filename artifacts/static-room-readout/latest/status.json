@@ -1,0 +1,86 @@
+{
+  "repo": "asha-demo",
+  "kind": "served static public ASHA readout UI",
+  "playable": false,
+  "runtimeSessionAttached": true,
+  "studioLiveIntegration": false,
+  "manifest": {
+    "present": true,
+    "engineSource": "../asha",
+    "runtimeCommand": "npm run dev",
+    "studioAttachEnabled": false
+  },
+  "publicAshaReadout": {
+    "statusVersion": "asha-demo-public-readout.v0",
+    "publicImports": [
+      "@asha/runtime-bridge",
+      "@asha/renderer-three"
+    ],
+    "runtimeSession": {
+      "sessionId": "asha-demo:static-room:reference-session",
+      "mode": "reference",
+      "tick": 0,
+      "sessionHash": "fnv1a64:56bf53eed069acd9",
+      "replayRecordCount": 1,
+      "acceptedCommandCount": 0,
+      "rejectedCommandCount": 0,
+      "projectionHash": "fnv1a64:55c2104cf3119506",
+      "nonClaims": [
+        "not_native_runtime",
+        "not_raw_state_store",
+        "not_arbitrary_json_bridge",
+        "not_gameplay_loop",
+        "not_renderer"
+      ]
+    },
+    "staticRoom": {
+      "fixtureName": "static-room",
+      "renderOpCount": 15,
+      "projectionHandleCount": 7,
+      "rendererHandleCount": 7,
+      "wallInstanceCount": 4,
+      "markerPresent": true,
+      "structuralSnapshotPreview": [
+        "handle 1  layer scene  kind staticMesh  asset mesh/room-floor  pos 0,-1,0  scale 8,1,8  visible true  materials [0.44,0.48,0.46]  label \"room-floor\"",
+        "handle 2  layer scene  kind staticMesh  asset mesh/room-wall  pos 0,1,-4  scale 8,4,1  visible true  materials [0.68,0.73,0.76]  label \"room-wall-north\"",
+        "handle 3  layer scene  kind staticMesh  asset mesh/room-wall  pos 0,1,4  scale 8,4,1  visible true  materials [0.68,0.73,0.76]  label \"room-wall-south\"",
+        "handle 4  layer scene  kind staticMesh  asset mesh/room-wall  pos -4,1,0  scale 1,4,8  visible true  materials [0.68,0.73,0.76]  label \"room-wall-west\""
+      ],
+      "structuralSnapshotHash": "asha-demo-static-room-05e604fc"
+    },
+    "nonClaims": [
+      "static_readout_only",
+      "not_native_runtime",
+      "not_interactive_renderer",
+      "not_gameplay_loop",
+      "not_collision_or_motion_evidence"
+    ]
+  },
+  "allowedImports": [
+    "@asha/contracts",
+    "@asha/game-workspace",
+    "@asha/renderer-three",
+    "@asha/runtime-bridge"
+  ],
+  "sourceRoots": [
+    "levels/presets",
+    "assets",
+    "replays",
+    "catalogs/actors",
+    "catalogs/materials",
+    "catalogs/weapons"
+  ],
+  "nonClaims": [
+    "Not a playable FPS.",
+    "No live native RuntimeSession attach.",
+    "No movement.",
+    "No shooting.",
+    "No enemy AI.",
+    "No procedural dungeon.",
+    "No death or restart loop.",
+    "No gameplay controls or pointer lock.",
+    "No interactive renderer or pixel-rendered gameplay claim.",
+    "No collision, pathfinding, combat, enemy AI, or procedural generation.",
+    "No Studio live inspection or control claim."
+  ]
+}

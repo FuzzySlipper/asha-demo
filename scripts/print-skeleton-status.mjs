@@ -1,14 +1,8 @@
-const status = {
-  repo: 'asha-demo',
-  kind: 'ASHA Game Project skeleton',
-  playable: false,
-  runtimeSessionAttached: false,
-  studioLiveIntegration: false,
-  notes: [
-    'Package and manifest shape are present.',
-    'Catalog, asset, level, and policy paths are placeholders.',
-    'No local collision, pathfinding, combat, FPS controller, enemy AI, or renderer authority exists here.',
-  ],
-};
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildUiStatus } from './ui-status.mjs';
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const status = buildUiStatus(repoRoot);
 
 console.log(JSON.stringify(status, null, 2));

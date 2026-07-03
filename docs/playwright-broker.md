@@ -1,8 +1,8 @@
 # Playwright Broker Readiness
 
-`asha-demo` is not opted into `den-playwright` yet because this repo does not currently expose a served browser UI or dev-server command.
+`asha-demo` is opted into the Den Playwright broker for objective live UI evidence.
 
-The future broker command should use this shape:
+The broker command uses this shape:
 
 ```sh
 export DEN_PLAYWRIGHT_BROKER_CONFIG_PATH=/home/dev/den-services/playwright-broker/config/config.example.yaml
@@ -13,24 +13,39 @@ den-playwright run asha-demo \
   -- --reporter=list
 ```
 
-## Missing Prerequisite
+If `den-playwright` is not installed on `PATH`, run from `/home/dev/den-services`:
 
-Before adding `.den-playwright.json`, `.playwright-service.json`, or `den-playwright.json`, `asha-demo` needs an actual dev-server command that serves a human-facing UI.
+```sh
+export DEN_PLAYWRIGHT_BROKER_CONFIG_PATH=/home/dev/den-services/playwright-broker/config/config.example.yaml
+go run ./playwright-broker/cmd/den-playwright run asha-demo \
+  -repo /home/dev/asha-demo \
+  -den-project asha \
+  -den-task <task-id> \
+  -- --reporter=list
+```
 
-The current `npm run skeleton:status` command prints a JSON non-claim readout. It is not a browser UI and must not be treated as a Playwright target.
+## Current Dev Server
 
-## Future Manifest Requirements
+Run the no-claims skeleton UI with:
 
-When a served UI exists, add one broker manifest at the repo root with:
+```sh
+npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+The command accepts `--host` and `--port`, and also respects `HOST` / `PORT` or npm config values. The broker manifest passes broker-owned `{host}` and `{port}` placeholders instead of hardcoding a port.
+
+## Manifest
+
+The repo root has `.den-playwright.json` with:
 
 - project identity `asha-demo`;
-- `serve.command` using broker placeholders such as `{host}` and `{port}`;
-- a `healthUrl` for the UI;
-- `readyText` or `identityHeader`, preferably both;
+- `serve.command` using broker-owned `{host}` and `{port}` placeholders;
+- `healthUrl` set to `/health`;
+- `readyText` and `identityHeader` checks for `asha-demo`;
 - `tests.command` invoking Playwright;
 - `tests.artifactPolicy` set to `live-ui`.
 
-Tests must read `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL`. Do not hardcode localhost ports.
+The smoke test in `tests/live-ui.spec.mjs` reads `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` and fails if neither is set. It checks objective UI/readout content only: project identity, no-claims text, public import names, and static-room handle counts.
 
 ## Evidence Expectations
 
