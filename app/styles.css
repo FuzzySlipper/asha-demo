@@ -197,6 +197,73 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.movement-panel {
+  align-content: start;
+}
+
+.generated-panel {
+  align-content: start;
+}
+
+.combat-panel {
+  align-content: start;
+}
+
+.movement-surface {
+  display: grid;
+  gap: 16px;
+  outline: none;
+}
+
+.movement-surface:focus {
+  box-shadow: 0 0 0 3px rgba(42, 100, 80, 0.22);
+}
+
+.movement-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.combat-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 220px);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.movement-actions button,
+.combat-actions button {
+  min-height: 40px;
+  border: 1px solid #aebdad;
+  border-radius: 6px;
+  background: #eef3ef;
+  color: #1f3328;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.movement-actions button:hover,
+.movement-actions button:focus-visible,
+.combat-actions button:hover,
+.combat-actions button:focus-visible {
+  background: #dfe9e1;
+}
+
+.movement-facts {
+  grid-template-columns: minmax(110px, 0.42fr) minmax(0, 1fr);
+}
+
+.generated-facts {
+  grid-template-columns: minmax(130px, 0.42fr) minmax(0, 1fr);
+}
+
+.combat-facts {
+  grid-template-columns: minmax(130px, 0.42fr) minmax(0, 1fr);
+  margin-top: 16px;
+}
+
 .check-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -244,5 +311,9 @@ h2 {
 
   .check-list {
     grid-template-columns: 1fr;
+  }
+
+  .movement-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

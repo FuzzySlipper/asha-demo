@@ -2,12 +2,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createStaticRoomRenderFrame, renderProjectedFrame, STATIC_ROOM_FIXTURE_NAME } from '@asha/renderer-three';
 import { createMockRuntimeSession } from '@asha/runtime-bridge';
+import { buildHudProjection, hudControlToIntent } from '@asha/ui-dom';
 
 export function buildUiStatus(repoRoot) {
   const packageJson = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'));
   const manifestText = readFileSync(join(repoRoot, 'asha.game.toml'), 'utf8');
   const manifest = readTinyToml(manifestText);
-  const publicAshaReadout = buildPublicAshaReadout();
+  const generatedTunnelPreset = JSON.parse(readFileSync(join(repoRoot, 'levels/presets/tiny-enclosed-tunnel.json'), 'utf8'));
+  const staticTarget = JSON.parse(readFileSync(join(repoRoot, 'catalogs/actors/static-target-dummy.json'), 'utf8'));
+  const publicAshaReadout = buildPublicAshaReadout(generatedTunnelPreset, staticTarget);
 
   return {
     repo: 'asha-demo',
@@ -32,20 +35,18 @@ export function buildUiStatus(repoRoot) {
     nonClaims: [
       'Not a playable FPS.',
       'No live native RuntimeSession attach.',
-      'No movement.',
-      'No shooting.',
       'No enemy AI.',
-      'No procedural dungeon.',
+      'No combat loop.',
+      'No live procedural dungeon gameplay.',
       'No death or restart loop.',
-      'No gameplay controls or pointer lock.',
       'No interactive renderer or pixel-rendered gameplay claim.',
-      'No collision, pathfinding, combat, enemy AI, or procedural generation.',
+      'No local generation algorithm, pathfinding, combat authority, or enemy AI.',
       'No Studio live inspection or control claim.',
     ],
   };
 }
 
-function buildPublicAshaReadout() {
+function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
   const session = createMockRuntimeSession();
   const initialized = session.initialize({
     sessionId: 'asha-demo:static-room:reference-session',
@@ -62,13 +63,93 @@ function buildPublicAshaReadout() {
   });
   const telemetry = session.readTelemetry();
   const runtimeProjection = session.readProjection();
+  const camera = session.createCamera({
+    initialPose: {
+      position: [0, 1.6, 0],
+      yawDegrees: 0,
+      pitchDegrees: 0,
+    },
+    projection: {
+      fovYDegrees: 60,
+      near: 0.1,
+      far: 100,
+    },
+    viewport: {
+      width: 1280,
+      height: 720,
+    },
+  }).snapshot.camera;
+  const wallStop = session.applyCollisionConstrainedCameraInput({
+    camera,
+    grid: 1,
+    input: {
+      moveForward: 1,
+      moveRight: 0,
+      moveUp: 0,
+      yawDeltaDegrees: 0,
+      pitchDeltaDegrees: 0,
+      dtSeconds: 1,
+      moveSpeedUnitsPerSecond: 99,
+    },
+    tick: 1,
+    shape: {
+      halfExtents: [0.25, 0.25, 0.25],
+    },
+    policy: {
+      mode: 'axis_separable_slide',
+      maxIterations: 3,
+    },
+  });
+  const generatedTunnel = session.readGeneratedTunnelReadout({
+    presetId: generatedTunnelPreset.presetId,
+    seed: generatedTunnelPreset.seed,
+  });
+  const generatedTunnelOperation = session.requestGeneratedTunnelOperation({
+    operation: 'regenerate',
+    presetId: generatedTunnelPreset.presetId,
+    seed: generatedTunnelPreset.seed,
+  });
+  const fireCamera = session.createCamera({
+    initialPose: {
+      position: [2.5, 1.5, 1.5],
+      yawDegrees: 180,
+      pitchDegrees: 0,
+    },
+    projection: {
+      fovYDegrees: 60,
+      near: 0.1,
+      far: 100,
+    },
+    viewport: {
+      width: 1280,
+      height: 720,
+    },
+  }).snapshot.camera;
+  const fireReceipt = session.submitRuntimeActionIntent({
+    kind: 'runtime_action_intent.v0',
+    action: 'primary_fire',
+    phase: 'pressed',
+    camera: fireCamera,
+    tick: 7,
+    source: 'programmatic',
+    pressed: true,
+  });
+  const combatReadout = fireReceipt.combatReadout;
+  const hudProjection = buildHudProjection({
+    health: combatReadout.health[0],
+    status: [
+      { id: 'combat', tone: combatReadout.outcome.kind === 'hit' ? 'danger' : 'info', text: combatReadout.outcome.kind },
+    ],
+    nonClaims: ['not_enemy_ai', 'not_combat_loop', 'not_demo_local_combat_authority'],
+    menuOpen: true,
+  });
   const frame = createStaticRoomRenderFrame();
   const rendered = renderProjectedFrame(frame);
   const structuralLines = rendered.structuralSnapshot.trim().split('\n');
 
   return {
     statusVersion: 'asha-demo-public-readout.v0',
-    publicImports: ['@asha/runtime-bridge', '@asha/renderer-three'],
+    publicImports: ['@asha/runtime-bridge', '@asha/renderer-three', '@asha/ui-dom'],
     runtimeSession: {
       sessionId: initialized.identity.sessionId,
       mode: initialized.identity.mode,
@@ -90,12 +171,55 @@ function buildPublicAshaReadout() {
       structuralSnapshotPreview: structuralLines.slice(0, 4),
       structuralSnapshotHash: stableHash(rendered.structuralSnapshot),
     },
+    movementReadout: {
+      status: 'public_runtime_session_collision_probe',
+      input: wallStop.envelope.input,
+      before: wallStop.snapshot.before.pose,
+      attempted: wallStop.snapshot.attempted.pose,
+      after: wallStop.snapshot.after.pose,
+      collision: {
+        collided: wallStop.collided,
+        blockedAxes: wallStop.blockedAxes,
+        movementHash: wallStop.movementHash,
+        collisionProjectionHash: wallStop.collisionProjectionHash,
+      },
+    },
+    generatedTunnel: {
+      presetPath: 'levels/presets/tiny-enclosed-tunnel.json',
+      preset: generatedTunnelPreset,
+      readout: generatedTunnel,
+      regenerate: {
+        operation: generatedTunnelOperation.operation,
+        status: generatedTunnelOperation.status,
+        reason: generatedTunnelOperation.reason,
+      },
+    },
+    combatHud: {
+      staticTargetPath: 'catalogs/actors/static-target-dummy.json',
+      staticTarget,
+      fireReceipt: {
+        accepted: fireReceipt.accepted,
+        status: fireReceipt.status,
+        rejection: fireReceipt.rejection,
+      },
+      combatReadout,
+      hudProjection,
+      menuIntents: {
+        restart: hudControlToIntent('hud-restart'),
+        options: hudControlToIntent('hud-options'),
+        exit: hudControlToIntent('hud-exit'),
+      },
+    },
     nonClaims: [
-      'static_readout_only',
+      'movement_readout_only',
       'not_native_runtime',
       'not_interactive_renderer',
       'not_gameplay_loop',
-      'not_collision_or_motion_evidence',
+      'not_enemy_ai',
+      'not_combat_loop',
+      'not_demo_local_combat_authority',
+      'not_demo_local_generation_algorithm',
+      'not_live_regenerate',
     ],
   };
 }

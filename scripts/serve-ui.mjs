@@ -7,6 +7,8 @@ import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'app');
+const contractsBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'contracts', 'dist');
+const runtimeBridgeBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'runtime-bridge', 'dist');
 const args = parseArgs(process.argv.slice(2));
 const host = args.host ?? process.env.HOST ?? process.env.npm_config_host ?? '127.0.0.1';
 const port = Number(args.port ?? process.env.PORT ?? process.env.npm_config_port ?? 5173);
@@ -21,9 +23,19 @@ const server = createServer(async (request, response) => {
     sendJson(response, 200, buildUiStatus(repoRoot));
     return;
   }
+  if (request.url?.startsWith('/vendor/asha-runtime-bridge/')) {
+    const vendorPath = request.url.replace('/vendor/asha-runtime-bridge/', '') || 'browser.js';
+    await sendStaticAssetFromRoot(response, runtimeBridgeBrowserRoot, vendorPath);
+    return;
+  }
+  if (request.url?.startsWith('/vendor/asha-contracts/')) {
+    const vendorPath = request.url.replace('/vendor/asha-contracts/', '') || 'index.js';
+    await sendStaticAssetFromRoot(response, contractsBrowserRoot, vendorPath);
+    return;
+  }
 
   const assetPath = request.url === '/' ? '/index.html' : decodeURIComponent(request.url ?? '/index.html');
-  await sendStaticAsset(response, assetPath);
+  await sendStaticAssetFromRoot(response, appRoot, assetPath);
 });
 
 server.listen(port, host, () => {
@@ -35,10 +47,10 @@ server.listen(port, host, () => {
 process.on('SIGTERM', () => server.close(() => process.exit(0)));
 process.on('SIGINT', () => server.close(() => process.exit(0)));
 
-async function sendStaticAsset(response, requestPath) {
+async function sendStaticAssetFromRoot(response, root, requestPath) {
   const normalizedPath = requestPath.replace(/^\/+/, '');
-  const filePath = resolve(appRoot, normalizedPath);
-  if (!filePath.startsWith(appRoot)) {
+  const filePath = resolve(root, normalizedPath);
+  if (!filePath.startsWith(root)) {
     response.writeHead(403);
     response.end('Forbidden');
     return;

@@ -18,7 +18,7 @@ This repo now contains the first ASHA Game Project skeleton:
 - `catalogs/actors/`, `catalogs/materials/`, and `catalogs/weapons/` are game-content placeholders.
 - `levels/presets/`, `assets/`, and `replays/` are source roots for future demo-owned content and evidence.
 - `policies/` is documentation-only until ASHA exposes an approved public policy-authoring surface.
-- The served UI consumes public ASHA package roots to display a static RuntimeSession and static-room render/readout. This is an objective no-gameplay readout, not an interactive renderer or playable slice.
+- The served UI consumes public ASHA package roots to display a static RuntimeSession, static-room render/readout, browser-operable movement/look controls with RuntimeSession collision readout, deterministic generated tunnel preset/readout, and static target fire/health HUD evidence. This is an objective no-gameplay movement/generated-level/combat-readout slice, not an interactive renderer or playable FPS.
 
 Run `npm run check:dependencies` before adding code or package dependencies. The guard reads ASHA's public-surface manifest and rejects private ASHA packages, generated contract file paths, Rust crate paths, and package-internal `src/*` imports.
 
@@ -26,7 +26,7 @@ Run `npm run test:live-ui` only with `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` 
 
 ## Current non-claims
 
-This is not yet a playable FPS and does not claim shooting, enemies, death/restart, procedural generation, collision/pathfinding authority, Studio live integration, movement, pointer lock, or an interactive gameplay renderer. Passing `asha-testing` synthetic proof does not equal `asha-demo` acceptance; demo claims need human-operable UI and browser-visible evidence.
+This is not yet a playable FPS and does not claim enemies, combat loop, death/restart, local generation implementation, pathfinding authority, Studio live integration, true pointer lock, or an interactive gameplay renderer. Passing `asha-testing` synthetic proof does not equal `asha-demo` acceptance; demo claims need human-operable UI and browser-visible evidence.
 
 See `docs/no-claims.md` for the full current non-claim list.
 

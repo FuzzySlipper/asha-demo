@@ -1,0 +1,11 @@
+{
+  "kind": "asha-demo.generated_tunnel_preset.v0",
+  "presetId": "tiny-enclosed",
+  "seed": 17,
+  "source": "public RuntimeSession generated tunnel readout",
+  "nonClaims": [
+    "not_demo_local_generation_algorithm",
+    "not_live_regenerate",
+    "not_applied_runtime_world"
+  ]
+}
