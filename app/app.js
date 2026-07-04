@@ -4,9 +4,15 @@ import {
   createMockRuntimeSession,
   validateEnemyPolicySource,
 } from '@asha/runtime-bridge';
+import {
+  readDefaultFpsGameplayPreset,
+  readFpsGameplayPresetCatalog,
+} from '@asha/catalog-core';
 import { renderFirstPersonTunnelViewport } from '@asha/renderer-three';
 
 const FIRST_PERSON_VIEWPORT_KIND = 'first_person_tunnel_viewport.v0';
+const ENCOUNTER_TRANSITION_KIND = 'runtime_session.encounter_transition_request.v0';
+const SUPPORTED_GAMEPLAY_PRESET_KIND = 'fps_gameplay_preset_readout.v0';
 
 const fallbackStatus = {
   manifest: { present: false },
@@ -32,6 +38,9 @@ renderList(document.querySelector('#non-claims'), status.nonClaims);
 function createPlayableLoopDemo(hudOverlaySurface) {
   const session = createMockRuntimeSession();
   const initialized = initializeRuntimeSession();
+  const gameplayPreset = readDefaultFpsGameplayPreset();
+  const gameplayCatalog = readFpsGameplayPresetCatalog();
+  const encounterPresetId = gameplayPreset.preset.encounter.presetId;
   let input = null;
   let tick = 0;
   let latestCamera = null;
@@ -46,6 +55,12 @@ function createPlayableLoopDemo(hudOverlaySurface) {
   let latestPlayerDefeatFixture = null;
   let generatedTunnel = null;
   let latestFirstPersonViewport = null;
+  let latestEncounter = null;
+  let latestEncounterActivation = null;
+  let latestEncounterSync = null;
+  let latestEncounterReset = null;
+  let latestCombatFeedback = null;
+  let latestEncounterLifecycle = null;
   let loop = null;
 
   resetCameraAndInput();
@@ -131,6 +146,8 @@ function createPlayableLoopDemo(hudOverlaySurface) {
         receipt,
       };
       latestLifecycle = session.readLifecycleStatus();
+      latestCombatFeedback = readHitCombatFeedback();
+      syncActiveEncounterWithLifecycle();
       return latestCombatAction;
     },
     runEnemyPolicy() {
@@ -141,7 +158,42 @@ function createPlayableLoopDemo(hudOverlaySurface) {
         policySource: 'export const policy = (view) => view;',
       });
       latestLifecycle = session.readLifecycleStatus();
+      latestCombatFeedback = readHitCombatFeedback();
+      syncActiveEncounterWithLifecycle();
       return this.enemyPolicyReadout();
+    },
+    activateEncounter() {
+      latestEncounterActivation = session.requestEncounterTransition(encounterTransitionRequest('activate'));
+      latestEncounter = latestEncounterActivation.after;
+      return this.encounterLoopReadout();
+    },
+    runEncounterLoop() {
+      stopLoop();
+      latestEncounterReset = session.requestEncounterTransition(encounterTransitionRequest('reset'));
+      latestEncounter = latestEncounterReset.after;
+      latestEncounterActivation = session.requestEncounterTransition(encounterTransitionRequest('activate'));
+      latestEncounter = latestEncounterActivation.after;
+
+      this.runEnemyPolicy();
+      latestCombatFeedback = readHitCombatFeedback();
+      latestEncounterSync = session.requestEncounterTransition(encounterTransitionRequest('sync_lifecycle'));
+      latestEncounter = latestEncounterSync.after;
+      latestEncounterLifecycle = session.readLifecycleStatus();
+      latestRestart = session.requestSessionRestart({
+        kind: 'runtime.restart_session_intent',
+        source: 'programmatic',
+        requireTerminal: true,
+        expectedSessionHash: latestEncounterLifecycle.sessionHash,
+      });
+      if (latestRestart.accepted) {
+        tick = 0;
+        resetCameraAndInput();
+        latestLifecycle = latestRestart.statusAfter;
+        latestEncounterReset = session.requestEncounterTransition(encounterTransitionRequest('reset'));
+        latestEncounter = latestEncounterReset.after;
+        refreshReferenceReadouts();
+      }
+      return this.encounterLoopReadout();
     },
     restartLoop(source = 'programmatic') {
       stopLoop();
@@ -156,6 +208,11 @@ function createPlayableLoopDemo(hudOverlaySurface) {
         tick = 0;
         latestAutonomousTick = null;
         latestCombatAction = null;
+        latestEncounterActivation = null;
+        latestEncounterSync = null;
+        latestEncounterReset = null;
+        latestCombatFeedback = null;
+        latestEncounterLifecycle = null;
         resetCameraAndInput();
       }
       refreshReferenceReadouts();
@@ -217,11 +274,36 @@ function createPlayableLoopDemo(hudOverlaySurface) {
         ],
       };
     },
+    encounterLoopReadout() {
+      const encounter = latestEncounter ?? readEncounterDirector();
+      return {
+        statusVersion: 'asha-demo-encounter-loop.v0',
+        publicImports: ['@asha/runtime-bridge', '@asha/catalog-core'],
+        gameplayPreset,
+        gameplayCatalog,
+        currentEncounter: encounter,
+        activationReceipt: latestEncounterActivation,
+        autonomousTick: latestAutonomousTick,
+        combatAction: latestCombatAction,
+        combatFeedback: latestCombatFeedback,
+        lifecycle: latestEncounterLifecycle ?? latestLifecycle ?? session.readLifecycleStatus(),
+        syncReceipt: latestEncounterSync,
+        restartReceipt: latestRestart,
+        resetReceipt: latestEncounterReset,
+        nonClaims: [
+          'not_demo_local_spawn_manager',
+          'not_demo_local_combat_authority',
+          'not_demo_local_health_authority',
+          'not_demo_local_lifecycle_authority',
+          'catalog_core_constants_only',
+        ],
+      };
+    },
     playableLoopReadout() {
       const movementReadout = this.readout();
       return {
         statusVersion: 'asha-demo-playable-loop.v0',
-        publicImports: ['@asha/runtime-bridge'],
+        publicImports: ['@asha/runtime-bridge', '@asha/catalog-core'],
         runtimeSession: {
           sessionId: initialized.identity.sessionId,
           mode: initialized.identity.mode,
@@ -362,6 +444,7 @@ function createPlayableLoopDemo(hudOverlaySurface) {
     });
     latestLifecycle = session.readLifecycleStatus();
     latestPlayerDefeatFixture = session.readLifecycleStatus({ scenario: 'generated_tunnel_player_defeated' });
+    latestEncounter = readEncounterDirector();
     refreshFirstPersonViewport();
   }
 
@@ -380,6 +463,40 @@ function createPlayableLoopDemo(hudOverlaySurface) {
       return intents.exit ?? null;
     }
     return null;
+  }
+
+  function readEncounterDirector() {
+    return session.readEncounterDirector({
+      presetId: encounterPresetId,
+    });
+  }
+
+  function encounterTransitionRequest(action) {
+    return {
+      kind: ENCOUNTER_TRANSITION_KIND,
+      presetId: encounterPresetId,
+      action,
+    };
+  }
+
+  function readHitCombatFeedback() {
+    return session.readCombatFeedbackProjection({
+      scenario: 'generated_tunnel_fire_hit',
+      camera: latestCamera.camera,
+    });
+  }
+
+  function syncActiveEncounterWithLifecycle() {
+    if (latestEncounter?.state.status !== 'active') {
+      return;
+    }
+    const lifecycle = latestLifecycle ?? session.readLifecycleStatus();
+    if (!lifecycle.outcome.terminal) {
+      return;
+    }
+    latestEncounterSync = session.requestEncounterTransition(encounterTransitionRequest('sync_lifecycle'));
+    latestEncounter = latestEncounterSync.after;
+    latestEncounterLifecycle = lifecycle;
   }
 
   function applyCollisionFrame(cameraInput, frame = null) {
@@ -505,6 +622,8 @@ function wireMovementControls(demo) {
   const wallButton = document.querySelector('#movement-wall-probe');
   const fireButton = document.querySelector('#combat-fire');
   const enemyPolicyButton = document.querySelector('#enemy-policy-run');
+  const encounterStartButton = document.querySelector('#encounter-start');
+  const encounterLoopButton = document.querySelector('#encounter-loop-run');
   const restartButton = document.querySelector('#loop-restart');
   const actionButtons = document.querySelectorAll('[data-movement-action]');
 
@@ -531,6 +650,14 @@ function wireMovementControls(demo) {
   });
   enemyPolicyButton.addEventListener('click', () => {
     demo.runEnemyPolicy();
+    renderAllDemoReadouts(demo);
+  });
+  encounterStartButton.addEventListener('click', () => {
+    demo.activateEncounter();
+    renderAllDemoReadouts(demo);
+  });
+  encounterLoopButton.addEventListener('click', () => {
+    demo.runEncounterLoop();
     renderAllDemoReadouts(demo);
   });
   restartButton.addEventListener('click', () => {
@@ -579,6 +706,7 @@ function wireMovementControls(demo) {
 function renderAllDemoReadouts(demo) {
   renderFirstPersonViewportReadout(demo.firstPersonViewportReadout());
   renderHudOverlayReadout(demo.hudOverlayReadout(), demo);
+  renderEncounterLoopReadout(demo.encounterLoopReadout());
   renderPlayableLoopReadout(demo.playableLoopReadout());
   renderMovementReadout(demo.readout());
   renderCombatActionReceipt(demo.combatActionReadout());
@@ -829,6 +957,124 @@ function createHudMeter(label, health) {
   track.append(fill);
   meter.append(labelRow, track);
   return meter;
+}
+
+function renderEncounterLoopReadout(readout) {
+  const state = document.querySelector('#encounter-loop-state');
+  const facts = document.querySelector('#encounter-loop-summary');
+  const events = document.querySelector('#encounter-loop-events');
+  facts.replaceChildren();
+  events.replaceChildren();
+
+  const preset = readout.gameplayPreset.preset;
+  const catalog = readout.gameplayCatalog.catalog;
+  const presetKind =
+    readout.gameplayPreset.kind === SUPPORTED_GAMEPLAY_PRESET_KIND
+      ? readout.gameplayPreset.kind
+      : `${readout.gameplayPreset.kind} (unexpected)`;
+  const currentEncounter = readout.currentEncounter;
+  const activatedEncounter = readout.activationReceipt?.after ?? null;
+  const clearedEncounter = readout.syncReceipt?.after ?? null;
+  const resetEncounter = readout.resetReceipt?.after ?? null;
+  const lifecycle = readout.lifecycle;
+  const combatFeedback = readout.combatFeedback;
+  const combatHealth = combatFeedback?.health[0] ?? readout.combatAction?.receipt.combatReadout?.health[0];
+  const spawnedEnemyCount = activatedEncounter?.state.spawnedEnemyCount ?? currentEncounter.state.spawnedEnemyCount;
+  const defeatedEnemyCount = clearedEncounter?.state.defeatedEnemyCount ?? currentEncounter.state.defeatedEnemyCount;
+
+  state.textContent = `${currentEncounter.state.status} · ${spawnedEnemyCount} spawned`;
+
+  const rows = [
+    ['Readout', currentEncounter.kind],
+    ['Gameplay preset', `${presetKind} · ${preset.presetId}`],
+    ['Catalog', `${readout.gameplayCatalog.kind} · ${catalog.catalogId}`],
+    ['Preset hash', readout.gameplayPreset.hashes.presetHash],
+    ['Weapon tuning', `${preset.weapon.action} · ${preset.weapon.damage} damage · ${preset.weapon.ammo} ammo`],
+    ['Encounter preset', `${preset.encounter.presetId} · ${currentEncounter.config.configHash}`],
+    ['Generated tunnel', `${preset.generator.presetId} · ${preset.generator.outputHash}`],
+    ['Enemy definition', preset.encounter.enemyDefinitionId],
+    ['Spawned enemies', `${spawnedEnemyCount}/${preset.encounter.enemyCount}`],
+    ['Current encounter', `${currentEncounter.state.status} · ${currentEncounter.state.activeEnemyCount} active, ${defeatedEnemyCount} defeated`],
+    [
+      'Activation',
+      readout.activationReceipt === null
+        ? 'not requested'
+        : `${readout.activationReceipt.status} -> ${readout.activationReceipt.after.state.status}`,
+    ],
+    [
+      'Policy tick',
+      readout.autonomousTick === null
+        ? 'not run'
+        : `${readout.autonomousTick.kind} · ${readout.autonomousTick.proposalSummary.acceptedProposalCount} accepted`,
+    ],
+    [
+      'Combat feedback',
+      combatFeedback === null
+        ? 'not projected'
+        : `${combatFeedback.kind} · ${combatFeedback.marker.label} · ${combatFeedback.hashes.projectionHash}`,
+    ],
+    [
+      'Fire result',
+      combatHealth === undefined
+        ? 'not fired'
+        : `${combatFeedback?.trace.result ?? readout.combatAction?.receipt.combatReadout?.outcome.kind ?? 'hit'} · Health ${combatHealth.current}/${combatHealth.max}${combatHealth.dead ? ' defeated' : ''}`,
+    ],
+    [
+      'Encounter result',
+      clearedEncounter === null
+        ? 'not synced'
+        : `${clearedEncounter.state.status} · ${clearedEncounter.state.defeatedEnemyCount} defeated`,
+    ],
+    ['Lifecycle', `${lifecycle.outcome.kind} · ${lifecycle.outcome.label}`],
+    [
+      'Restart',
+      readout.restartReceipt === null
+        ? 'not requested'
+        : `${readout.restartReceipt.status}${readout.restartReceipt.rejection === null ? '' : ` · ${readout.restartReceipt.rejection.reason}`} -> ${readout.restartReceipt.statusAfter.outcome.label}`,
+    ],
+    [
+      'Encounter reset',
+      readout.resetReceipt === null
+        ? 'not requested'
+        : `${readout.resetReceipt.status} -> ${resetEncounter?.state.status ?? 'unknown'} · ${readout.resetReceipt.event?.kind ?? 'no event'}`,
+    ],
+  ];
+
+  for (const [label, value] of rows) {
+    appendFact(facts, label, value);
+  }
+
+  const eventLines = [];
+  for (const spawn of activatedEncounter?.spawns ?? currentEncounter.spawns) {
+    eventLines.push(`${spawn.instanceId}: ${spawn.status} at ${spawn.spawnMarker.markerId}`);
+  }
+  if (readout.activationReceipt?.event !== undefined) {
+    eventLines.push(`${readout.activationReceipt.event.kind}: ${readout.activationReceipt.status}`);
+  }
+  for (const receipt of readout.autonomousTick?.proposalReceipts ?? []) {
+    eventLines.push(`${receipt.proposalKind}: ${receipt.status}${receipt.rejection === null ? '' : ` (${receipt.rejection.reason})`}`);
+  }
+  for (const notification of combatFeedback?.notifications ?? []) {
+    eventLines.push(`${notification.eventKind}: ${notification.text}`);
+  }
+  if (readout.syncReceipt?.event !== undefined) {
+    eventLines.push(`${readout.syncReceipt.event.kind}: ${readout.syncReceipt.after.state.status}`);
+  }
+  if (readout.restartReceipt !== null) {
+    eventLines.push(`${readout.restartReceipt.kind}: ${readout.restartReceipt.status}`);
+  }
+  if (readout.resetReceipt?.event !== undefined) {
+    eventLines.push(`${readout.resetReceipt.event.kind}: ${readout.resetReceipt.after.state.status}`);
+  }
+  for (const claim of readout.nonClaims) {
+    eventLines.push(claim);
+  }
+
+  for (const line of eventLines) {
+    const item = document.createElement('li');
+    item.textContent = line;
+    events.append(item);
+  }
 }
 
 function renderPlayableLoopReadout(readout) {

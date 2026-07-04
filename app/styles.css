@@ -269,6 +269,36 @@ h2 {
   color: #f3f8fb;
 }
 
+.encounter-loop {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #b8c9d7;
+  border-radius: 8px;
+  background: #f7fbfc;
+}
+
+.encounter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.encounter-header h2 {
+  margin-bottom: 0;
+}
+
+.encounter-header strong {
+  color: #237f58;
+  text-align: right;
+}
+
+.encounter-facts {
+  grid-template-columns: minmax(150px, 0.3fr) minmax(0, 1fr);
+}
+
 .readout-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

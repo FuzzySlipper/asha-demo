@@ -17,6 +17,8 @@ requireText(indexHtml, 'HUD / Menu Overlay');
 requireText(indexHtml, 'public-asha-hud-overlay');
 requireText(indexHtml, 'First-Person Tunnel View');
 requireText(indexHtml, 'public-asha-first-person-viewport');
+requireText(indexHtml, 'public-asha-encounter-loop');
+requireText(indexHtml, '@asha/catalog-core');
 requireText(indexHtml, '@asha/renderer-three');
 requireText(indexHtml, '@asha/render-projection');
 requireText(indexHtml, 'three');
@@ -26,6 +28,7 @@ requireText(indexHtml, 'Generated Tunnel');
 requireText(indexHtml, 'Combat / HUD');
 requireText(indexHtml, 'Fire Primary');
 requireText(indexHtml, 'Run Enemy Tick');
+requireText(indexHtml, 'Run Encounter Loop');
 requireText(indexHtml, 'Restart Loop');
 requireText(indexHtml, 'Probe Wall Stop');
 requireText(appJs, '/api/status');
@@ -35,8 +38,12 @@ requireText(appJs, 'applyCollisionConstrainedCameraInput');
 requireText(appJs, 'submitRuntimeActionIntent');
 requireText(appJs, 'runAutonomousPolicyTick');
 requireText(appJs, 'readLifecycleStatus');
+requireText(appJs, 'readEncounterDirector');
+requireText(appJs, 'requestEncounterTransition');
+requireText(appJs, 'readCombatFeedbackProjection');
 requireText(appJs, 'requestSessionRestart');
 requireText(appJs, 'renderPlayableLoopReadout');
+requireText(appJs, 'renderEncounterLoopReadout');
 requireText(appJs, 'renderHudOverlayReadout');
 requireText(appJs, 'renderFirstPersonTunnelViewport');
 requireText(appJs, 'renderFirstPersonViewportReadout');
@@ -45,6 +52,7 @@ requireText(appJs, 'handleHudControl');
 requireText(appJs, 'hud_projection.v0');
 requireText(appJs, 'renderCombatHudReadout');
 requireText(appJs, 'renderGeneratedTunnelReadout');
+requireText(appJs, 'fps_gameplay_preset_readout.v0');
 requireText(styles, '.status-board');
 requireText(styles, '.snapshot-list');
 requireText(styles, '.movement-actions');
@@ -55,6 +63,8 @@ requireText(styles, '.first-person-viewport');
 requireText(styles, '.viewport-canvas');
 requireText(styles, '.generated-facts');
 requireText(styles, '.combat-facts');
+requireText(styles, '.encounter-loop');
+requireText(styles, '.encounter-facts');
 
 if (status.playable !== true) {
   errors.push('UI status must expose playable=true for the integrated public RuntimeSession loop');
@@ -83,8 +93,35 @@ if (status.publicAshaReadout?.generatedTunnel?.regenerate?.status !== 'unsupport
 if (!status.publicAshaReadout?.publicImports?.includes('@asha/ui-dom')) {
   errors.push('UI status must record @asha/ui-dom as a public import');
 }
+if (!status.publicAshaReadout?.publicImports?.includes('@asha/catalog-core')) {
+  errors.push('UI status must record @asha/catalog-core as a public import');
+}
+if (status.publicAshaReadout?.gameplayPreset?.kind !== 'fps_gameplay_preset_readout.v0') {
+  errors.push('UI status must include the public FPS gameplay preset readout');
+}
+if (status.publicAshaReadout?.gameplayCatalog?.kind !== 'fps_gameplay_preset_catalog_readout.v0') {
+  errors.push('UI status must include the public FPS gameplay preset catalog readout');
+}
 if (status.publicAshaReadout?.playableLoop?.status !== 'public_runtime_session_playable_loop') {
   errors.push('UI status must include the integrated public RuntimeSession playable loop');
+}
+if (status.publicAshaReadout?.playableLoop?.encounterLoop?.status !== 'public_runtime_session_enemy_encounter_loop') {
+  errors.push('UI status must include the public enemy encounter loop proof');
+}
+if (status.publicAshaReadout?.playableLoop?.encounterLoop?.initialEncounter?.kind !== 'runtime_session.encounter_director.v0') {
+  errors.push('UI status must include the public encounter director readout');
+}
+if (status.publicAshaReadout?.playableLoop?.encounterLoop?.activationReceipt?.after?.state?.activeEnemyCount !== 1) {
+  errors.push('UI status must prove one spawned active enemy after encounter activation');
+}
+if (status.publicAshaReadout?.playableLoop?.encounterLoop?.combatFeedback?.kind !== 'combat_feedback_projection.v0') {
+  errors.push('UI status must include public combat feedback projection evidence');
+}
+if (status.publicAshaReadout?.playableLoop?.encounterLoop?.clearReceipt?.after?.state?.status !== 'cleared') {
+  errors.push('UI status must prove encounter clear through lifecycle sync');
+}
+if (status.publicAshaReadout?.playableLoop?.encounterLoop?.resetReceipt?.after?.state?.status !== 'pending') {
+  errors.push('UI status must prove typed encounter reset after restart');
 }
 if (status.publicAshaReadout?.playableLoop?.autonomousTick?.kind !== 'runtime_session.autonomous_policy_tick.v0') {
   errors.push('UI status must include the public autonomous policy tick readout');

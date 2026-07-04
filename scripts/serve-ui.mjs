@@ -7,6 +7,7 @@ import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'app');
+const catalogCoreBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'catalog-core', 'dist');
 const contractsBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'contracts', 'dist');
 const renderProjectionBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'render-projection', 'dist');
 const rendererThreeBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'renderer-three', 'dist');
@@ -24,6 +25,11 @@ const server = createServer(async (request, response) => {
   }
   if (request.url === '/api/status') {
     sendJson(response, 200, buildUiStatus(repoRoot));
+    return;
+  }
+  if (request.url?.startsWith('/vendor/asha-catalog-core/')) {
+    const vendorPath = request.url.replace('/vendor/asha-catalog-core/', '') || 'index.js';
+    await sendStaticAssetFromRoot(response, catalogCoreBrowserRoot, vendorPath);
     return;
   }
   if (request.url?.startsWith('/vendor/asha-runtime-bridge/')) {

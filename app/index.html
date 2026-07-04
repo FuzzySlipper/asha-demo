@@ -9,6 +9,7 @@
     <script type="importmap">
       {
         "imports": {
+          "@asha/catalog-core": "/vendor/asha-catalog-core/index.js",
           "@asha/contracts": "/vendor/asha-contracts/index.js",
           "@asha/render-projection": "/vendor/asha-render-projection/index.js",
           "@asha/renderer-three": "/vendor/asha-renderer-three/index.js",
@@ -68,6 +69,8 @@
             <button type="button" id="movement-wall-probe">Probe Wall Stop</button>
             <button type="button" id="combat-fire">Fire Primary</button>
             <button type="button" id="enemy-policy-run">Run Enemy Tick</button>
+            <button type="button" id="encounter-start">Start Encounter</button>
+            <button type="button" id="encounter-loop-run">Run Encounter Loop</button>
             <button type="button" id="loop-restart">Restart Loop</button>
           </div>
         </div>
@@ -83,6 +86,17 @@
           </dl>
           <div id="hud-menu-controls" class="hud-controls" aria-label="HUD menu controls"></div>
           <ul id="hud-overlay-status" class="snapshot-list hud-status-list" aria-live="polite"></ul>
+        </div>
+        <div class="encounter-loop" data-demo-readout="public-asha-encounter-loop" aria-labelledby="encounter-loop-title">
+          <div class="encounter-header">
+            <h2 id="encounter-loop-title">Encounter Loop</h2>
+            <strong id="encounter-loop-state">Loading</strong>
+          </div>
+          <dl id="encounter-loop-summary" class="facts encounter-facts" aria-live="polite">
+            <dt>Status</dt>
+            <dd>Loading</dd>
+          </dl>
+          <ul id="encounter-loop-events" class="snapshot-list" aria-live="polite"></ul>
         </div>
         <div class="loop-readout">
           <dl id="playable-loop-summary" class="facts loop-facts" aria-live="polite">

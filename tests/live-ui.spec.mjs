@@ -29,6 +29,14 @@ test('@live-agent asha-demo drives the integrated public ASHA playable loop', as
   await expect(loop).toContainText('Player defeat fixture');
   await expect(loop).toContainText('lost');
 
+  const encounter = page.locator('[data-demo-readout="public-asha-encounter-loop"]');
+  await expect(encounter).toBeVisible();
+  await expect(encounter).toContainText('Encounter Loop');
+  await expect(encounter).toContainText('runtime_session.encounter_director.v0');
+  await expect(encounter).toContainText('fps_gameplay_preset_readout.v0');
+  await expect(encounter).toContainText('generated-tunnel-small-encounter');
+  await expect(encounter).toContainText('pending');
+
   const viewport = page.locator('[data-demo-readout="public-asha-first-person-viewport"]');
   await expect(viewport).toBeVisible();
   await expect(viewport).toContainText('First-Person Tunnel View');
@@ -100,6 +108,15 @@ test('@live-agent asha-demo drives the integrated public ASHA playable loop', as
   await expect(loop).toContainText('movement_authority_not_wired');
   await expect(loop).toContainText('e8e1ea7a09811ced');
   await expect(loop).toContainText('Enemy defeated');
+  await loop.getByRole('button', { name: 'Run Encounter Loop' }).click();
+  await expect(encounter).toContainText('1/1');
+  await expect(encounter).toContainText('accepted -> active');
+  await expect(encounter).toContainText('runtime_session.autonomous_policy_tick.v0');
+  await expect(encounter).toContainText('combat_feedback_projection.v0');
+  await expect(encounter).toContainText('Entity 20 defeated');
+  await expect(encounter).toContainText('cleared · 1 defeated');
+  await expect(encounter).toContainText('accepted -> In progress');
+  await expect(encounter).toContainText('runtime_encounter.reset.v0');
 
   const readout = page.locator('[data-demo-readout="public-asha-static-room"]');
   await expect(readout).toBeVisible();
@@ -156,11 +173,12 @@ test('@live-agent asha-demo drives the integrated public ASHA playable loop', as
   const status = await response.json();
   expect(status.repo).toBe('asha-demo');
   expect(status.playable).toBe(true);
-  expect(status.publicAshaReadout.publicImports).toEqual([
+  expect(status.publicAshaReadout.publicImports).toEqual(expect.arrayContaining([
     '@asha/runtime-bridge',
     '@asha/renderer-three',
     '@asha/ui-dom',
-  ]);
+    '@asha/catalog-core',
+  ]));
   expect(status.publicAshaReadout.staticRoom.fixtureName).toBe('static-room');
   expect(status.publicAshaReadout.staticRoom.projectionHandleCount).toBe(7);
   expect(status.publicAshaReadout.staticRoom.rendererHandleCount).toBe(7);
@@ -172,8 +190,24 @@ test('@live-agent asha-demo drives the integrated public ASHA playable loop', as
   expect(status.publicAshaReadout.generatedTunnel.readout.generator.outputHash).toBe('a9b504096397f5b4');
   expect(status.publicAshaReadout.generatedTunnel.readout.replayHash).toBe('fnv1a64:0821a0c2aea17dff');
   expect(status.publicAshaReadout.generatedTunnel.regenerate.status).toBe('unsupported');
+  expect(status.publicAshaReadout.gameplayPreset.kind).toBe('fps_gameplay_preset_readout.v0');
+  expect(status.publicAshaReadout.gameplayPreset.preset.encounter.presetId).toBe('generated-tunnel-small-encounter');
+  expect(status.publicAshaReadout.gameplayCatalog.kind).toBe('fps_gameplay_preset_catalog_readout.v0');
+  expect(status.publicAshaReadout.gameplayCatalog.catalog.defaultPresetId).toBe('asha.generated_tunnel.default_fps.v0');
   expect(status.publicAshaReadout.playableLoop.status).toBe('public_runtime_session_playable_loop');
   expect(status.publicAshaReadout.playableLoop.generatedTunnel.outputHash).toBe('a9b504096397f5b4');
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.status).toBe('public_runtime_session_enemy_encounter_loop');
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.initialEncounter.kind).toBe('runtime_session.encounter_director.v0');
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.initialEncounter.state.pendingEnemyCount).toBe(1);
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.activationReceipt.status).toBe('accepted');
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.activationReceipt.after.state.activeEnemyCount).toBe(1);
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.combatFeedback.kind).toBe('combat_feedback_projection.v0');
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.combatFeedback.notifications.at(-1)?.eventKind).toBe('entity_defeated');
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.clearReceipt.after.state.status).toBe('cleared');
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.clearReceipt.after.state.defeatedEnemyCount).toBe(1);
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.lifecycleAfterEncounterSync.outcome.kind).toBe('won');
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.restartReceipt.statusAfter.outcome.kind).toBe('in_progress');
+  expect(status.publicAshaReadout.playableLoop.encounterLoop.resetReceipt.after.state.status).toBe('pending');
   expect(status.publicAshaReadout.playableLoop.firstPersonViewport.summary.kind).toBe('first_person_tunnel_viewport.v0');
   expect(status.publicAshaReadout.playableLoop.firstPersonViewport.summary.fixture).toBe('generated-tunnel-first-person-viewport');
   expect(status.publicAshaReadout.playableLoop.firstPersonViewport.summary.debug.outputHash).toBe('a9b504096397f5b4');
@@ -231,7 +265,7 @@ test('@live-agent asha-demo drives the integrated public ASHA playable loop', as
     'Generated tunnel is a public deterministic readout, not a live applied dungeon runtime.',
   ]));
 
-  const screenshotDir = artifactRoot();
+  const screenshotDir = join(artifactRoot(), '4102');
   await mkdir(screenshotDir, { recursive: true });
   await page.screenshot({
     path: join(screenshotDir, 'asha-demo-playable-loop.png'),

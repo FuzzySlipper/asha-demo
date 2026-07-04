@@ -5,6 +5,7 @@ import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const outputRoot = join(repoRoot, 'dist/ui');
+const catalogCoreVendorRoot = join(outputRoot, 'vendor/asha-catalog-core');
 const contractsVendorRoot = join(outputRoot, 'vendor/asha-contracts');
 const renderProjectionVendorRoot = join(outputRoot, 'vendor/asha-render-projection');
 const rendererThreeVendorRoot = join(outputRoot, 'vendor/asha-renderer-three');
@@ -14,6 +15,8 @@ const threeVendorRoot = join(outputRoot, 'vendor/three');
 rmSync(outputRoot, { force: true, recursive: true });
 mkdirSync(outputRoot, { recursive: true });
 cpSync(join(repoRoot, 'app'), outputRoot, { recursive: true });
+mkdirSync(catalogCoreVendorRoot, { recursive: true });
+cpSync(join(repoRoot, 'node_modules', '@asha', 'catalog-core', 'dist'), catalogCoreVendorRoot, { recursive: true });
 mkdirSync(contractsVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'contracts', 'dist'), contractsVendorRoot, { recursive: true });
 mkdirSync(renderProjectionVendorRoot, { recursive: true });

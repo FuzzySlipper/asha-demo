@@ -11,6 +11,10 @@ import {
   validateEnemyPolicySource,
 } from '@asha/runtime-bridge';
 import { buildHudProjection, hudControlToIntent } from '@asha/ui-dom';
+import {
+  readDefaultFpsGameplayPreset,
+  readFpsGameplayPresetCatalog,
+} from '@asha/catalog-core';
 
 export function buildUiStatus(repoRoot) {
   const packageJson = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'));
@@ -53,6 +57,8 @@ export function buildUiStatus(repoRoot) {
 }
 
 function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
+  const gameplayPreset = readDefaultFpsGameplayPreset();
+  const gameplayCatalog = readFpsGameplayPresetCatalog();
   const session = createMockRuntimeSession();
   const initialized = session.initialize({
     sessionId: 'asha-demo:static-room:reference-session',
@@ -156,7 +162,7 @@ function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
 
   return {
     statusVersion: 'asha-demo-public-readout.v0',
-    publicImports: ['@asha/runtime-bridge', '@asha/renderer-three', '@asha/ui-dom'],
+    publicImports: ['@asha/runtime-bridge', '@asha/renderer-three', '@asha/ui-dom', '@asha/catalog-core'],
     runtimeSession: {
       sessionId: initialized.identity.sessionId,
       mode: initialized.identity.mode,
@@ -201,6 +207,8 @@ function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
         reason: generatedTunnelOperation.reason,
       },
     },
+    gameplayPreset,
+    gameplayCatalog,
     playableLoop,
     combatHud: {
       staticTargetPath: 'catalogs/actors/static-target-dummy.json',
@@ -248,6 +256,9 @@ function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
 }
 
 function buildPlayableLoopReadout(generatedTunnelPreset) {
+  const gameplayPreset = readDefaultFpsGameplayPreset();
+  const gameplayCatalog = readFpsGameplayPresetCatalog();
+  const encounterPresetId = gameplayPreset.preset.encounter.presetId;
   const session = createMockRuntimeSession();
   const initialized = session.initialize({
     sessionId: 'asha-demo:playable-loop:reference-session',
@@ -292,22 +303,45 @@ function buildPlayableLoopReadout(generatedTunnelPreset) {
     collision: null,
   });
   const initialLifecycle = session.readLifecycleStatus();
+  const initialEncounter = session.readEncounterDirector({
+    presetId: encounterPresetId,
+  });
+  const encounterActivated = session.requestEncounterTransition({
+    kind: 'runtime_session.encounter_transition_request.v0',
+    presetId: encounterPresetId,
+    action: 'activate',
+  });
   const autonomousTick = session.runAutonomousPolicyTick({
     targetCamera: camera,
     policySource: 'export const policy = (view) => view;',
   });
   const lifecycleAfterAutonomousTick = session.readLifecycleStatus();
+  const combatFeedback = session.readCombatFeedbackProjection({
+    scenario: 'generated_tunnel_fire_hit',
+    camera,
+  });
+  const encounterCleared = session.requestEncounterTransition({
+    kind: 'runtime_session.encounter_transition_request.v0',
+    presetId: encounterPresetId,
+    action: 'sync_lifecycle',
+  });
+  const lifecycleAfterEncounterSync = session.readLifecycleStatus();
   const playerDefeatFixture = session.readLifecycleStatus({ scenario: 'generated_tunnel_player_defeated' });
   const restartReceipt = session.requestSessionRestart({
     kind: 'runtime.restart_session_intent',
     source: 'programmatic',
     requireTerminal: true,
-    expectedSessionHash: lifecycleAfterAutonomousTick.sessionHash,
+    expectedSessionHash: lifecycleAfterEncounterSync.sessionHash,
+  });
+  const encounterReset = session.requestEncounterTransition({
+    kind: 'runtime_session.encounter_transition_request.v0',
+    presetId: encounterPresetId,
+    action: 'reset',
   });
 
   return {
     status: 'public_runtime_session_playable_loop',
-    publicImports: ['@asha/runtime-bridge'],
+    publicImports: ['@asha/runtime-bridge', '@asha/catalog-core'],
     runtimeSession: {
       sessionId: initialized.identity.sessionId,
       mode: initialized.identity.mode,
@@ -319,6 +353,28 @@ function buildPlayableLoopReadout(generatedTunnelPreset) {
       outputHash: generatedTunnel.generator.outputHash,
       replayHash: generatedTunnel.replayHash,
       spawnMarkers: generatedTunnel.spawnMarkers,
+    },
+    gameplayPreset,
+    gameplayCatalog,
+    encounterLoop: {
+      status: 'public_runtime_session_enemy_encounter_loop',
+      publicImports: ['@asha/runtime-bridge', '@asha/catalog-core'],
+      gameplayPreset,
+      gameplayCatalog,
+      initialEncounter,
+      activationReceipt: encounterActivated,
+      autonomousTickKind: autonomousTick.kind,
+      combatFeedback,
+      clearReceipt: encounterCleared,
+      lifecycleAfterEncounterSync,
+      restartReceipt,
+      resetReceipt: encounterReset,
+      nonClaims: [
+        'not_demo_local_spawn_manager',
+        'not_demo_local_combat_authority',
+        'not_demo_local_health_authority',
+        'not_demo_local_lifecycle_authority',
+      ],
     },
     firstPersonViewport: {
       status: 'rendered',

@@ -15,6 +15,7 @@
     "test": "npm run typecheck"
   },
   "dependencies": {
+    "@asha/catalog-core": "file:../asha/ts/packages/catalog-core",
     "@asha/contracts": "file:../asha/ts/packages/contracts",
     "@asha/game-workspace": "file:../asha/ts/packages/game-workspace",
     "@asha/render-projection": "file:../asha/ts/packages/render-projection",
