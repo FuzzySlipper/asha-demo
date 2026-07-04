@@ -4,181 +4,54 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="den-project" content="asha-demo">
-    <title>ASHA Demo Playable Loop</title>
+    <title>ASHA Renderer Surface</title>
     <link rel="stylesheet" href="/styles.css">
     <script type="importmap">
       {
         "imports": {
-          "@asha/catalog-core": "/vendor/asha-catalog-core/index.js",
           "@asha/contracts": "/vendor/asha-contracts/index.js",
           "@asha/render-projection": "/vendor/asha-render-projection/index.js",
           "@asha/renderer-three": "/vendor/asha-renderer-three/index.js",
-          "three": "/vendor/three/build/three.module.js",
-          "@asha/runtime-bridge": "/vendor/asha-runtime-bridge/browser.js"
+          "@asha/runtime-bridge": "/vendor/asha-runtime-bridge/browser.js",
+          "three": "/vendor/three/build/three.module.js"
         }
       }
     </script>
   </head>
   <body>
-    <main class="shell">
-      <section class="loop-panel" data-demo-readout="public-asha-playable-loop" aria-labelledby="page-title">
-        <div class="loop-copy">
-          <p class="kicker">ASHA Game Project</p>
-          <h1 id="page-title">ASHA Demo</h1>
-          <p class="lede">Playable Loop: a served browser panel that drives movement, generated tunnel readouts, autonomous enemy ticks, combat health, and restart lifecycle through public ASHA RuntimeSession surfaces.</p>
-        </div>
-        <div class="status-board" aria-label="Runtime loop summary">
-          <div class="status-line strong ready">
-            <span>Playable loop</span>
-            <strong>Public RuntimeSession</strong>
-          </div>
-          <div class="status-line">
-            <span>RuntimeSession</span>
-            <strong id="runtime-session-status">Loading</strong>
-          </div>
-          <div class="status-line">
-            <span>Enemy movement</span>
-            <strong>Proposal only</strong>
-          </div>
-        </div>
-        <div class="first-person-viewport" data-demo-readout="public-asha-first-person-viewport" aria-labelledby="first-person-title">
-          <div class="viewport-header">
-            <h2 id="first-person-title">First-Person Tunnel View</h2>
-            <strong id="first-person-status">Loading</strong>
-          </div>
-          <canvas id="first-person-canvas" class="viewport-canvas" width="960" height="360" aria-label="Generated tunnel first-person projection"></canvas>
-          <dl id="first-person-summary" class="facts viewport-facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-          <ul id="first-person-snapshot" class="snapshot-list" aria-live="polite"></ul>
-        </div>
-        <div id="movement-surface" class="loop-control-surface" tabindex="0" aria-label="RuntimeSession playable-loop control surface">
-          <div class="movement-actions" aria-label="Playable loop controls">
-            <button type="button" id="movement-pointer">Focus Controls</button>
-            <button type="button" id="movement-release">Release</button>
-            <button type="button" data-movement-action="forward">Forward</button>
-            <button type="button" data-movement-action="back">Back</button>
-            <button type="button" data-movement-action="left">Left</button>
-            <button type="button" data-movement-action="right">Right</button>
-            <button type="button" data-movement-action="look-left">Look Left</button>
-            <button type="button" data-movement-action="look-right">Look Right</button>
-            <button type="button" data-movement-action="look-up">Look Up</button>
-            <button type="button" data-movement-action="look-down">Look Down</button>
-            <button type="button" id="movement-step">Step Held Input</button>
-            <button type="button" id="movement-wall-probe">Probe Wall Stop</button>
-            <button type="button" id="combat-fire">Fire Primary</button>
-            <button type="button" id="enemy-policy-run">Run Enemy Tick</button>
-            <button type="button" id="encounter-start">Start Encounter</button>
-            <button type="button" id="encounter-loop-run">Run Encounter Loop</button>
-            <button type="button" id="loop-restart">Restart Loop</button>
-          </div>
-        </div>
-        <div class="hud-overlay" data-demo-readout="public-asha-hud-overlay" aria-labelledby="hud-overlay-title">
-          <div class="hud-header">
-            <h2 id="hud-overlay-title">HUD / Menu Overlay</h2>
-            <strong id="hud-overlay-state">Loading</strong>
-          </div>
-          <div id="hud-health-bars" class="hud-bars" aria-live="polite"></div>
-          <dl id="hud-overlay-summary" class="facts hud-facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-          <div id="hud-menu-controls" class="hud-controls" aria-label="HUD menu controls"></div>
-          <ul id="hud-overlay-status" class="snapshot-list hud-status-list" aria-live="polite"></ul>
-        </div>
-        <div class="encounter-loop" data-demo-readout="public-asha-encounter-loop" aria-labelledby="encounter-loop-title">
-          <div class="encounter-header">
-            <h2 id="encounter-loop-title">Encounter Loop</h2>
-            <strong id="encounter-loop-state">Loading</strong>
-          </div>
-          <dl id="encounter-loop-summary" class="facts encounter-facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-          <ul id="encounter-loop-events" class="snapshot-list" aria-live="polite"></ul>
-        </div>
-        <div class="loop-readout">
-          <dl id="playable-loop-summary" class="facts loop-facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-          <ul id="playable-loop-events" class="snapshot-list" aria-live="polite"></ul>
-        </div>
-      </section>
-
-      <section class="readout-grid" aria-label="Public ASHA surface audit">
-        <article class="panel">
-          <h2>Manifest</h2>
-          <dl id="manifest-summary" class="facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-        </article>
-
-        <article class="panel">
-          <h2>Allowed ASHA Imports</h2>
-          <ul id="allowed-imports" class="tag-list" aria-live="polite"></ul>
-        </article>
-
-        <article class="panel wide public-readout" data-demo-readout="public-asha-static-room">
-          <h2>Static ASHA Readout</h2>
-          <dl id="public-asha-summary" class="facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-          <ul id="static-room-snapshot" class="snapshot-list" aria-live="polite"></ul>
-        </article>
-
-        <article class="panel wide movement-panel" data-demo-readout="public-asha-movement">
-          <h2>Movement / Collision</h2>
-          <dl id="movement-summary" class="facts movement-facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-          <ul id="movement-keys" class="tag-list" aria-live="polite"></ul>
-        </article>
-
-        <article class="panel wide generated-panel" data-demo-readout="public-asha-generated-tunnel">
-          <h2>Generated Tunnel</h2>
-          <dl id="generated-tunnel-summary" class="facts generated-facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-          <ul id="generated-tunnel-markers" class="snapshot-list" aria-live="polite"></ul>
-        </article>
-
-        <article class="panel wide combat-panel" data-demo-readout="public-asha-combat-hud">
-          <h2>Combat / HUD</h2>
-          <dl id="combat-summary" class="facts combat-facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-          <ul id="combat-events" class="snapshot-list" aria-live="polite"></ul>
-          <dl id="combat-action-summary" class="facts combat-facts" aria-live="polite"></dl>
-        </article>
-
-        <article class="panel wide enemy-policy-panel" data-demo-readout="public-asha-enemy-policy">
-          <h2>Enemy Policy</h2>
-          <dl id="enemy-policy-summary" class="facts enemy-policy-facts" aria-live="polite">
-            <dt>Status</dt>
-            <dd>Loading</dd>
-          </dl>
-          <ul id="enemy-policy-proposals" class="snapshot-list" aria-live="polite"></ul>
-          <ul id="enemy-policy-diagnostics" class="snapshot-list" aria-live="polite"></ul>
-        </article>
-
-        <article class="panel wide">
-          <h2>Current Non-Claims</h2>
-          <ul id="non-claims" class="check-list" aria-live="polite"></ul>
-        </article>
-
-        <article class="panel">
-          <h2>Source Roots</h2>
-          <ul id="source-roots" class="path-list" aria-live="polite"></ul>
-        </article>
-      </section>
-    </main>
+    <canvas
+      id="asha-render-surface"
+      data-demo-readout="asha-renderer-browser-surface"
+      aria-label="ASHA renderer browser surface"
+    ></canvas>
+    <div id="reticle" class="reticle" data-state="idle" data-demo-readout="reticle"></div>
+    <section class="hud-panel" aria-label="ASHA demo status">
+      <div class="hud-row">
+        <span>Lock</span>
+        <strong id="lock-state" data-locked="false">UNLOCKED</strong>
+      </div>
+      <div class="hud-row">
+        <span>Targets</span>
+        <strong id="target-state">0/0</strong>
+      </div>
+      <div class="hud-row">
+        <span>Hits</span>
+        <strong id="shot-state">0/0</strong>
+      </div>
+      <div class="hud-row">
+        <span>Pose</span>
+        <strong id="pose-state">0, 0 | 0</strong>
+      </div>
+      <div class="health-meter" aria-label="Health">
+        <span id="health-fill"></span>
+      </div>
+      <p id="event-state" class="event-state">Ready</p>
+    </section>
+    <nav class="command-bar" aria-label="ASHA demo commands">
+      <button id="lock-button" type="button">Lock</button>
+      <button id="fire-button" type="button">Fire</button>
+      <button id="reset-button" type="button">Reset</button>
+    </nav>
     <script type="module" src="/app.js"></script>
   </body>
 </html>
