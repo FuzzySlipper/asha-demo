@@ -26,7 +26,7 @@ go run ./playwright-broker/cmd/den-playwright run asha-demo \
 
 ## Current Dev Server
 
-Run the no-claims skeleton UI with:
+Run the integrated public ASHA playable-loop UI with:
 
 ```sh
 npm run dev -- --host 127.0.0.1 --port 5173
@@ -45,7 +45,7 @@ The repo root has `.den-playwright.json` with:
 - `tests.command` invoking Playwright;
 - `tests.artifactPolicy` set to `live-ui`.
 
-The smoke test in `tests/live-ui.spec.mjs` reads `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` and fails if neither is set. It checks objective UI/readout content only: project identity, no-claims text, public import names, and static-room handle counts.
+The smoke test in `tests/live-ui.spec.mjs` reads `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` and fails if neither is set. It checks objective UI/readout content only: project identity, public import names, first-person canvas nonblank pixels and renderer projection hashes, movement/look/collision transitions, HUD/menu projection controls and typed unsupported placeholders, autonomous enemy tick proposal summaries, combat health/death status, and typed restart status.
 
 ## Evidence Expectations
 

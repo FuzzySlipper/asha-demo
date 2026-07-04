@@ -10,13 +10,96 @@ function artifactRoot() {
   return process.env.PLAYWRIGHT_BROKER_ARTIFACT_ROOT ?? 'artifacts/playwright-local';
 }
 
-test('@live-agent asha-demo shows objective static ASHA readout', async ({ page, request }) => {
+test('@live-agent asha-demo drives the integrated public ASHA playable loop', async ({ page, request }) => {
   const baseUrl = brokerBaseUrl();
   expect(baseUrl, 'live UI smoke must use broker-provided BASE_URL').not.toBeNull();
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'ASHA Demo' })).toBeVisible();
-  await expect(page.getByText('This is not a playable FPS.')).toBeVisible();
+  await expect(page.getByText('Playable Loop:')).toBeVisible();
+
+  const loop = page.locator('[data-demo-readout="public-asha-playable-loop"]');
+  await expect(loop).toBeVisible();
+  await expect(loop).toContainText('Public RuntimeSession');
+  await expect(loop).toContainText('Generated tunnel');
+  await expect(loop).toContainText('tiny-enclosed');
+  await expect(loop).toContainText('a9b504096397f5b4');
+  await expect(loop).toContainText('Enemy tick');
+  await expect(loop).toContainText('not run');
+  await expect(loop).toContainText('Player defeat fixture');
+  await expect(loop).toContainText('lost');
+
+  const viewport = page.locator('[data-demo-readout="public-asha-first-person-viewport"]');
+  await expect(viewport).toBeVisible();
+  await expect(viewport).toContainText('First-Person Tunnel View');
+  await expect(viewport).toContainText('first_person_tunnel_viewport.v0');
+  await expect(viewport).toContainText('generated-tunnel-first-person-viewport');
+  await expect(viewport).toContainText('a9b504096397f5b4');
+  await expect(viewport).toContainText('Frame hash');
+  await expect(viewport).toContainText('Canvas pixel hash');
+  const canvasStats = await page.locator('#first-person-canvas').evaluate((canvas) => {
+    const context = canvas.getContext('2d');
+    if (context === null) {
+      return { nonBlank: 0, width: canvas.width, height: canvas.height };
+    }
+    const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let nonBlank = 0;
+    for (let index = 0; index < data.length; index += 4) {
+      if (data[index] !== 0 || data[index + 1] !== 0 || data[index + 2] !== 0) {
+        nonBlank += 1;
+      }
+    }
+    return { nonBlank, width: canvas.width, height: canvas.height };
+  });
+  expect(canvasStats.width).toBe(960);
+  expect(canvasStats.height).toBe(360);
+  expect(canvasStats.nonBlank).toBeGreaterThan(1000);
+
+  const hud = page.locator('[data-demo-readout="public-asha-hud-overlay"]');
+  await expect(hud).toBeVisible();
+  await expect(hud).toContainText('HUD / Menu Overlay');
+  await expect(hud).toContainText('hud_projection.v0');
+  await expect(hud).toContainText('Player health');
+  await expect(hud).toContainText('Health 100/100');
+  await expect(hud).toContainText('Target health');
+  await expect(hud).toContainText('Health 40/40');
+  await expect(hud).toContainText('runtime.restart_session_intent');
+  await expect(hud).toContainText('ui.open_options_intent');
+  await expect(hud).toContainText('ui.exit_to_menu_intent');
+  await expect(hud.getByRole('button', { name: 'Restart session' })).toBeVisible();
+  await expect(hud.getByRole('button', { name: 'Options' })).toBeVisible();
+  await expect(hud.getByRole('button', { name: 'Exit' })).toBeVisible();
+  await hud.getByRole('button', { name: 'Restart session' }).click();
+  await expect(hud).toContainText('session_not_terminal');
+
+  await loop.getByRole('button', { name: 'Forward' }).click();
+  await expect(loop).toContainText('Tick');
+  await expect(loop).toContainText('Position');
+  await loop.getByRole('button', { name: 'Look Right' }).click();
+  await expect(loop).toContainText('Yaw / pitch');
+  await expect(viewport).toContainText('Yaw / pitch');
+  await loop.getByRole('button', { name: 'Probe Wall Stop' }).click();
+  await expect(loop).toContainText('blocked z');
+  await expect(viewport).toContainText('blocked z');
+  await expect(loop).toContainText('fnv1a64:');
+  await loop.getByRole('button', { name: 'Fire Primary' }).click();
+  await expect(loop).toContainText('Enemy defeated');
+  await expect(loop).toContainText('Health 0/40 defeated');
+  await expect(hud).toContainText('Health 0/40 defeated');
+  await hud.getByRole('button', { name: 'Restart session' }).click();
+  await expect(loop).toContainText('accepted -> In progress');
+  await expect(loop).toContainText('in_progress');
+  await expect(hud).toContainText('Health 40/40');
+  await hud.getByRole('button', { name: 'Options' }).click();
+  await expect(hud).toContainText('ui.open_options_intent');
+  await expect(hud).toContainText('unsupported');
+  await expect(hud).toContainText('options_menu_not_implemented');
+  await loop.getByRole('button', { name: 'Run Enemy Tick' }).click();
+  await expect(loop).toContainText('runtime_session.autonomous_policy_tick.v0');
+  await expect(loop).toContainText('1 accepted, 1 unsupported, 0 rejected');
+  await expect(loop).toContainText('movement_authority_not_wired');
+  await expect(loop).toContainText('e8e1ea7a09811ced');
+  await expect(loop).toContainText('Enemy defeated');
 
   const readout = page.locator('[data-demo-readout="public-asha-static-room"]');
   await expect(readout).toBeVisible();
@@ -31,13 +114,7 @@ test('@live-agent asha-demo shows objective static ASHA readout', async ({ page,
   await expect(movement).toBeVisible();
   await expect(movement).toContainText('Movement / Collision');
   await expect(movement).toContainText('Position');
-  await movement.getByRole('button', { name: 'Forward' }).click();
-  await expect(movement).toContainText('Tick');
-  await movement.getByRole('button', { name: 'Look Right' }).click();
   await expect(movement).toContainText('Yaw / pitch');
-  await movement.getByRole('button', { name: 'Probe Wall Stop' }).click();
-  await expect(movement).toContainText('blocked z');
-  await expect(movement).toContainText('fnv1a64:');
 
   const generatedTunnel = page.locator('[data-demo-readout="public-asha-generated-tunnel"]');
   await expect(generatedTunnel).toBeVisible();
@@ -57,30 +134,28 @@ test('@live-agent asha-demo shows objective static ASHA readout', async ({ page,
   await expect(combatHud).toContainText('accepted');
   await expect(combatHud).toContainText('Health 0/40 defeated');
   await expect(combatHud).toContainText('runtime.restart_session_intent');
-  await combatHud.getByRole('button', { name: 'Fire Static Target' }).click();
-  await expect(combatHud).toContainText('Intent');
-  await expect(combatHud).toContainText('primary_fire');
-  await expect(combatHud).toContainText('Payload');
-  await expect(combatHud).toContainText('none');
+  await expect(combatHud).toContainText('Action');
+  await expect(combatHud).toContainText('not fired');
 
   const enemyPolicy = page.locator('[data-demo-readout="public-asha-enemy-policy"]');
   await expect(enemyPolicy).toBeVisible();
   await expect(enemyPolicy).toContainText('Enemy Policy');
+  await expect(enemyPolicy).toContainText('generated_tunnel_enemy_policy_fixture.v0');
   await expect(enemyPolicy).toContainText('read-only proposal-only');
   await expect(enemyPolicy).toContainText('enemy_policy.move_toward_target.v0');
   await expect(enemyPolicy).toContainText('enemy_policy.primary_fire_intent.v0');
   await expect(enemyPolicy).toContainText('e8e1ea7a09811ced');
   await expect(enemyPolicy).toContainText('Date');
-  await enemyPolicy.getByRole('button', { name: 'Run Enemy Policy' }).click();
   await expect(enemyPolicy).toContainText('Fire status');
   await expect(enemyPolicy).toContainText('accepted');
   await expect(enemyPolicy).toContainText('Health 0/40 defeated');
+  await expect(enemyPolicy).toContainText('movement_authority_not_wired');
 
   const response = await request.get('/api/status');
   expect(response.ok()).toBe(true);
   const status = await response.json();
   expect(status.repo).toBe('asha-demo');
-  expect(status.playable).toBe(false);
+  expect(status.playable).toBe(true);
   expect(status.publicAshaReadout.publicImports).toEqual([
     '@asha/runtime-bridge',
     '@asha/renderer-three',
@@ -97,35 +172,69 @@ test('@live-agent asha-demo shows objective static ASHA readout', async ({ page,
   expect(status.publicAshaReadout.generatedTunnel.readout.generator.outputHash).toBe('a9b504096397f5b4');
   expect(status.publicAshaReadout.generatedTunnel.readout.replayHash).toBe('fnv1a64:0821a0c2aea17dff');
   expect(status.publicAshaReadout.generatedTunnel.regenerate.status).toBe('unsupported');
+  expect(status.publicAshaReadout.playableLoop.status).toBe('public_runtime_session_playable_loop');
+  expect(status.publicAshaReadout.playableLoop.generatedTunnel.outputHash).toBe('a9b504096397f5b4');
+  expect(status.publicAshaReadout.playableLoop.firstPersonViewport.summary.kind).toBe('first_person_tunnel_viewport.v0');
+  expect(status.publicAshaReadout.playableLoop.firstPersonViewport.summary.fixture).toBe('generated-tunnel-first-person-viewport');
+  expect(status.publicAshaReadout.playableLoop.firstPersonViewport.summary.debug.outputHash).toBe('a9b504096397f5b4');
+  expect(status.publicAshaReadout.playableLoop.firstPersonViewport.summary.scene.frameHash).toMatch(/^fnv1a64:/);
+  expect(status.publicAshaReadout.playableLoop.firstPersonViewport.summary.scene.structuralHash).toMatch(/^fnv1a64:/);
+  expect(status.publicAshaReadout.playableLoop.firstPersonViewport.wallInstanceCount).toBe(3);
+  expect(status.publicAshaReadout.playableLoop.autonomousTick.kind).toBe('runtime_session.autonomous_policy_tick.v0');
+  expect(status.publicAshaReadout.playableLoop.autonomousTick.nav.pathHash).toBe('e8e1ea7a09811ced');
+  expect(status.publicAshaReadout.playableLoop.autonomousTick.proposalSummary).toEqual({
+    acceptedProposalCount: 1,
+    rejectedProposalCount: 0,
+    unsupportedProposalCount: 1,
+  });
+  expect(status.publicAshaReadout.playableLoop.autonomousTick.movementSummary.reason).toBe('movement_authority_not_wired');
+  expect(status.publicAshaReadout.playableLoop.autonomousTick.combatSummary.status).toBe('accepted');
+  expect(status.publicAshaReadout.playableLoop.autonomousTick.combatSummary.outcome.kind).toBe('hit');
+  expect(status.publicAshaReadout.playableLoop.lifecycleAfterAutonomousTick.outcome.kind).toBe('won');
+  expect(status.publicAshaReadout.playableLoop.lifecycleAfterAutonomousTick.enemy.dead).toBe(true);
+  expect(status.publicAshaReadout.playableLoop.playerDefeatFixture.outcome.kind).toBe('lost');
+  expect(status.publicAshaReadout.playableLoop.restartReceipt.status).toBe('accepted');
+  expect(status.publicAshaReadout.playableLoop.restartReceipt.statusAfter.outcome.kind).toBe('in_progress');
+  expect(status.publicAshaReadout.playableLoop.hudOverlay.projection.kind).toBe('hud_projection.v0');
+  expect(status.publicAshaReadout.playableLoop.hudOverlay.projection.health.label).toBe('Health 0/40 defeated');
+  expect(status.publicAshaReadout.playableLoop.hudOverlay.menuIntents.restart).toEqual({
+    kind: 'runtime.restart_session_intent',
+    source: 'hud_menu',
+  });
+  expect(status.publicAshaReadout.playableLoop.hudOverlay.menuIntents.options.kind).toBe('ui.open_options_intent');
+  expect(status.publicAshaReadout.playableLoop.hudOverlay.menuIntents.exit.kind).toBe('ui.exit_to_menu_intent');
+  expect(status.publicAshaReadout.playableLoop.hudOverlay.unsupportedControls).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ controlId: 'hud-options', status: 'unsupported' }),
+      expect.objectContaining({ controlId: 'hud-exit', status: 'unsupported' }),
+    ]),
+  );
   expect(status.publicAshaReadout.combatHud.combatReadout.outcome.kind).toBe('hit');
   expect(status.publicAshaReadout.combatHud.hudProjection.health.dead).toBe(true);
   expect(status.publicAshaReadout.combatHud.menuIntents.restart.kind).toBe('runtime.restart_session_intent');
-  expect(status.publicAshaReadout.enemyPolicy.status).toBe('public_enemy_policy_fixture');
-  expect(status.publicAshaReadout.enemyPolicy.view.readOnly).toBe(true);
-  expect(status.publicAshaReadout.enemyPolicy.view.proposalOnly).toBe(true);
-  expect(status.publicAshaReadout.enemyPolicy.view.navPathHash).toBe('e8e1ea7a09811ced');
-  expect(status.publicAshaReadout.enemyPolicy.frame.proposals.map((proposal) => proposal.kind)).toEqual([
+  expect(status.publicAshaReadout.enemyPolicy.status).toBe('public_autonomous_policy_tick');
+  expect(status.publicAshaReadout.enemyPolicy.tickReadout.policy.proposalFrame.proposals.map((proposal) => proposal.kind)).toEqual([
     'enemy_policy.move_toward_target.v0',
     'enemy_policy.primary_fire_intent.v0',
   ]);
-  expect(status.publicAshaReadout.enemyPolicy.frame.proposals[1].intent.source).toBe('enemy_policy');
-  expect(status.publicAshaReadout.enemyPolicy.fireReceipt.accepted).toBe(true);
-  expect(status.publicAshaReadout.enemyPolicy.fireReceipt.combatReadout.health[0].dead).toBe(true);
+  expect(status.publicAshaReadout.enemyPolicy.tickReadout.policy.proposalFrame.proposals[1].intent.source).toBe('enemy_policy');
+  expect(status.publicAshaReadout.enemyPolicy.tickReadout.proposalReceipts[1].accepted).toBe(true);
+  expect(status.publicAshaReadout.enemyPolicy.tickReadout.proposalReceipts[1].actionReceipt.combatReadout.health[0].dead).toBe(true);
+  expect(status.publicAshaReadout.enemyPolicy.movementAuthority.reason).toBe('movement_authority_not_wired');
   expect(status.publicAshaReadout.enemyPolicy.sourceValidation.cleanDiagnostics).toEqual([]);
   expect(status.publicAshaReadout.enemyPolicy.sourceValidation.forbiddenDiagnostics.map((diagnostic) => diagnostic.token)).toEqual(
     expect.arrayContaining(['Date', 'Math.random', 'fetch', 'window', 'node:fs', 'import(']),
   );
   expect(status.nonClaims).toEqual(expect.arrayContaining([
-    'No autonomous enemy gameplay loop.',
-    'No continuous combat loop.',
-    'No live procedural dungeon gameplay.',
-    'No death or restart loop.',
+    'Reference RuntimeSession playable loop only; not a full native FPS.',
+    'Enemy movement remains proposal-only: movement_authority_not_wired.',
+    'Generated tunnel is a public deterministic readout, not a live applied dungeon runtime.',
   ]));
 
   const screenshotDir = artifactRoot();
   await mkdir(screenshotDir, { recursive: true });
   await page.screenshot({
-    path: join(screenshotDir, 'asha-demo-static-room-readout.png'),
+    path: join(screenshotDir, 'asha-demo-playable-loop.png'),
     fullPage: true,
   });
 });

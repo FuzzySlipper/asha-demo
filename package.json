@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Human-facing ASHA Game Project skeleton; not a playable FPS yet.",
+  "description": "Human-facing ASHA playable-loop demo built on public ASHA surfaces.",
   "scripts": {
     "build": "node scripts/build-ui.mjs",
     "check:dependencies": "node scripts/check-dependency-boundary.mjs",
@@ -17,9 +17,11 @@
   "dependencies": {
     "@asha/contracts": "file:../asha/ts/packages/contracts",
     "@asha/game-workspace": "file:../asha/ts/packages/game-workspace",
+    "@asha/render-projection": "file:../asha/ts/packages/render-projection",
     "@asha/renderer-three": "file:../asha/ts/packages/renderer-three",
     "@asha/runtime-bridge": "file:../asha/ts/packages/runtime-bridge",
-    "@asha/ui-dom": "file:../asha/ts/packages/ui-dom"
+    "@asha/ui-dom": "file:../asha/ts/packages/ui-dom",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1"

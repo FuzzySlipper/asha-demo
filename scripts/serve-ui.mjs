@@ -8,7 +8,10 @@ import { buildUiStatus } from './ui-status.mjs';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'app');
 const contractsBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'contracts', 'dist');
+const renderProjectionBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'render-projection', 'dist');
+const rendererThreeBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'renderer-three', 'dist');
 const runtimeBridgeBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'runtime-bridge', 'dist');
+const threeBrowserRoot = join(repoRoot, 'node_modules', 'three');
 const args = parseArgs(process.argv.slice(2));
 const host = args.host ?? process.env.HOST ?? process.env.npm_config_host ?? '127.0.0.1';
 const port = Number(args.port ?? process.env.PORT ?? process.env.npm_config_port ?? 5173);
@@ -26,6 +29,21 @@ const server = createServer(async (request, response) => {
   if (request.url?.startsWith('/vendor/asha-runtime-bridge/')) {
     const vendorPath = request.url.replace('/vendor/asha-runtime-bridge/', '') || 'browser.js';
     await sendStaticAssetFromRoot(response, runtimeBridgeBrowserRoot, vendorPath);
+    return;
+  }
+  if (request.url?.startsWith('/vendor/asha-renderer-three/')) {
+    const vendorPath = request.url.replace('/vendor/asha-renderer-three/', '') || 'index.js';
+    await sendStaticAssetFromRoot(response, rendererThreeBrowserRoot, vendorPath);
+    return;
+  }
+  if (request.url?.startsWith('/vendor/asha-render-projection/')) {
+    const vendorPath = request.url.replace('/vendor/asha-render-projection/', '') || 'index.js';
+    await sendStaticAssetFromRoot(response, renderProjectionBrowserRoot, vendorPath);
+    return;
+  }
+  if (request.url?.startsWith('/vendor/three/')) {
+    const vendorPath = request.url.replace('/vendor/three/', '') || 'build/three.module.js';
+    await sendStaticAssetFromRoot(response, threeBrowserRoot, vendorPath);
     return;
   }
   if (request.url?.startsWith('/vendor/asha-contracts/')) {

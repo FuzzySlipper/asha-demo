@@ -1,8 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createStaticRoomRenderFrame, renderProjectedFrame, STATIC_ROOM_FIXTURE_NAME } from '@asha/renderer-three';
 import {
-  createGeneratedTunnelEnemyPolicyFixture,
+  createStaticRoomRenderFrame,
+  renderFirstPersonTunnelViewport,
+  renderProjectedFrame,
+  STATIC_ROOM_FIXTURE_NAME,
+} from '@asha/renderer-three';
+import {
   createMockRuntimeSession,
   validateEnemyPolicySource,
 } from '@asha/runtime-bridge';
@@ -18,8 +22,8 @@ export function buildUiStatus(repoRoot) {
 
   return {
     repo: 'asha-demo',
-    kind: 'served static public ASHA readout UI',
-    playable: false,
+    kind: 'served integrated public ASHA playable-loop UI',
+    playable: true,
     runtimeSessionAttached: true,
     studioLiveIntegration: false,
     manifest: {
@@ -37,14 +41,12 @@ export function buildUiStatus(repoRoot) {
       ...arrayValue(manifest.workspace?.catalog_packages),
     ],
     nonClaims: [
-      'Not a playable FPS.',
       'No live native RuntimeSession attach.',
-      'No autonomous enemy gameplay loop.',
-      'No continuous combat loop.',
-      'No live procedural dungeon gameplay.',
-      'No death or restart loop.',
+      'Reference RuntimeSession playable loop only; not a full native FPS.',
+      'Enemy movement remains proposal-only: movement_authority_not_wired.',
+      'Generated tunnel is a public deterministic readout, not a live applied dungeon runtime.',
       'No interactive renderer or pixel-rendered gameplay claim.',
-      'No local generation algorithm, pathfinding, combat authority, or enemy movement authority.',
+      'No local generation algorithm, pathfinding, collision, combat, policy, or lifecycle authority.',
       'No Studio live inspection or control claim.',
     ],
   };
@@ -138,19 +140,7 @@ function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
     source: 'programmatic',
     pressed: true,
   });
-  const enemyPolicyFixture = createGeneratedTunnelEnemyPolicyFixture({
-    tick: 8,
-    nav: session.readNavPolicyView(),
-    target: {
-      camera: fireCamera,
-      position: [1, 1, 1],
-    },
-  });
-  const enemyFireProposal = enemyPolicyFixture.frame.proposals.find(
-    (proposal) => proposal.kind === 'enemy_policy.primary_fire_intent.v0',
-  );
-  const enemyFireReceipt =
-    enemyFireProposal === undefined ? null : session.submitRuntimeActionIntent(enemyFireProposal.intent);
+  const playableLoop = buildPlayableLoopReadout(generatedTunnelPreset);
   const combatReadout = fireReceipt.combatReadout;
   const hudProjection = buildHudProjection({
     health: combatReadout.health[0],
@@ -211,6 +201,7 @@ function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
         reason: generatedTunnelOperation.reason,
       },
     },
+    playableLoop,
     combatHud: {
       staticTargetPath: 'catalogs/actors/static-target-dummy.json',
       staticTarget,
@@ -228,41 +219,13 @@ function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
       },
     },
     enemyPolicy: {
-      status: 'public_enemy_policy_fixture',
+      status: 'public_autonomous_policy_tick',
       policySourcePath: 'policies/README.md',
       publicImports: ['@asha/runtime-bridge'],
-      nonClaims: enemyPolicyFixture.nonClaims,
-      view: {
-        kind: enemyPolicyFixture.view.kind,
-        tick: enemyPolicyFixture.view.tick,
-        enemy: enemyPolicyFixture.view.enemy,
-        target: {
-          id: enemyPolicyFixture.view.target.id,
-          position: enemyPolicyFixture.view.target.position,
-        },
-        navPathHash: enemyPolicyFixture.view.nav.latestPath.pathHash,
-        readOnly: enemyPolicyFixture.view.readOnly,
-        proposalOnly: enemyPolicyFixture.view.proposalOnly,
-      },
-      frame: {
-        kind: enemyPolicyFixture.frame.kind,
-        tick: enemyPolicyFixture.frame.tick,
-        proposalHash: enemyPolicyFixture.frame.proposalHash,
-        proposals: summarizeEnemyPolicyProposals(enemyPolicyFixture.frame.proposals),
-        diagnostics: enemyPolicyFixture.frame.diagnostics,
-      },
-      fireReceipt: enemyFireReceipt === null ? null : {
-        accepted: enemyFireReceipt.accepted,
-        status: enemyFireReceipt.status,
-        rejection: enemyFireReceipt.rejection,
-        envelope: {
-          action: enemyFireReceipt.envelope.action,
-          phase: enemyFireReceipt.envelope.phase,
-          source: enemyFireReceipt.envelope.source,
-          tick: enemyFireReceipt.envelope.tick,
-        },
-        combatReadout: enemyFireReceipt.combatReadout,
-      },
+      nonClaims: playableLoop.autonomousTick.nonClaims,
+      tickReadout: playableLoop.autonomousTick,
+      movementAuthority: playableLoop.autonomousTick.movementSummary,
+      combatAuthority: playableLoop.autonomousTick.combatSummary,
       sourceValidation: {
         cleanDiagnostics: validateEnemyPolicySource('export const policy = (view) => [];'),
         forbiddenDiagnostics: validateEnemyPolicySource(
@@ -274,13 +237,173 @@ function buildPublicAshaReadout(generatedTunnelPreset, staticTarget) {
       'movement_readout_only',
       'not_native_runtime',
       'not_interactive_renderer',
-      'not_gameplay_loop',
-      'not_autonomous_enemy_gameplay_loop',
-      'not_continuous_combat_loop',
+      'reference_runtime_session_playable_loop_only',
+      'movement_authority_not_wired',
       'not_demo_local_combat_authority',
       'not_demo_local_enemy_movement_authority',
       'not_demo_local_generation_algorithm',
       'not_live_regenerate',
+    ],
+  };
+}
+
+function buildPlayableLoopReadout(generatedTunnelPreset) {
+  const session = createMockRuntimeSession();
+  const initialized = session.initialize({
+    sessionId: 'asha-demo:playable-loop:reference-session',
+    seed: 4068,
+    project: {
+      gameId: 'asha-demo',
+      workspaceId: 'asha-demo-local',
+    },
+    projectBundle: {
+      bundleSchemaVersion: 1,
+      protocolVersion: 1,
+      sceneId: 1001,
+    },
+  });
+  const camera = session.createCamera({
+    initialPose: {
+      position: [2.5, 1.5, 1.5],
+      yawDegrees: 180,
+      pitchDegrees: 0,
+    },
+    projection: {
+      fovYDegrees: 60,
+      near: 0.1,
+      far: 100,
+    },
+    viewport: {
+      width: 1280,
+      height: 720,
+    },
+  }).snapshot.camera;
+  const cameraProjection = session.readCameraProjection({
+    camera,
+    viewport: null,
+  }).snapshot;
+  const generatedTunnel = session.readGeneratedTunnelReadout({
+    presetId: generatedTunnelPreset.presetId,
+    seed: generatedTunnelPreset.seed,
+  });
+  const firstPersonViewport = renderFirstPersonTunnelViewport({
+    tunnel: generatedTunnel,
+    camera: cameraProjection,
+    collision: null,
+  });
+  const initialLifecycle = session.readLifecycleStatus();
+  const autonomousTick = session.runAutonomousPolicyTick({
+    targetCamera: camera,
+    policySource: 'export const policy = (view) => view;',
+  });
+  const lifecycleAfterAutonomousTick = session.readLifecycleStatus();
+  const playerDefeatFixture = session.readLifecycleStatus({ scenario: 'generated_tunnel_player_defeated' });
+  const restartReceipt = session.requestSessionRestart({
+    kind: 'runtime.restart_session_intent',
+    source: 'programmatic',
+    requireTerminal: true,
+    expectedSessionHash: lifecycleAfterAutonomousTick.sessionHash,
+  });
+
+  return {
+    status: 'public_runtime_session_playable_loop',
+    publicImports: ['@asha/runtime-bridge'],
+    runtimeSession: {
+      sessionId: initialized.identity.sessionId,
+      mode: initialized.identity.mode,
+      seed: initialized.identity.seed,
+    },
+    generatedTunnel: {
+      presetId: generatedTunnel.generator.presetId,
+      seed: generatedTunnel.generator.seed,
+      outputHash: generatedTunnel.generator.outputHash,
+      replayHash: generatedTunnel.replayHash,
+      spawnMarkers: generatedTunnel.spawnMarkers,
+    },
+    firstPersonViewport: {
+      status: 'rendered',
+      publicImports: ['@asha/renderer-three', '@asha/runtime-bridge'],
+      summary: firstPersonViewport.summary,
+      projectionHandleCount: firstPersonViewport.projection.handleCount,
+      rendererHandleCount: firstPersonViewport.renderer.handleCount,
+      wallInstanceCount: firstPersonViewport.renderer.instanceCountFor('mesh/generated-tunnel-wall'),
+      structuralSnapshotPreview: firstPersonViewport.structuralSnapshot.trim().split('\n').slice(0, 5),
+    },
+    initialLifecycle,
+    autonomousTick: {
+      ...autonomousTick,
+      policy: {
+        ...autonomousTick.policy,
+        proposalFrame: {
+          ...autonomousTick.policy.proposalFrame,
+          proposals: summarizeEnemyPolicyProposals(autonomousTick.policy.proposalFrame.proposals),
+        },
+      },
+    },
+    lifecycleAfterAutonomousTick,
+    playerDefeatFixture,
+    restartReceipt,
+    hudOverlay: buildHudOverlayProjection(lifecycleAfterAutonomousTick, restartReceipt),
+    nonClaims: [
+      'not_native_runtime',
+      'movement_authority_not_wired',
+      'not_demo_local_authority',
+      'not_interactive_renderer',
+    ],
+  };
+}
+
+function buildHudOverlayProjection(lifecycleStatus, restartReceipt) {
+  return {
+    status: 'public_hud_projection_overlay',
+    publicImports: ['@asha/ui-dom', '@asha/runtime-bridge'],
+    projection: buildHudProjection({
+      health: lifecycleStatus.enemy.health,
+      status: [
+        {
+          id: 'lifecycle',
+          tone: lifecycleStatus.outcome.terminal ? 'danger' : 'info',
+          text: lifecycleStatus.outcome.label,
+        },
+        {
+          id: 'restart',
+          tone: restartReceipt.status === 'accepted' ? 'info' : 'warning',
+          text: `Restart ${restartReceipt.status}`,
+        },
+        {
+          id: 'enemy-movement',
+          tone: 'warning',
+          text: 'movement_authority_not_wired',
+        },
+      ],
+      nonClaims: [
+        'not_ui_authority',
+        'not_options_or_exit_implementation',
+        'not_native_runtime',
+      ],
+      menuOpen: true,
+    }),
+    playerHealth: lifecycleStatus.player.health,
+    targetHealth: lifecycleStatus.enemy.health,
+    lifecycle: lifecycleStatus,
+    restartReceipt,
+    menuIntents: {
+      resume: hudControlToIntent('hud-resume'),
+      restart: hudControlToIntent('hud-restart'),
+      options: hudControlToIntent('hud-options'),
+      exit: hudControlToIntent('hud-exit'),
+    },
+    unsupportedControls: [
+      {
+        controlId: 'hud-options',
+        status: 'unsupported',
+        reason: 'options_menu_not_implemented',
+      },
+      {
+        controlId: 'hud-exit',
+        status: 'unsupported',
+        reason: 'exit_to_menu_not_implemented',
+      },
     ],
   };
 }

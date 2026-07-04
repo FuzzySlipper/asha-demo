@@ -1,0 +1,1771 @@
+{
+  "repo": "asha-demo",
+  "kind": "served integrated public ASHA playable-loop UI",
+  "playable": true,
+  "runtimeSessionAttached": true,
+  "studioLiveIntegration": false,
+  "manifest": {
+    "present": true,
+    "engineSource": "../asha",
+    "runtimeCommand": "npm run dev",
+    "studioAttachEnabled": false
+  },
+  "publicAshaReadout": {
+    "statusVersion": "asha-demo-public-readout.v0",
+    "publicImports": [
+      "@asha/runtime-bridge",
+      "@asha/renderer-three",
+      "@asha/ui-dom"
+    ],
+    "runtimeSession": {
+      "sessionId": "asha-demo:static-room:reference-session",
+      "mode": "reference",
+      "tick": 0,
+      "sessionHash": "fnv1a64:1311f7454aa7d02b",
+      "replayRecordCount": 1,
+      "acceptedCommandCount": 0,
+      "rejectedCommandCount": 0,
+      "projectionHash": "fnv1a64:55c2104cf3119506",
+      "nonClaims": [
+        "not_native_runtime",
+        "not_raw_state_store",
+        "not_arbitrary_json_bridge",
+        "not_gameplay_loop",
+        "not_renderer"
+      ]
+    },
+    "staticRoom": {
+      "fixtureName": "static-room",
+      "renderOpCount": 15,
+      "projectionHandleCount": 7,
+      "rendererHandleCount": 7,
+      "wallInstanceCount": 4,
+      "markerPresent": true,
+      "structuralSnapshotPreview": [
+        "handle 1  layer scene  kind staticMesh  asset mesh/room-floor  pos 0,-1,0  scale 8,1,8  visible true  materials [0.44,0.48,0.46]  label \"room-floor\"",
+        "handle 2  layer scene  kind staticMesh  asset mesh/room-wall  pos 0,1,-4  scale 8,4,1  visible true  materials [0.68,0.73,0.76]  label \"room-wall-north\"",
+        "handle 3  layer scene  kind staticMesh  asset mesh/room-wall  pos 0,1,4  scale 8,4,1  visible true  materials [0.68,0.73,0.76]  label \"room-wall-south\"",
+        "handle 4  layer scene  kind staticMesh  asset mesh/room-wall  pos -4,1,0  scale 1,4,8  visible true  materials [0.68,0.73,0.76]  label \"room-wall-west\""
+      ],
+      "structuralSnapshotHash": "asha-demo-static-room-05e604fc"
+    },
+    "movementReadout": {
+      "status": "public_runtime_session_collision_probe",
+      "input": {
+        "moveForward": 1,
+        "moveRight": 0,
+        "moveUp": 0,
+        "yawDeltaDegrees": 0,
+        "pitchDeltaDegrees": 0,
+        "dtSeconds": 1,
+        "moveSpeedUnitsPerSecond": 99
+      },
+      "before": {
+        "position": [
+          0,
+          1.6,
+          0
+        ],
+        "yawDegrees": 0,
+        "pitchDegrees": 0
+      },
+      "attempted": {
+        "position": [
+          0,
+          1.600000023841858,
+          -99
+        ],
+        "yawDegrees": 0,
+        "pitchDegrees": 0
+      },
+      "after": {
+        "position": [
+          0,
+          1.6,
+          0
+        ],
+        "yawDegrees": 0,
+        "pitchDegrees": 0
+      },
+      "collision": {
+        "collided": true,
+        "blockedAxes": [
+          "z"
+        ],
+        "movementHash": "fnv1a64:f4f42e33d8f9487f",
+        "collisionProjectionHash": "fnv1a64:0ab4067ebc4fc2a4"
+      }
+    },
+    "generatedTunnel": {
+      "presetPath": "levels/presets/tiny-enclosed-tunnel.json",
+      "preset": {
+        "kind": "asha-demo.generated_tunnel_preset.v0",
+        "presetId": "tiny-enclosed",
+        "seed": 17,
+        "source": "public RuntimeSession generated tunnel readout",
+        "nonClaims": [
+          "not_demo_local_generation_algorithm",
+          "not_live_regenerate",
+          "not_applied_runtime_world"
+        ]
+      },
+      "readout": {
+        "status": "available",
+        "generator": {
+          "generatorId": "asha.tunnel.enclosed.v1",
+          "generatorVersion": 1,
+          "presetId": "tiny-enclosed",
+          "seed": 17,
+          "configHash": "e1d156c6b55137a7",
+          "outputHash": "a9b504096397f5b4",
+          "generationHash": "fnv1a64:0821a0c2aea17dff"
+        },
+        "volume": {
+          "grid": 0,
+          "voxelSize": 1,
+          "chunkDims": [
+            8,
+            6,
+            12
+          ],
+          "tunnelDims": [
+            5,
+            4,
+            9
+          ],
+          "solidVoxels": 138,
+          "collisionAabbCount": 138
+        },
+        "rooms": {
+          "count": 0
+        },
+        "corridors": {
+          "count": 1,
+          "width": 5,
+          "height": 4,
+          "length": 9
+        },
+        "spawnMarkers": [
+          {
+            "id": "player_start",
+            "kind": "player",
+            "voxel": [
+              1,
+              1,
+              1
+            ],
+            "world": [
+              1.5,
+              1.5,
+              1.5
+            ],
+            "yawDegrees": 0
+          },
+          {
+            "id": "exit_hint",
+            "kind": "navigation",
+            "voxel": [
+              3,
+              1,
+              7
+            ],
+            "world": [
+              3.5,
+              1.5,
+              7.5
+            ],
+            "yawDegrees": 180
+          }
+        ],
+        "materials": [
+          {
+            "role": "wall",
+            "material": 1
+          },
+          {
+            "role": "floor",
+            "material": 2
+          },
+          {
+            "role": "accent",
+            "material": 3
+          }
+        ],
+        "renderProjection": {
+          "available": true,
+          "hash": "fnv1a64:21eb8696f6f3b5c4"
+        },
+        "collisionProjection": {
+          "available": true,
+          "hash": "fnv1a64:78b242163cf67524"
+        },
+        "replayHash": "fnv1a64:0821a0c2aea17dff",
+        "fixture": "harness/fixtures/generated-levels/tiny-tunnel.snapshot.txt"
+      },
+      "regenerate": {
+        "operation": "regenerate",
+        "status": "unsupported",
+        "reason": "generated_tunnel_operation_not_wired"
+      }
+    },
+    "playableLoop": {
+      "status": "public_runtime_session_playable_loop",
+      "publicImports": [
+        "@asha/runtime-bridge"
+      ],
+      "runtimeSession": {
+        "sessionId": "asha-demo:playable-loop:reference-session",
+        "mode": "reference",
+        "seed": 4068
+      },
+      "generatedTunnel": {
+        "presetId": "tiny-enclosed",
+        "seed": 17,
+        "outputHash": "a9b504096397f5b4",
+        "replayHash": "fnv1a64:0821a0c2aea17dff",
+        "spawnMarkers": [
+          {
+            "id": "player_start",
+            "kind": "player",
+            "voxel": [
+              1,
+              1,
+              1
+            ],
+            "world": [
+              1.5,
+              1.5,
+              1.5
+            ],
+            "yawDegrees": 0
+          },
+          {
+            "id": "exit_hint",
+            "kind": "navigation",
+            "voxel": [
+              3,
+              1,
+              7
+            ],
+            "world": [
+              3.5,
+              1.5,
+              7.5
+            ],
+            "yawDegrees": 180
+          }
+        ]
+      },
+      "firstPersonViewport": {
+        "status": "rendered",
+        "publicImports": [
+          "@asha/renderer-three",
+          "@asha/runtime-bridge"
+        ],
+        "summary": {
+          "kind": "first_person_tunnel_viewport.v0",
+          "fixture": "generated-tunnel-first-person-viewport",
+          "presetId": "tiny-enclosed",
+          "seed": 17,
+          "camera": {
+            "camera": 1,
+            "tick": 0,
+            "position": [
+              2.5,
+              1.5,
+              1.5
+            ],
+            "yawDegrees": 180,
+            "pitchDegrees": 0,
+            "projectionHash": "fnv1a64:2aa10d532f1ba47c",
+            "viewport": {
+              "width": 1280,
+              "height": 720
+            }
+          },
+          "tunnel": {
+            "dims": [
+              5,
+              4,
+              9
+            ],
+            "solidVoxels": 138,
+            "spawnMarkers": [
+              "player_start",
+              "exit_hint"
+            ],
+            "materialRoles": [
+              "wall:1",
+              "floor:2",
+              "accent:3"
+            ]
+          },
+          "debug": {
+            "generatorHash": "fnv1a64:0821a0c2aea17dff",
+            "outputHash": "a9b504096397f5b4",
+            "renderProjectionHash": "fnv1a64:21eb8696f6f3b5c4",
+            "collisionProjectionHash": "fnv1a64:78b242163cf67524",
+            "replayHash": "fnv1a64:0821a0c2aea17dff",
+            "collision": null
+          },
+          "scene": {
+            "frameHash": "fnv1a64:db081afd570c2f30",
+            "structuralHash": "fnv1a64:35ad3bca1a9f1667",
+            "opCount": 18,
+            "instanceCount": 8
+          },
+          "nonClaims": [
+            "not_runtime_authority",
+            "not_collision_authority",
+            "not_local_generation",
+            "not_pixel_golden"
+          ]
+        },
+        "projectionHandleCount": 8,
+        "rendererHandleCount": 8,
+        "wallInstanceCount": 3,
+        "structuralSnapshotPreview": [
+          "handle 100  layer scene  kind staticMesh  asset mesh/generated-tunnel-floor  pos 2.5,0,4.5  scale 5,1,9  visible true  materials [0.25,0.32,0.29]  label \"generated-tunnel-floor\"",
+          "handle 101  layer scene  kind staticMesh  asset mesh/generated-tunnel-wall  pos 2.5,4,4.5  scale 5,1,9  visible true  materials [0.42,0.46,0.5]  label \"generated-tunnel-ceiling\"",
+          "handle 102  layer scene  kind staticMesh  asset mesh/generated-tunnel-wall  pos 0,2,4.5  scale 1,4,9  visible true  materials [0.42,0.46,0.5]  label \"generated-tunnel-wall-west\"",
+          "handle 103  layer scene  kind staticMesh  asset mesh/generated-tunnel-wall  pos 5,2,4.5  scale 1,4,9  visible true  materials [0.42,0.46,0.5]  label \"generated-tunnel-wall-east\"",
+          "handle 104  layer scene  kind staticMesh  asset mesh/generated-tunnel-accent  pos 2.5,2,0  scale 5,4,1  visible true  materials [0.95,0.62,0.18]  label \"generated-tunnel-entrance-cap\""
+        ]
+      },
+      "initialLifecycle": {
+        "kind": "runtime_session.lifecycle_status.v0",
+        "scenario": "current_session",
+        "sequenceId": 1,
+        "tick": 0,
+        "sessionHash": "fnv1a64:06fbbc816f5d359a",
+        "player": {
+          "role": "player",
+          "health": {
+            "entity": 10,
+            "current": 100,
+            "max": 100,
+            "dead": false,
+            "healthHash": "fnv1a64:6e9d71698c874e9b"
+          },
+          "dead": false
+        },
+        "enemy": {
+          "role": "enemy",
+          "health": {
+            "entity": 20,
+            "current": 40,
+            "max": 40,
+            "dead": false,
+            "healthHash": "fnv1a64:6de4ef91d8c43bdc"
+          },
+          "dead": false
+        },
+        "outcome": {
+          "kind": "in_progress",
+          "terminal": false,
+          "reason": "none",
+          "label": "In progress"
+        },
+        "restart": {
+          "eligible": true,
+          "intentKind": "runtime.restart_session_intent",
+          "reason": "always_resettable_reference_fixture"
+        },
+        "events": [],
+        "fixture": {
+          "seed": 4068,
+          "sceneId": 1001,
+          "bundleSchemaVersion": 1,
+          "protocolVersion": 1,
+          "resetHash": "fnv1a64:7c64a9a321ac8173"
+        },
+        "hashes": {
+          "lifecycleHash": "fnv1a64:fb38823ac72c184b",
+          "playerHealthHash": "fnv1a64:6e9d71698c874e9b",
+          "enemyHealthHash": "fnv1a64:6de4ef91d8c43bdc",
+          "replayHash": "fnv1a64:95d267f7f6899388"
+        },
+        "nonClaims": [
+          "not_save_load_persistence",
+          "not_ui_authority",
+          "not_demo_local_lifecycle"
+        ]
+      },
+      "autonomousTick": {
+        "kind": "runtime_session.autonomous_policy_tick.v0",
+        "loopId": "generated_tunnel_enemy_policy_loop.v0",
+        "sequenceIdBefore": 1,
+        "sequenceIdAfter": 4,
+        "sessionHashBefore": "fnv1a64:06fbbc816f5d359a",
+        "sessionHashAfter": "fnv1a64:82f78fd54fe4f23d",
+        "tick": 1,
+        "step": {
+          "sequenceId": 2,
+          "tick": 1,
+          "step": {
+            "tick": 1,
+            "diffCount": 1
+          },
+          "composition": {
+            "loadedWorld": 1001,
+            "fatalCount": 0,
+            "totalCount": 0,
+            "blocksLoad": false
+          },
+          "sessionHash": "fnv1a64:54f072e7f82e9aaa"
+        },
+        "policy": {
+          "fixtureKind": "generated_tunnel_enemy_policy_fixture.v0",
+          "proposalFrame": {
+            "kind": "enemy_policy_proposal_frame.v0",
+            "tick": 1,
+            "proposals": [
+              {
+                "kind": "enemy_policy.move_toward_target.v0",
+                "actor": "generated-tunnel.enemy.1",
+                "target": "generated-tunnel.player",
+                "nextWaypoint": [
+                  2,
+                  1,
+                  7
+                ],
+                "pathHash": "e8e1ea7a09811ced",
+                "authority": "rust_runtime_must_validate"
+              },
+              {
+                "kind": "enemy_policy.primary_fire_intent.v0",
+                "actor": "generated-tunnel.enemy.1",
+                "target": "generated-tunnel.player",
+                "intent": {
+                  "action": "primary_fire",
+                  "phase": "pressed",
+                  "source": "enemy_policy",
+                  "tick": 1
+                },
+                "distanceUnits": 6.325,
+                "authority": "rust_runtime_must_validate"
+              }
+            ],
+            "diagnostics": [],
+            "proposalHash": "ad9b57fb813fa7aa"
+          },
+          "sourceChecked": true,
+          "sourceDiagnostics": [],
+          "proposalValidationDiagnostics": []
+        },
+        "nav": {
+          "projectionHash": "d1f6ac3e051d6b6e",
+          "pathHash": "e8e1ea7a09811ced",
+          "outcome": "reached",
+          "visited": 21,
+          "pathLength": 9
+        },
+        "proposalReceipts": [
+          {
+            "proposalKind": "enemy_policy.move_toward_target.v0",
+            "actor": "generated-tunnel.enemy.1",
+            "target": "generated-tunnel.player",
+            "accepted": false,
+            "status": "unsupported",
+            "rejection": {
+              "reason": "movement_authority_not_wired",
+              "detail": "Enemy movement proposals are exposed for Rust runtime validation; movement authority is not wired yet."
+            },
+            "movement": {
+              "status": "unsupported",
+              "actor": "generated-tunnel.enemy.1",
+              "target": "generated-tunnel.player",
+              "from": [
+                3,
+                1,
+                7
+              ],
+              "nextWaypoint": [
+                2,
+                1,
+                7
+              ],
+              "pathHash": "e8e1ea7a09811ced",
+              "reason": "movement_authority_not_wired"
+            },
+            "actionReceipt": null,
+            "combat": null
+          },
+          {
+            "proposalKind": "enemy_policy.primary_fire_intent.v0",
+            "actor": "generated-tunnel.enemy.1",
+            "target": "generated-tunnel.player",
+            "accepted": true,
+            "status": "accepted",
+            "rejection": null,
+            "movement": null,
+            "actionReceipt": {
+              "sequenceId": 3,
+              "envelope": {
+                "kind": "runtime_action_intent.v0",
+                "action": "primary_fire",
+                "phase": "pressed",
+                "camera": 1,
+                "tick": 1,
+                "source": "enemy_policy",
+                "pressed": true
+              },
+              "accepted": true,
+              "status": "accepted",
+              "rejection": null,
+              "combatReadout": {
+                "scenario": "generated_tunnel_fire_hit",
+                "outcome": {
+                  "kind": "hit",
+                  "target": 20,
+                  "distance": 3.5,
+                  "hitPosition": null,
+                  "defeated": true
+                },
+                "events": [
+                  {
+                    "kind": "fire_hit",
+                    "shooter": 10,
+                    "target": 20,
+                    "distance": 3.5,
+                    "tick": 7
+                  },
+                  {
+                    "kind": "damage_applied",
+                    "target": 20,
+                    "amount": 40,
+                    "before": 40,
+                    "after": 0
+                  },
+                  {
+                    "kind": "entity_defeated",
+                    "target": 20
+                  }
+                ],
+                "health": [
+                  {
+                    "entity": 20,
+                    "current": 0,
+                    "max": 40,
+                    "dead": true
+                  }
+                ],
+                "nextFireControl": {
+                  "ammo": 2,
+                  "cooldownTicksRemaining": 4,
+                  "cooldownTicksAfterFire": 4
+                },
+                "healthHash": "3c89045230f2d9d9",
+                "replayHash": "6b133026c511b0f5",
+                "fixture": "harness/fixtures/combat/generated-tunnel-fire.snapshot.txt"
+              },
+              "sessionHashBefore": "fnv1a64:54f072e7f82e9aaa",
+              "sessionHashAfter": "fnv1a64:258c959de93d7fa8"
+            },
+            "combat": {
+              "status": "accepted",
+              "action": "primary_fire",
+              "outcome": {
+                "kind": "hit",
+                "target": 20,
+                "distance": 3.5,
+                "hitPosition": null,
+                "defeated": true
+              },
+              "healthHash": "3c89045230f2d9d9",
+              "replayHash": "6b133026c511b0f5"
+            }
+          }
+        ],
+        "proposalSummary": {
+          "acceptedProposalCount": 1,
+          "rejectedProposalCount": 0,
+          "unsupportedProposalCount": 1
+        },
+        "commandSummary": {
+          "acceptedCommandCount": 0,
+          "rejectedCommandCount": 0,
+          "acceptedRuntimeActionCount": 1,
+          "rejectedRuntimeActionCount": 0
+        },
+        "movementSummary": {
+          "status": "unsupported",
+          "actor": "generated-tunnel.enemy.1",
+          "target": "generated-tunnel.player",
+          "from": [
+            3,
+            1,
+            7
+          ],
+          "nextWaypoint": [
+            2,
+            1,
+            7
+          ],
+          "pathHash": "e8e1ea7a09811ced",
+          "reason": "movement_authority_not_wired"
+        },
+        "combatSummary": {
+          "status": "accepted",
+          "action": "primary_fire",
+          "outcome": {
+            "kind": "hit",
+            "target": 20,
+            "distance": 3.5,
+            "hitPosition": null,
+            "defeated": true
+          },
+          "healthHash": "3c89045230f2d9d9",
+          "replayHash": "6b133026c511b0f5"
+        },
+        "replay": {
+          "recordCount": 6,
+          "lastRecordKind": "runAutonomousPolicyTick",
+          "recordHashes": [
+            "fnv1a64:387851d7cac961a5",
+            "fnv1a64:7d200c38025686bd",
+            "fnv1a64:195159f81e1da6ff",
+            "fnv1a64:edff0b31479cb4ed",
+            "fnv1a64:0f3c499462357344",
+            "fnv1a64:eb50fb7b421583a7"
+          ]
+        },
+        "tickHash": "fnv1a64:c2546f1745366999",
+        "nonClaims": [
+          "not_generic_event_bus",
+          "not_behavior_tree",
+          "not_demo_local_authority",
+          "movement_authority_not_wired"
+        ]
+      },
+      "lifecycleAfterAutonomousTick": {
+        "kind": "runtime_session.lifecycle_status.v0",
+        "scenario": "current_session",
+        "sequenceId": 4,
+        "tick": 1,
+        "sessionHash": "fnv1a64:82f78fd54fe4f23d",
+        "player": {
+          "role": "player",
+          "health": {
+            "entity": 10,
+            "current": 100,
+            "max": 100,
+            "dead": false,
+            "healthHash": "fnv1a64:6e9d71698c874e9b"
+          },
+          "dead": false
+        },
+        "enemy": {
+          "role": "enemy",
+          "health": {
+            "entity": 20,
+            "current": 0,
+            "max": 40,
+            "dead": true,
+            "healthHash": "fnv1a64:380624a28ba625b3"
+          },
+          "dead": true
+        },
+        "outcome": {
+          "kind": "won",
+          "terminal": true,
+          "reason": "enemy_defeated",
+          "label": "Enemy defeated"
+        },
+        "restart": {
+          "eligible": true,
+          "intentKind": "runtime.restart_session_intent",
+          "reason": "always_resettable_reference_fixture"
+        },
+        "events": [
+          {
+            "kind": "runtime_lifecycle.enemy_defeated.v0",
+            "entity": 20,
+            "tick": 1,
+            "reason": "combat_health_zero",
+            "eventHash": "fnv1a64:de9a654cbe82d29e"
+          }
+        ],
+        "fixture": {
+          "seed": 4068,
+          "sceneId": 1001,
+          "bundleSchemaVersion": 1,
+          "protocolVersion": 1,
+          "resetHash": "fnv1a64:7c64a9a321ac8173"
+        },
+        "hashes": {
+          "lifecycleHash": "fnv1a64:138d5ba9ceb16cdc",
+          "playerHealthHash": "fnv1a64:6e9d71698c874e9b",
+          "enemyHealthHash": "fnv1a64:380624a28ba625b3",
+          "replayHash": "fnv1a64:a170d8fe6c8813ce"
+        },
+        "nonClaims": [
+          "not_save_load_persistence",
+          "not_ui_authority",
+          "not_demo_local_lifecycle"
+        ]
+      },
+      "playerDefeatFixture": {
+        "kind": "runtime_session.lifecycle_status.v0",
+        "scenario": "generated_tunnel_player_defeated",
+        "sequenceId": 4,
+        "tick": 1,
+        "sessionHash": "fnv1a64:82f78fd54fe4f23d",
+        "player": {
+          "role": "player",
+          "health": {
+            "entity": 10,
+            "current": 0,
+            "max": 100,
+            "dead": true,
+            "healthHash": "fnv1a64:4c9316192318edb7"
+          },
+          "dead": true
+        },
+        "enemy": {
+          "role": "enemy",
+          "health": {
+            "entity": 20,
+            "current": 40,
+            "max": 40,
+            "dead": false,
+            "healthHash": "fnv1a64:6de4ef91d8c43bdc"
+          },
+          "dead": false
+        },
+        "outcome": {
+          "kind": "lost",
+          "terminal": true,
+          "reason": "player_defeated",
+          "label": "Player defeated"
+        },
+        "restart": {
+          "eligible": true,
+          "intentKind": "runtime.restart_session_intent",
+          "reason": "always_resettable_reference_fixture"
+        },
+        "events": [
+          {
+            "kind": "runtime_lifecycle.player_defeated.v0",
+            "entity": 10,
+            "tick": 11,
+            "reason": "fixture_player_damage",
+            "eventHash": "fnv1a64:8bdb2439507e0c84"
+          }
+        ],
+        "fixture": {
+          "seed": 4068,
+          "sceneId": 1001,
+          "bundleSchemaVersion": 1,
+          "protocolVersion": 1,
+          "resetHash": "fnv1a64:7c64a9a321ac8173"
+        },
+        "hashes": {
+          "lifecycleHash": "fnv1a64:32322a108d4f2767",
+          "playerHealthHash": "fnv1a64:4c9316192318edb7",
+          "enemyHealthHash": "fnv1a64:6de4ef91d8c43bdc",
+          "replayHash": "fnv1a64:207a4bcca8cac772"
+        },
+        "nonClaims": [
+          "not_save_load_persistence",
+          "not_ui_authority",
+          "not_demo_local_lifecycle"
+        ]
+      },
+      "restartReceipt": {
+        "kind": "runtime_session.restart_receipt.v0",
+        "sequenceId": 5,
+        "intent": {
+          "kind": "runtime.restart_session_intent",
+          "source": "programmatic",
+          "requireTerminal": true,
+          "expectedSessionHash": "fnv1a64:82f78fd54fe4f23d"
+        },
+        "accepted": true,
+        "status": "accepted",
+        "rejection": null,
+        "statusBefore": {
+          "kind": "runtime_session.lifecycle_status.v0",
+          "scenario": "current_session",
+          "sequenceId": 4,
+          "tick": 1,
+          "sessionHash": "fnv1a64:82f78fd54fe4f23d",
+          "player": {
+            "role": "player",
+            "health": {
+              "entity": 10,
+              "current": 100,
+              "max": 100,
+              "dead": false,
+              "healthHash": "fnv1a64:6e9d71698c874e9b"
+            },
+            "dead": false
+          },
+          "enemy": {
+            "role": "enemy",
+            "health": {
+              "entity": 20,
+              "current": 0,
+              "max": 40,
+              "dead": true,
+              "healthHash": "fnv1a64:380624a28ba625b3"
+            },
+            "dead": true
+          },
+          "outcome": {
+            "kind": "won",
+            "terminal": true,
+            "reason": "enemy_defeated",
+            "label": "Enemy defeated"
+          },
+          "restart": {
+            "eligible": true,
+            "intentKind": "runtime.restart_session_intent",
+            "reason": "always_resettable_reference_fixture"
+          },
+          "events": [
+            {
+              "kind": "runtime_lifecycle.enemy_defeated.v0",
+              "entity": 20,
+              "tick": 1,
+              "reason": "combat_health_zero",
+              "eventHash": "fnv1a64:de9a654cbe82d29e"
+            }
+          ],
+          "fixture": {
+            "seed": 4068,
+            "sceneId": 1001,
+            "bundleSchemaVersion": 1,
+            "protocolVersion": 1,
+            "resetHash": "fnv1a64:7c64a9a321ac8173"
+          },
+          "hashes": {
+            "lifecycleHash": "fnv1a64:138d5ba9ceb16cdc",
+            "playerHealthHash": "fnv1a64:6e9d71698c874e9b",
+            "enemyHealthHash": "fnv1a64:380624a28ba625b3",
+            "replayHash": "fnv1a64:a170d8fe6c8813ce"
+          },
+          "nonClaims": [
+            "not_save_load_persistence",
+            "not_ui_authority",
+            "not_demo_local_lifecycle"
+          ]
+        },
+        "statusAfter": {
+          "kind": "runtime_session.lifecycle_status.v0",
+          "scenario": "current_session",
+          "sequenceId": 5,
+          "tick": 0,
+          "sessionHash": "fnv1a64:d0c3171f169a3fd3",
+          "player": {
+            "role": "player",
+            "health": {
+              "entity": 10,
+              "current": 100,
+              "max": 100,
+              "dead": false,
+              "healthHash": "fnv1a64:6e9d71698c874e9b"
+            },
+            "dead": false
+          },
+          "enemy": {
+            "role": "enemy",
+            "health": {
+              "entity": 20,
+              "current": 40,
+              "max": 40,
+              "dead": false,
+              "healthHash": "fnv1a64:6de4ef91d8c43bdc"
+            },
+            "dead": false
+          },
+          "outcome": {
+            "kind": "in_progress",
+            "terminal": false,
+            "reason": "none",
+            "label": "In progress"
+          },
+          "restart": {
+            "eligible": true,
+            "intentKind": "runtime.restart_session_intent",
+            "reason": "always_resettable_reference_fixture"
+          },
+          "events": [],
+          "fixture": {
+            "seed": 4068,
+            "sceneId": 1001,
+            "bundleSchemaVersion": 1,
+            "protocolVersion": 1,
+            "resetHash": "fnv1a64:7c64a9a321ac8173"
+          },
+          "hashes": {
+            "lifecycleHash": "fnv1a64:fb38823ac72c184b",
+            "playerHealthHash": "fnv1a64:6e9d71698c874e9b",
+            "enemyHealthHash": "fnv1a64:6de4ef91d8c43bdc",
+            "replayHash": "fnv1a64:95ce6bf7f685b17d"
+          },
+          "nonClaims": [
+            "not_save_load_persistence",
+            "not_ui_authority",
+            "not_demo_local_lifecycle"
+          ]
+        },
+        "restart": {
+          "sequenceId": 5,
+          "tick": 0,
+          "composition": {
+            "loadedWorld": 1001,
+            "fatalCount": 0,
+            "totalCount": 0,
+            "blocksLoad": false
+          },
+          "restartCount": 1,
+          "sessionHash": "fnv1a64:d0c3171f169a3fd3"
+        },
+        "sessionHashBefore": "fnv1a64:82f78fd54fe4f23d",
+        "sessionHashAfter": "fnv1a64:d0c3171f169a3fd3",
+        "resetHash": "fnv1a64:7c64a9a321ac8173"
+      },
+      "hudOverlay": {
+        "status": "public_hud_projection_overlay",
+        "publicImports": [
+          "@asha/ui-dom",
+          "@asha/runtime-bridge"
+        ],
+        "projection": {
+          "kind": "hud_projection.v0",
+          "health": {
+            "entity": 20,
+            "current": 0,
+            "max": 40,
+            "dead": true,
+            "ratio": 0,
+            "label": "Health 0/40 defeated"
+          },
+          "status": [
+            {
+              "id": "lifecycle",
+              "tone": "danger",
+              "text": "Enemy defeated"
+            },
+            {
+              "id": "restart",
+              "tone": "info",
+              "text": "Restart accepted"
+            },
+            {
+              "id": "enemy-movement",
+              "tone": "warning",
+              "text": "movement_authority_not_wired"
+            }
+          ],
+          "nonClaims": [
+            "not_ui_authority",
+            "not_options_or_exit_implementation",
+            "not_native_runtime"
+          ],
+          "menu": {
+            "open": true,
+            "controls": [
+              {
+                "id": "hud-resume",
+                "role": "button",
+                "label": "Resume",
+                "value": "resume",
+                "disabled": false
+              },
+              {
+                "id": "hud-restart",
+                "role": "button",
+                "label": "Restart session",
+                "value": "restart"
+              },
+              {
+                "id": "hud-options",
+                "role": "button",
+                "label": "Options",
+                "value": "options"
+              },
+              {
+                "id": "hud-exit",
+                "role": "button",
+                "label": "Exit",
+                "value": "exit"
+              }
+            ]
+          }
+        },
+        "playerHealth": {
+          "entity": 10,
+          "current": 100,
+          "max": 100,
+          "dead": false,
+          "healthHash": "fnv1a64:6e9d71698c874e9b"
+        },
+        "targetHealth": {
+          "entity": 20,
+          "current": 0,
+          "max": 40,
+          "dead": true,
+          "healthHash": "fnv1a64:380624a28ba625b3"
+        },
+        "lifecycle": {
+          "kind": "runtime_session.lifecycle_status.v0",
+          "scenario": "current_session",
+          "sequenceId": 4,
+          "tick": 1,
+          "sessionHash": "fnv1a64:82f78fd54fe4f23d",
+          "player": {
+            "role": "player",
+            "health": {
+              "entity": 10,
+              "current": 100,
+              "max": 100,
+              "dead": false,
+              "healthHash": "fnv1a64:6e9d71698c874e9b"
+            },
+            "dead": false
+          },
+          "enemy": {
+            "role": "enemy",
+            "health": {
+              "entity": 20,
+              "current": 0,
+              "max": 40,
+              "dead": true,
+              "healthHash": "fnv1a64:380624a28ba625b3"
+            },
+            "dead": true
+          },
+          "outcome": {
+            "kind": "won",
+            "terminal": true,
+            "reason": "enemy_defeated",
+            "label": "Enemy defeated"
+          },
+          "restart": {
+            "eligible": true,
+            "intentKind": "runtime.restart_session_intent",
+            "reason": "always_resettable_reference_fixture"
+          },
+          "events": [
+            {
+              "kind": "runtime_lifecycle.enemy_defeated.v0",
+              "entity": 20,
+              "tick": 1,
+              "reason": "combat_health_zero",
+              "eventHash": "fnv1a64:de9a654cbe82d29e"
+            }
+          ],
+          "fixture": {
+            "seed": 4068,
+            "sceneId": 1001,
+            "bundleSchemaVersion": 1,
+            "protocolVersion": 1,
+            "resetHash": "fnv1a64:7c64a9a321ac8173"
+          },
+          "hashes": {
+            "lifecycleHash": "fnv1a64:138d5ba9ceb16cdc",
+            "playerHealthHash": "fnv1a64:6e9d71698c874e9b",
+            "enemyHealthHash": "fnv1a64:380624a28ba625b3",
+            "replayHash": "fnv1a64:a170d8fe6c8813ce"
+          },
+          "nonClaims": [
+            "not_save_load_persistence",
+            "not_ui_authority",
+            "not_demo_local_lifecycle"
+          ]
+        },
+        "restartReceipt": {
+          "kind": "runtime_session.restart_receipt.v0",
+          "sequenceId": 5,
+          "intent": {
+            "kind": "runtime.restart_session_intent",
+            "source": "programmatic",
+            "requireTerminal": true,
+            "expectedSessionHash": "fnv1a64:82f78fd54fe4f23d"
+          },
+          "accepted": true,
+          "status": "accepted",
+          "rejection": null,
+          "statusBefore": {
+            "kind": "runtime_session.lifecycle_status.v0",
+            "scenario": "current_session",
+            "sequenceId": 4,
+            "tick": 1,
+            "sessionHash": "fnv1a64:82f78fd54fe4f23d",
+            "player": {
+              "role": "player",
+              "health": {
+                "entity": 10,
+                "current": 100,
+                "max": 100,
+                "dead": false,
+                "healthHash": "fnv1a64:6e9d71698c874e9b"
+              },
+              "dead": false
+            },
+            "enemy": {
+              "role": "enemy",
+              "health": {
+                "entity": 20,
+                "current": 0,
+                "max": 40,
+                "dead": true,
+                "healthHash": "fnv1a64:380624a28ba625b3"
+              },
+              "dead": true
+            },
+            "outcome": {
+              "kind": "won",
+              "terminal": true,
+              "reason": "enemy_defeated",
+              "label": "Enemy defeated"
+            },
+            "restart": {
+              "eligible": true,
+              "intentKind": "runtime.restart_session_intent",
+              "reason": "always_resettable_reference_fixture"
+            },
+            "events": [
+              {
+                "kind": "runtime_lifecycle.enemy_defeated.v0",
+                "entity": 20,
+                "tick": 1,
+                "reason": "combat_health_zero",
+                "eventHash": "fnv1a64:de9a654cbe82d29e"
+              }
+            ],
+            "fixture": {
+              "seed": 4068,
+              "sceneId": 1001,
+              "bundleSchemaVersion": 1,
+              "protocolVersion": 1,
+              "resetHash": "fnv1a64:7c64a9a321ac8173"
+            },
+            "hashes": {
+              "lifecycleHash": "fnv1a64:138d5ba9ceb16cdc",
+              "playerHealthHash": "fnv1a64:6e9d71698c874e9b",
+              "enemyHealthHash": "fnv1a64:380624a28ba625b3",
+              "replayHash": "fnv1a64:a170d8fe6c8813ce"
+            },
+            "nonClaims": [
+              "not_save_load_persistence",
+              "not_ui_authority",
+              "not_demo_local_lifecycle"
+            ]
+          },
+          "statusAfter": {
+            "kind": "runtime_session.lifecycle_status.v0",
+            "scenario": "current_session",
+            "sequenceId": 5,
+            "tick": 0,
+            "sessionHash": "fnv1a64:d0c3171f169a3fd3",
+            "player": {
+              "role": "player",
+              "health": {
+                "entity": 10,
+                "current": 100,
+                "max": 100,
+                "dead": false,
+                "healthHash": "fnv1a64:6e9d71698c874e9b"
+              },
+              "dead": false
+            },
+            "enemy": {
+              "role": "enemy",
+              "health": {
+                "entity": 20,
+                "current": 40,
+                "max": 40,
+                "dead": false,
+                "healthHash": "fnv1a64:6de4ef91d8c43bdc"
+              },
+              "dead": false
+            },
+            "outcome": {
+              "kind": "in_progress",
+              "terminal": false,
+              "reason": "none",
+              "label": "In progress"
+            },
+            "restart": {
+              "eligible": true,
+              "intentKind": "runtime.restart_session_intent",
+              "reason": "always_resettable_reference_fixture"
+            },
+            "events": [],
+            "fixture": {
+              "seed": 4068,
+              "sceneId": 1001,
+              "bundleSchemaVersion": 1,
+              "protocolVersion": 1,
+              "resetHash": "fnv1a64:7c64a9a321ac8173"
+            },
+            "hashes": {
+              "lifecycleHash": "fnv1a64:fb38823ac72c184b",
+              "playerHealthHash": "fnv1a64:6e9d71698c874e9b",
+              "enemyHealthHash": "fnv1a64:6de4ef91d8c43bdc",
+              "replayHash": "fnv1a64:95ce6bf7f685b17d"
+            },
+            "nonClaims": [
+              "not_save_load_persistence",
+              "not_ui_authority",
+              "not_demo_local_lifecycle"
+            ]
+          },
+          "restart": {
+            "sequenceId": 5,
+            "tick": 0,
+            "composition": {
+              "loadedWorld": 1001,
+              "fatalCount": 0,
+              "totalCount": 0,
+              "blocksLoad": false
+            },
+            "restartCount": 1,
+            "sessionHash": "fnv1a64:d0c3171f169a3fd3"
+          },
+          "sessionHashBefore": "fnv1a64:82f78fd54fe4f23d",
+          "sessionHashAfter": "fnv1a64:d0c3171f169a3fd3",
+          "resetHash": "fnv1a64:7c64a9a321ac8173"
+        },
+        "menuIntents": {
+          "resume": {
+            "kind": "ui.resume_intent",
+            "source": "hud_menu"
+          },
+          "restart": {
+            "kind": "runtime.restart_session_intent",
+            "source": "hud_menu"
+          },
+          "options": {
+            "kind": "ui.open_options_intent",
+            "source": "hud_menu"
+          },
+          "exit": {
+            "kind": "ui.exit_to_menu_intent",
+            "source": "hud_menu"
+          }
+        },
+        "unsupportedControls": [
+          {
+            "controlId": "hud-options",
+            "status": "unsupported",
+            "reason": "options_menu_not_implemented"
+          },
+          {
+            "controlId": "hud-exit",
+            "status": "unsupported",
+            "reason": "exit_to_menu_not_implemented"
+          }
+        ]
+      },
+      "nonClaims": [
+        "not_native_runtime",
+        "movement_authority_not_wired",
+        "not_demo_local_authority",
+        "not_interactive_renderer"
+      ]
+    },
+    "combatHud": {
+      "staticTargetPath": "catalogs/actors/static-target-dummy.json",
+      "staticTarget": {
+        "kind": "asha-demo.static_target_readout.v0",
+        "entity": 20,
+        "label": "Static target dummy",
+        "source": "public RuntimeSession combat readout fixture",
+        "nonClaims": [
+          "not_demo_local_combat_authority",
+          "not_enemy_ai",
+          "not_runtime_entity_definition"
+        ]
+      },
+      "fireReceipt": {
+        "accepted": true,
+        "status": "accepted",
+        "rejection": null
+      },
+      "combatReadout": {
+        "scenario": "generated_tunnel_fire_hit",
+        "outcome": {
+          "kind": "hit",
+          "target": 20,
+          "distance": 3.5,
+          "hitPosition": null,
+          "defeated": true
+        },
+        "events": [
+          {
+            "kind": "fire_hit",
+            "shooter": 10,
+            "target": 20,
+            "distance": 3.5,
+            "tick": 7
+          },
+          {
+            "kind": "damage_applied",
+            "target": 20,
+            "amount": 40,
+            "before": 40,
+            "after": 0
+          },
+          {
+            "kind": "entity_defeated",
+            "target": 20
+          }
+        ],
+        "health": [
+          {
+            "entity": 20,
+            "current": 0,
+            "max": 40,
+            "dead": true
+          }
+        ],
+        "nextFireControl": {
+          "ammo": 2,
+          "cooldownTicksRemaining": 4,
+          "cooldownTicksAfterFire": 4
+        },
+        "healthHash": "3c89045230f2d9d9",
+        "replayHash": "6b133026c511b0f5",
+        "fixture": "harness/fixtures/combat/generated-tunnel-fire.snapshot.txt"
+      },
+      "hudProjection": {
+        "kind": "hud_projection.v0",
+        "health": {
+          "entity": 20,
+          "current": 0,
+          "max": 40,
+          "dead": true,
+          "ratio": 0,
+          "label": "Health 0/40 defeated"
+        },
+        "status": [
+          {
+            "id": "combat",
+            "tone": "danger",
+            "text": "hit"
+          }
+        ],
+        "nonClaims": [
+          "not_enemy_ai",
+          "not_combat_loop",
+          "not_demo_local_combat_authority"
+        ],
+        "menu": {
+          "open": true,
+          "controls": [
+            {
+              "id": "hud-resume",
+              "role": "button",
+              "label": "Resume",
+              "value": "resume",
+              "disabled": false
+            },
+            {
+              "id": "hud-restart",
+              "role": "button",
+              "label": "Restart session",
+              "value": "restart"
+            },
+            {
+              "id": "hud-options",
+              "role": "button",
+              "label": "Options",
+              "value": "options"
+            },
+            {
+              "id": "hud-exit",
+              "role": "button",
+              "label": "Exit",
+              "value": "exit"
+            }
+          ]
+        }
+      },
+      "menuIntents": {
+        "restart": {
+          "kind": "runtime.restart_session_intent",
+          "source": "hud_menu"
+        },
+        "options": {
+          "kind": "ui.open_options_intent",
+          "source": "hud_menu"
+        },
+        "exit": {
+          "kind": "ui.exit_to_menu_intent",
+          "source": "hud_menu"
+        }
+      }
+    },
+    "enemyPolicy": {
+      "status": "public_autonomous_policy_tick",
+      "policySourcePath": "policies/README.md",
+      "publicImports": [
+        "@asha/runtime-bridge"
+      ],
+      "nonClaims": [
+        "not_generic_event_bus",
+        "not_behavior_tree",
+        "not_demo_local_authority",
+        "movement_authority_not_wired"
+      ],
+      "tickReadout": {
+        "kind": "runtime_session.autonomous_policy_tick.v0",
+        "loopId": "generated_tunnel_enemy_policy_loop.v0",
+        "sequenceIdBefore": 1,
+        "sequenceIdAfter": 4,
+        "sessionHashBefore": "fnv1a64:06fbbc816f5d359a",
+        "sessionHashAfter": "fnv1a64:82f78fd54fe4f23d",
+        "tick": 1,
+        "step": {
+          "sequenceId": 2,
+          "tick": 1,
+          "step": {
+            "tick": 1,
+            "diffCount": 1
+          },
+          "composition": {
+            "loadedWorld": 1001,
+            "fatalCount": 0,
+            "totalCount": 0,
+            "blocksLoad": false
+          },
+          "sessionHash": "fnv1a64:54f072e7f82e9aaa"
+        },
+        "policy": {
+          "fixtureKind": "generated_tunnel_enemy_policy_fixture.v0",
+          "proposalFrame": {
+            "kind": "enemy_policy_proposal_frame.v0",
+            "tick": 1,
+            "proposals": [
+              {
+                "kind": "enemy_policy.move_toward_target.v0",
+                "actor": "generated-tunnel.enemy.1",
+                "target": "generated-tunnel.player",
+                "nextWaypoint": [
+                  2,
+                  1,
+                  7
+                ],
+                "pathHash": "e8e1ea7a09811ced",
+                "authority": "rust_runtime_must_validate"
+              },
+              {
+                "kind": "enemy_policy.primary_fire_intent.v0",
+                "actor": "generated-tunnel.enemy.1",
+                "target": "generated-tunnel.player",
+                "intent": {
+                  "action": "primary_fire",
+                  "phase": "pressed",
+                  "source": "enemy_policy",
+                  "tick": 1
+                },
+                "distanceUnits": 6.325,
+                "authority": "rust_runtime_must_validate"
+              }
+            ],
+            "diagnostics": [],
+            "proposalHash": "ad9b57fb813fa7aa"
+          },
+          "sourceChecked": true,
+          "sourceDiagnostics": [],
+          "proposalValidationDiagnostics": []
+        },
+        "nav": {
+          "projectionHash": "d1f6ac3e051d6b6e",
+          "pathHash": "e8e1ea7a09811ced",
+          "outcome": "reached",
+          "visited": 21,
+          "pathLength": 9
+        },
+        "proposalReceipts": [
+          {
+            "proposalKind": "enemy_policy.move_toward_target.v0",
+            "actor": "generated-tunnel.enemy.1",
+            "target": "generated-tunnel.player",
+            "accepted": false,
+            "status": "unsupported",
+            "rejection": {
+              "reason": "movement_authority_not_wired",
+              "detail": "Enemy movement proposals are exposed for Rust runtime validation; movement authority is not wired yet."
+            },
+            "movement": {
+              "status": "unsupported",
+              "actor": "generated-tunnel.enemy.1",
+              "target": "generated-tunnel.player",
+              "from": [
+                3,
+                1,
+                7
+              ],
+              "nextWaypoint": [
+                2,
+                1,
+                7
+              ],
+              "pathHash": "e8e1ea7a09811ced",
+              "reason": "movement_authority_not_wired"
+            },
+            "actionReceipt": null,
+            "combat": null
+          },
+          {
+            "proposalKind": "enemy_policy.primary_fire_intent.v0",
+            "actor": "generated-tunnel.enemy.1",
+            "target": "generated-tunnel.player",
+            "accepted": true,
+            "status": "accepted",
+            "rejection": null,
+            "movement": null,
+            "actionReceipt": {
+              "sequenceId": 3,
+              "envelope": {
+                "kind": "runtime_action_intent.v0",
+                "action": "primary_fire",
+                "phase": "pressed",
+                "camera": 1,
+                "tick": 1,
+                "source": "enemy_policy",
+                "pressed": true
+              },
+              "accepted": true,
+              "status": "accepted",
+              "rejection": null,
+              "combatReadout": {
+                "scenario": "generated_tunnel_fire_hit",
+                "outcome": {
+                  "kind": "hit",
+                  "target": 20,
+                  "distance": 3.5,
+                  "hitPosition": null,
+                  "defeated": true
+                },
+                "events": [
+                  {
+                    "kind": "fire_hit",
+                    "shooter": 10,
+                    "target": 20,
+                    "distance": 3.5,
+                    "tick": 7
+                  },
+                  {
+                    "kind": "damage_applied",
+                    "target": 20,
+                    "amount": 40,
+                    "before": 40,
+                    "after": 0
+                  },
+                  {
+                    "kind": "entity_defeated",
+                    "target": 20
+                  }
+                ],
+                "health": [
+                  {
+                    "entity": 20,
+                    "current": 0,
+                    "max": 40,
+                    "dead": true
+                  }
+                ],
+                "nextFireControl": {
+                  "ammo": 2,
+                  "cooldownTicksRemaining": 4,
+                  "cooldownTicksAfterFire": 4
+                },
+                "healthHash": "3c89045230f2d9d9",
+                "replayHash": "6b133026c511b0f5",
+                "fixture": "harness/fixtures/combat/generated-tunnel-fire.snapshot.txt"
+              },
+              "sessionHashBefore": "fnv1a64:54f072e7f82e9aaa",
+              "sessionHashAfter": "fnv1a64:258c959de93d7fa8"
+            },
+            "combat": {
+              "status": "accepted",
+              "action": "primary_fire",
+              "outcome": {
+                "kind": "hit",
+                "target": 20,
+                "distance": 3.5,
+                "hitPosition": null,
+                "defeated": true
+              },
+              "healthHash": "3c89045230f2d9d9",
+              "replayHash": "6b133026c511b0f5"
+            }
+          }
+        ],
+        "proposalSummary": {
+          "acceptedProposalCount": 1,
+          "rejectedProposalCount": 0,
+          "unsupportedProposalCount": 1
+        },
+        "commandSummary": {
+          "acceptedCommandCount": 0,
+          "rejectedCommandCount": 0,
+          "acceptedRuntimeActionCount": 1,
+          "rejectedRuntimeActionCount": 0
+        },
+        "movementSummary": {
+          "status": "unsupported",
+          "actor": "generated-tunnel.enemy.1",
+          "target": "generated-tunnel.player",
+          "from": [
+            3,
+            1,
+            7
+          ],
+          "nextWaypoint": [
+            2,
+            1,
+            7
+          ],
+          "pathHash": "e8e1ea7a09811ced",
+          "reason": "movement_authority_not_wired"
+        },
+        "combatSummary": {
+          "status": "accepted",
+          "action": "primary_fire",
+          "outcome": {
+            "kind": "hit",
+            "target": 20,
+            "distance": 3.5,
+            "hitPosition": null,
+            "defeated": true
+          },
+          "healthHash": "3c89045230f2d9d9",
+          "replayHash": "6b133026c511b0f5"
+        },
+        "replay": {
+          "recordCount": 6,
+          "lastRecordKind": "runAutonomousPolicyTick",
+          "recordHashes": [
+            "fnv1a64:387851d7cac961a5",
+            "fnv1a64:7d200c38025686bd",
+            "fnv1a64:195159f81e1da6ff",
+            "fnv1a64:edff0b31479cb4ed",
+            "fnv1a64:0f3c499462357344",
+            "fnv1a64:eb50fb7b421583a7"
+          ]
+        },
+        "tickHash": "fnv1a64:c2546f1745366999",
+        "nonClaims": [
+          "not_generic_event_bus",
+          "not_behavior_tree",
+          "not_demo_local_authority",
+          "movement_authority_not_wired"
+        ]
+      },
+      "movementAuthority": {
+        "status": "unsupported",
+        "actor": "generated-tunnel.enemy.1",
+        "target": "generated-tunnel.player",
+        "from": [
+          3,
+          1,
+          7
+        ],
+        "nextWaypoint": [
+          2,
+          1,
+          7
+        ],
+        "pathHash": "e8e1ea7a09811ced",
+        "reason": "movement_authority_not_wired"
+      },
+      "combatAuthority": {
+        "status": "accepted",
+        "action": "primary_fire",
+        "outcome": {
+          "kind": "hit",
+          "target": 20,
+          "distance": 3.5,
+          "hitPosition": null,
+          "defeated": true
+        },
+        "healthHash": "3c89045230f2d9d9",
+        "replayHash": "6b133026c511b0f5"
+      },
+      "sourceValidation": {
+        "cleanDiagnostics": [],
+        "forbiddenDiagnostics": [
+          {
+            "code": "forbidden_capability_reference",
+            "capability": "clock",
+            "token": "Date",
+            "detail": "Date is not available to constrained enemy policies"
+          },
+          {
+            "code": "forbidden_capability_reference",
+            "capability": "random",
+            "token": "Math.random",
+            "detail": "Math.random is not available to constrained enemy policies"
+          },
+          {
+            "code": "forbidden_capability_reference",
+            "capability": "network",
+            "token": "fetch",
+            "detail": "fetch is not available to constrained enemy policies"
+          },
+          {
+            "code": "forbidden_capability_reference",
+            "capability": "dom",
+            "token": "window",
+            "detail": "window is not available to constrained enemy policies"
+          },
+          {
+            "code": "forbidden_capability_reference",
+            "capability": "filesystem",
+            "token": "node:fs",
+            "detail": "node:fs is not available to constrained enemy policies"
+          },
+          {
+            "code": "forbidden_capability_reference",
+            "capability": "module_import",
+            "token": "import(",
+            "detail": "import( is not available to constrained enemy policies"
+          }
+        ]
+      }
+    },
+    "nonClaims": [
+      "movement_readout_only",
+      "not_native_runtime",
+      "not_interactive_renderer",
+      "reference_runtime_session_playable_loop_only",
+      "movement_authority_not_wired",
+      "not_demo_local_combat_authority",
+      "not_demo_local_enemy_movement_authority",
+      "not_demo_local_generation_algorithm",
+      "not_live_regenerate"
+    ]
+  },
+  "allowedImports": [
+    "@asha/contracts",
+    "@asha/game-workspace",
+    "@asha/render-projection",
+    "@asha/renderer-three",
+    "@asha/runtime-bridge",
+    "@asha/ui-dom"
+  ],
+  "sourceRoots": [
+    "levels/presets",
+    "assets",
+    "replays",
+    "catalogs/actors",
+    "catalogs/materials",
+    "catalogs/weapons"
+  ],
+  "nonClaims": [
+    "No live native RuntimeSession attach.",
+    "Reference RuntimeSession playable loop only; not a full native FPS.",
+    "Enemy movement remains proposal-only: movement_authority_not_wired.",
+    "Generated tunnel is a public deterministic readout, not a live applied dungeon runtime.",
+    "No interactive renderer or pixel-rendered gameplay claim.",
+    "No local generation algorithm, pathfinding, collision, combat, policy, or lifecycle authority.",
+    "No Studio live inspection or control claim."
+  ]
+}
