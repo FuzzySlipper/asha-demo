@@ -29,6 +29,7 @@ for (const path of Object.values(projectBundle.sourceFiles.catalogRefs)) {
   requireProjectFile(path);
 }
 requireProjectFile(projectBundle.sourceFiles.levelPreset);
+requireProjectFile('docs/demo-surface-audit.md');
 
 if (appJs.includes("from 'three'") || appJs.includes('from "three"')) {
   errors.push('asha-demo must not import Three.js directly; rendering is owned by @asha/renderer-three');

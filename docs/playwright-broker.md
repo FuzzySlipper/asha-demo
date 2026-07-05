@@ -45,7 +45,12 @@ The repo root has `.den-playwright.json` with:
 - `tests.command` invoking Playwright;
 - `tests.artifactPolicy` set to `live-ui`.
 
-The smoke test in `tests/live-ui.spec.mjs` reads `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` and fails if neither is set. It checks objective UI/readout content only: project identity, public import names, first-person canvas nonblank pixels and renderer projection hashes, movement/look/collision transitions, HUD/menu projection controls and typed unsupported placeholders, autonomous enemy tick proposal summaries, combat health/death status, and typed restart status.
+The smoke test in `tests/live-ui.spec.mjs` reads `BASE_URL` or
+`PLAYWRIGHT_BROKER_BASE_URL` and fails if neither is set. It checks objective
+UI/readout content only: the ASHA renderer canvas, generated-tunnel room labels,
+durable ProjectBundle/ECRP content refs, RuntimeSession ECRP load, movement
+authority, collision response, primary-fire combat/death readouts, HUD counters,
+and typed restart/reset state.
 
 ## Evidence Expectations
 

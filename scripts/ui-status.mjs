@@ -6,23 +6,21 @@ export function buildUiStatus() {
       kind: 'asha_renderer_browser_surface.v0',
       owner: '@asha/renderer-three',
       controls: {
-        fire: 'primary_raycast_against_renderer_targets',
-        mode: 'first_person_flat_plane',
+        fire: 'runtime_action_intent.primary_fire',
+        mode: 'first_person_generated_tunnel_room',
         pointerLock: 'click_to_lock_escape_to_unlock',
-        reset: 'camera_and_target_reset',
+        reset: 'runtime_session_restart_and_camera_reset',
         owner: '@asha/renderer-three',
       },
       publicImports: ['@asha/catalog-core', '@asha/renderer-three', '@asha/runtime-bridge'],
-      nonClaims: [
-        'no_demo_local_three_scene',
-        'no_demo_local_renderer_implementation',
-        'not_collision_or_gameplay_authority',
-      ],
+      authorityOwners: {
+        collision: '@asha/runtime-bridge',
+        combat: '@asha/runtime-bridge',
+        contentValidation: '@asha/catalog-core',
+        rendering: '@asha/renderer-three',
+      },
     },
-    nonClaims: [
-      'The demo page only mounts an upstream ASHA renderer-owned browser surface and controls adapter.',
-      'asha-demo does not import Three.js directly or build renderer internals.',
-      'This page does not claim combat, HUD, collision, or gameplay authority proof.',
-    ],
+    currentSurface:
+      'Generated-tunnel room demo with durable ProjectBundle/ECRP content, public ASHA renderer surface, RuntimeSession collision, primary-fire combat, HUD, and restart.',
   };
 }

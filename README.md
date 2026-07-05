@@ -32,6 +32,10 @@ collision, combat, health/lifecycle, generation, policy, and render projection
 stay in public ASHA surfaces. The demo repo owns authored project files,
 browser mounting, HUD placement, and the human-facing playable page.
 
+Known unfinished demo pieces are tracked in `docs/demo-surface-audit.md` as a
+small owner-task table. Do not recreate a broad disclaimer document; remove,
+implement, or assign placeholders when they appear.
+
 ## Live UI evidence
 
 Run `npm run dev -- --host 127.0.0.1 --port 5173` to serve the integrated public ASHA playable-loop UI. `asha-demo` is opted into the Den Playwright broker via `.den-playwright.json`; see `docs/playwright-broker.md` for the command shape, required `BASE_URL`/`PLAYWRIGHT_BROKER_BASE_URL` behavior, and evidence expectations.
