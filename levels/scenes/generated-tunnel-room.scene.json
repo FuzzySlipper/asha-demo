@@ -1,0 +1,20 @@
+{
+  "kind": "SceneDocument",
+  "sceneId": "asha-demo.generated-tunnel-room.v1",
+  "levelPresetRef": "tiny-enclosed",
+  "generatedTunnelSeed": 17,
+  "materialCatalogRef": "catalogs/materials/generated-tunnel.materials.json",
+  "spawnCatalogRef": "catalogs/spawns/generated-tunnel.spawns.json",
+  "placements": [
+    {
+      "entityDefinitionId": "actor/demo-player",
+      "spawnMarkerId": "spawn.player.start"
+    },
+    {
+      "entityDefinitionId": "actor/generated-tunnel-enemy",
+      "spawnMarkerId": "spawn.enemy.primary"
+    }
+  ],
+  "staticCollisionSource": "RuntimeSessionFacade.applyCollisionConstrainedCameraInput",
+  "renderSurface": "mountAshaRendererBrowserSurface"
+}

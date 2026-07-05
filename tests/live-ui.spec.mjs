@@ -22,13 +22,32 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(surface).toBe('asha_renderer_browser_surface.v0');
 
   const pose = await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null);
-  expect(pose?.position).toEqual([0, 1.62, 0]);
+  expect(pose?.position).toEqual([0, 1.62, 1.25]);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.pointerLocked?.() ?? null)).toBe(false);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().authority ?? null)).toBe(
     'external_collision',
   );
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().valid ?? null)).toBe(true);
+  expect(
+    await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().sourceFiles ?? null),
+  ).toMatchObject({
+    projectBundle: '/project/project-bundle.json',
+    sceneDocument: 'levels/scenes/generated-tunnel-room.scene.json',
+    entityDefinitions: [
+      'catalogs/actors/demo-player.entity.json',
+      'catalogs/actors/generated-tunnel-enemy.entity.json',
+    ],
+  });
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeLoaded ?? null)).toBe(true);
+  expect(
+    await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().levelRenderProjectionHash ?? null),
+  ).toBe('fnv1a64:21eb8696f6f3b5c4');
+  expect(
+    await page.evaluate(() => globalThis.ashaRendererSurface?.snapshot?.() ?? ''),
+  ).toContain('generated-tunnel-enemy');
+  expect(
+    await page.evaluate(() => globalThis.ashaRendererSurface?.snapshot?.() ?? ''),
+  ).toContain('generated-tunnel-floor');
   expect(
     await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeBootstrapHash ?? null),
   ).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
@@ -40,6 +59,15 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
       ) ?? [],
     ),
   ).toEqual(['actor/demo-player', 'actor/generated-tunnel-enemy']);
+
+  await canvas.evaluate((node) => node.focus());
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(600);
+  await page.keyboard.up('KeyW');
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().authority ?? null)).toBe(
+    'external_collision',
+  );
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().collided ?? null)).toBe(true);
 
   const fireResult = await page.evaluate(() => globalThis.ashaRendererSurface?.firePrimary?.() ?? null);
   expect(fireResult?.interaction?.shotsFired).toBe(1);

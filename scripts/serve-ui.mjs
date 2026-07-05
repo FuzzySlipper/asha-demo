@@ -7,6 +7,11 @@ import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'app');
+const authoredContentRoots = new Map([
+  ['/catalogs/', join(repoRoot, 'catalogs')],
+  ['/levels/', join(repoRoot, 'levels')],
+  ['/project/', join(repoRoot, 'project')],
+]);
 const catalogCoreBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'catalog-core', 'dist');
 const contractsBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'contracts', 'dist');
 const renderProjectionBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'render-projection', 'dist');
@@ -57,6 +62,13 @@ const server = createServer(async (request, response) => {
     await sendStaticAssetFromRoot(response, contractsBrowserRoot, vendorPath);
     return;
   }
+  for (const [prefix, root] of authoredContentRoots) {
+    if (request.url?.startsWith(prefix)) {
+      const contentPath = request.url.replace(prefix, '');
+      await sendStaticAssetFromRoot(response, root, contentPath);
+      return;
+    }
+  }
 
   const assetPath = request.url === '/' ? '/index.html' : decodeURIComponent(request.url ?? '/index.html');
   await sendStaticAssetFromRoot(response, appRoot, assetPath);
@@ -106,6 +118,10 @@ function contentType(filePath) {
       return 'text/javascript; charset=utf-8';
     case '.html':
       return 'text/html; charset=utf-8';
+    case '.json':
+      return 'application/json; charset=utf-8';
+    case '.toml':
+      return 'text/plain; charset=utf-8';
     default:
       return 'application/octet-stream';
   }

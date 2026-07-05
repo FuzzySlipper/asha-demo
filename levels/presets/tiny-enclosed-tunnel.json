@@ -1,11 +1,9 @@
 {
-  "kind": "asha-demo.generated_tunnel_preset.v0",
+  "kind": "asha_demo.generated_tunnel_preset_ref.v1",
   "presetId": "tiny-enclosed",
   "seed": 17,
-  "source": "public RuntimeSession generated tunnel readout",
-  "nonClaims": [
-    "not_demo_local_generation_algorithm",
-    "not_live_regenerate",
-    "not_applied_runtime_world"
-  ]
+  "outputHash": "a9b504096397f5b4",
+  "renderProjectionHash": "fnv1a64:21eb8696f6f3b5c4",
+  "collisionProjectionHash": "fnv1a64:78b242163cf67524",
+  "sceneDocument": "levels/scenes/generated-tunnel-room.scene.json"
 }

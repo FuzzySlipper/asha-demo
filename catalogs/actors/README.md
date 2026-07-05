@@ -1,7 +1,11 @@
 # Actor Catalog
 
-This directory is reserved for game-owned actor or entity definition data once the public stored `EntityDefinition` schema exists.
+This directory holds the demo-owned durable `EntityDefinition` files loaded by
+the served ASHA demo:
 
-`static-target-dummy.json` records the static target dummy used by the public RuntimeSession combat/HUD readout. It is a demo descriptor for the visible slice, not local combat authority or a private EntityDefinition replacement.
+- `demo-player.entity.json`
+- `generated-tunnel-enemy.entity.json`
 
-Do not implement generic ECRP storage, runtime authority, movement, collision, combat, health, or AI behavior here.
+The browser loader reads these files and submits them to
+`RuntimeSession.loadEcrpProject()`. Runtime authority, movement, collision,
+combat, health, policy, and lifecycle mutation remain upstream ASHA surfaces.

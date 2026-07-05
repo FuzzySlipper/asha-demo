@@ -1,7 +1,10 @@
-import { mountAshaRendererBrowserSurface } from '@asha/renderer-three';
+import {
+  createAshaRendererGeneratedTunnelRoomSurfaceFrame,
+  mountAshaRendererBrowserSurface,
+} from '@asha/renderer-three';
 import { createMockRuntimeSession } from '@asha/runtime-bridge/reference';
 import {
-  demoProjectContent,
+  loadDemoProjectContent,
   readDemoProjectContentStatus,
 } from './project-content.js';
 
@@ -21,7 +24,8 @@ if (!(canvas instanceof HTMLCanvasElement)) {
   throw new Error('ASHA renderer surface canvas is missing.');
 }
 
-const contentStatus = readDemoProjectContentStatus();
+const demoProjectContent = await loadDemoProjectContent();
+const contentStatus = readDemoProjectContentStatus(demoProjectContent);
 if (!contentStatus.valid) {
   throw new Error(`ASHA demo project content is invalid: ${contentStatus.diagnostics.join('; ')}`);
 }
@@ -49,10 +53,19 @@ if (!ecrpProjectLoadReceipt.accepted) {
 
 let runtimeCamera = createRuntimeCamera();
 let runtimeActionTick = 0;
+const generatedTunnelReadout = runtimeSession.readGeneratedTunnelReadout({
+  presetId: demoProjectContent.catalogs.levelPreset.presetId,
+  seed: demoProjectContent.catalogs.levelPreset.seed,
+});
+const levelFrame = createAshaRendererGeneratedTunnelRoomSurfaceFrame({
+  tunnel: generatedTunnelReadout,
+  enemy: demoProjectContent.runtime.enemyRenderTarget,
+});
 
 const surface = mountAshaRendererBrowserSurface(canvas, {
   autoStart: true,
   clearColor: 0x101820,
+  frame: levelFrame,
   controls: {
     initialPosition: demoProjectContent.runtime.initialCameraPose.position,
     movementAuthority: constrainCameraMovement,
@@ -299,7 +312,9 @@ globalThis.ashaRendererSurface = {
   movementState: () => surface.movementState(),
   pointerLocked: () => surface.pointerLocked(),
   projectContentStatus: () => ({
-    ...readDemoProjectContentStatus(),
+    ...readDemoProjectContentStatus(demoProjectContent),
+    levelRenderProjectionHash: generatedTunnelReadout.renderProjection.hash,
+    levelSurfaceLabels: ['generated-tunnel-floor', demoProjectContent.runtime.enemyRenderTarget.label],
     runtimeLoaded: ecrpProjectLoadReceipt.accepted,
     runtimeBootstrapHash: ecrpProjectLoadReceipt.bootstrapHash,
   }),

@@ -1,0 +1,18 @@
+{
+  "kind": "asha_demo.spawn_catalog.v1",
+  "catalogId": "asha-demo.generated-tunnel.spawns.v1",
+  "markers": [
+    {
+      "markerId": "spawn.player.start",
+      "role": "player",
+      "position": [0, 1.62, 1.25],
+      "yawDegrees": 0
+    },
+    {
+      "markerId": "spawn.enemy.primary",
+      "role": "enemy",
+      "position": [0, 1.1, -1.35],
+      "yawDegrees": 180
+    }
+  ]
+}

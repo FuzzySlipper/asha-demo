@@ -1,0 +1,48 @@
+{
+  "kind": "EntityDefinition",
+  "stableId": "actor/generated-tunnel-enemy",
+  "displayName": "Generated Tunnel Enemy",
+  "source": {
+    "projectBundle": "asha-demo",
+    "relativePath": "catalogs/actors/generated-tunnel-enemy.entity.json"
+  },
+  "capabilities": [
+    {
+      "kind": "transform",
+      "initial": {
+        "position": [0, 1.1, -1.35],
+        "yawDegrees": 180,
+        "pitchDegrees": 0
+      }
+    },
+    {
+      "kind": "collisionBody",
+      "halfExtents": [0.35, 0.7, 0.35],
+      "policy": {
+        "mode": "runtime_collision_body"
+      }
+    },
+    {
+      "kind": "health",
+      "current": 40,
+      "max": 40
+    },
+    {
+      "kind": "renderProjection",
+      "projection": "target_cube"
+    },
+    {
+      "kind": "policyBinding",
+      "policyId": "policy.enemy.generated_tunnel.v0",
+      "policyLoopRef": "generated_tunnel_enemy_policy_loop.v0"
+    },
+    {
+      "kind": "spawnMarker",
+      "markerId": "spawn.enemy.primary"
+    },
+    {
+      "kind": "faction",
+      "factionId": "hostile"
+    }
+  ]
+}

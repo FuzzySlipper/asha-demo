@@ -10,10 +10,10 @@ publish_artifact_format_version = "publish-artifact.v0"
 engine_source = "../asha"
 
 [workspace]
-scene_roots = ["levels/presets"]
+scene_roots = ["levels/presets", "levels/scenes"]
 asset_roots = ["assets"]
 replay_roots = ["replays"]
-catalog_packages = ["catalogs/actors", "catalogs/materials", "catalogs/weapons"]
+catalog_packages = ["catalogs/actors", "catalogs/gameplay", "catalogs/materials", "catalogs/spawns", "catalogs/weapons"]
 policy_packages = []
 
 [runtime]
@@ -27,7 +27,7 @@ backend_proof_refs = []
 [studio]
 workspace_mode = true
 attach_enabled = false
-allowed_source_writes = ["levels/presets", "assets", "catalogs/actors", "catalogs/materials", "catalogs/weapons"]
+allowed_source_writes = ["levels/presets", "levels/scenes", "assets", "catalogs/actors", "catalogs/gameplay", "catalogs/materials", "catalogs/spawns", "catalogs/weapons"]
 
 [publish]
 command = "npm run build"
@@ -35,7 +35,7 @@ artifact_dir = "dist"
 verify_command = "npm run typecheck"
 
 [dev_resource_profile]
-local_roots = ["assets", "catalogs/actors", "catalogs/materials", "catalogs/weapons"]
+local_roots = ["assets", "catalogs/actors", "catalogs/gameplay", "catalogs/materials", "catalogs/spawns", "catalogs/weapons"]
 cache_dir = "dist/dev-cache"
 resolution_policy = "prefer-source"
 

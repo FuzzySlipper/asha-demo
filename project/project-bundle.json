@@ -1,0 +1,39 @@
+{
+  "kind": "ProjectBundle",
+  "project": {
+    "gameId": "asha-demo",
+    "workspaceId": "workspace.local"
+  },
+  "runtimeRequest": {
+    "bundleSchemaVersion": 1,
+    "protocolVersion": 1,
+    "sceneId": 4103
+  },
+  "catalogs": {
+    "gameplayCatalogId": "asha.generated_tunnel.gameplay_catalog.v0",
+    "objectModelId": "asha.generated_tunnel.fps_ecrp_object_model.v0"
+  },
+  "sourceFiles": {
+    "entityDefinitions": [
+      "catalogs/actors/demo-player.entity.json",
+      "catalogs/actors/generated-tunnel-enemy.entity.json"
+    ],
+    "sceneDocument": "levels/scenes/generated-tunnel-room.scene.json",
+    "catalogRefs": {
+      "gameplay": "catalogs/gameplay/default-fps.catalog.json",
+      "materials": "catalogs/materials/generated-tunnel.materials.json",
+      "spawns": "catalogs/spawns/generated-tunnel.spawns.json",
+      "weapon": "catalogs/weapons/primary-fire.weapon.json"
+    },
+    "levelPreset": "levels/presets/tiny-enclosed-tunnel.json"
+  },
+  "runtime": {
+    "sessionId": "asha-demo.playable.ecrp",
+    "seed": 4103,
+    "cameraProjection": {
+      "fovYDegrees": 55,
+      "near": 0.1,
+      "far": 100
+    }
+  }
+}

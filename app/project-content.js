@@ -4,179 +4,131 @@ import {
   readFpsGameplayPresetCatalog,
 } from '@asha/catalog-core';
 
-const objectModelReadout = readFpsEcrpObjectModel();
-const gameplayCatalogReadout = readFpsGameplayPresetCatalog();
-const gameplayPreset = gameplayCatalogReadout.defaultPreset.preset;
-const playerModel = findFpsEcrpObjectModelEntry('player');
-const enemyModel = findFpsEcrpObjectModelEntry('enemy');
+const PROJECT_BUNDLE_PATH = '/project/project-bundle.json';
 
-const playerEntityDefinition = {
-  kind: 'EntityDefinition',
-  stableId: playerModel.entityDefinitionId,
-  displayName: playerModel.displayName,
-  source: {
-    projectBundle: 'asha-demo',
-    relativePath: playerModel.sourcePath,
-  },
-  capabilities: [
-    {
-      kind: 'transform',
-      initial: {
-        position: [0, 1.62, 0],
-        yawDegrees: 0,
-        pitchDegrees: 0,
-      },
-    },
-    {
-      kind: 'collisionBody',
-      halfExtents: [0.25, 0.7, 0.25],
-      policy: {
-        mode: 'axis_separable_slide',
-        maxIterations: 3,
-      },
-    },
-    {
-      kind: 'controller',
-      controller: 'player_input',
-      tuning: gameplayPreset.playerController,
-    },
-    {
-      kind: 'health',
-      current: 100,
-      max: 100,
-    },
-    {
-      kind: 'weaponMount',
-      weaponId: gameplayPreset.weapon.weaponId,
-      tuning: gameplayPreset.weapon,
-    },
-    {
-      kind: 'renderProjection',
-      projection: 'first_person_camera',
-    },
-    {
-      kind: 'faction',
-      factionId: 'player',
-    },
-  ],
-};
+export async function loadDemoProjectContent(fetchJson = readJson) {
+  const projectBundle = await fetchJson(PROJECT_BUNDLE_PATH);
+  const sourceFiles = projectBundle.sourceFiles ?? {};
+  const catalogRefs = sourceFiles.catalogRefs ?? {};
 
-const enemyEntityDefinition = {
-  kind: 'EntityDefinition',
-  stableId: enemyModel.entityDefinitionId,
-  displayName: enemyModel.displayName,
-  source: {
-    projectBundle: 'asha-demo',
-    relativePath: enemyModel.sourcePath,
-  },
-  capabilities: [
-    {
-      kind: 'transform',
-      initial: {
-        position: [0, 1.1, -3.5],
-        yawDegrees: 180,
-        pitchDegrees: 0,
-      },
-    },
-    {
-      kind: 'collisionBody',
-      halfExtents: [0.7, 0.9, 0.7],
-      policy: {
-        mode: 'runtime_collision_body',
-      },
-    },
-    {
-      kind: 'health',
-      current: gameplayPreset.weapon.damage,
-      max: gameplayPreset.weapon.damage,
-    },
-    {
-      kind: 'renderProjection',
-      projection: 'target_cube',
-    },
-    {
-      kind: 'policyBinding',
-      policyId: 'policy.enemy.generated_tunnel.v0',
-      policyLoopRef: gameplayPreset.enemyBehavior.policyRef,
-    },
-    {
-      kind: 'spawnMarker',
-      markerId: 'spawn.enemy.primary',
-    },
-    {
-      kind: 'faction',
-      factionId: 'hostile',
-    },
-  ],
-};
+  const [
+    entityDefinitions,
+    sceneDocument,
+    gameplayCatalog,
+    materialCatalog,
+    spawnCatalog,
+    weaponCatalog,
+    levelPreset,
+  ] = await Promise.all([
+    Promise.all((sourceFiles.entityDefinitions ?? []).map((path) => fetchJson(`/${path}`))),
+    fetchJson(`/${sourceFiles.sceneDocument}`),
+    fetchJson(`/${catalogRefs.gameplay}`),
+    fetchJson(`/${catalogRefs.materials}`),
+    fetchJson(`/${catalogRefs.spawns}`),
+    fetchJson(`/${catalogRefs.weapon}`),
+    fetchJson(`/${sourceFiles.levelPreset}`),
+  ]);
 
-export const demoProjectContent = {
-  kind: 'asha_demo.ecrp_project_content.v0',
-  projectBundle: {
-    kind: 'ProjectBundle',
-    project: {
-      gameId: 'asha-demo',
-      workspaceId: 'workspace.local',
+  const playerDefinition = requireEntityDefinition(entityDefinitions, 'actor/demo-player');
+  const enemyDefinition = requireEntityDefinition(entityDefinitions, 'actor/generated-tunnel-enemy');
+  const playerTransform = requireCapability(playerDefinition, 'transform');
+  const playerCollision = requireCapability(playerDefinition, 'collisionBody');
+  const enemyTransform = requireCapability(enemyDefinition, 'transform');
+  const enemyCollision = requireCapability(enemyDefinition, 'collisionBody');
+
+  return {
+    kind: 'asha_demo.ecrp_project_content.v1',
+    sourceFiles: {
+      projectBundle: PROJECT_BUNDLE_PATH,
+      entityDefinitions: sourceFiles.entityDefinitions,
+      sceneDocument: sourceFiles.sceneDocument,
+      catalogs: catalogRefs,
+      levelPreset: sourceFiles.levelPreset,
     },
-    runtimeRequest: {
-      bundleSchemaVersion: 1,
-      protocolVersion: 1,
-      sceneId: 4103,
-    },
+    projectBundle,
+    entityDefinitions,
+    sceneDocument,
     catalogs: {
-      gameplayCatalogId: gameplayCatalogReadout.catalog.catalogId,
-      objectModelId: objectModelReadout.model.modelId,
+      gameplay: gameplayCatalog,
+      materials: materialCatalog,
+      spawns: spawnCatalog,
+      weapon: weaponCatalog,
+      levelPreset,
+      upstreamGameplay: readFpsGameplayPresetCatalog(),
+      upstreamEcrpObjectModel: readFpsEcrpObjectModel(),
     },
-  },
-  entityDefinitions: [
-    playerEntityDefinition,
-    enemyEntityDefinition,
-  ],
-  sceneDocument: {
-    kind: 'SceneDocument',
-    sceneId: 'asha-demo.generated-tunnel-flat-room.v0',
-    levelPresetRef: gameplayPreset.generator.presetId,
-    generatedTunnelSeed: gameplayPreset.generator.seed,
-    placements: [
-      {
-        entityDefinitionId: playerEntityDefinition.stableId,
-        spawnMarkerId: 'spawn.player.start',
+    runtime: {
+      sessionId: projectBundle.runtime.sessionId,
+      seed: projectBundle.runtime.seed,
+      initialCameraPose: playerTransform.initial,
+      collisionShape: {
+        halfExtents: playerCollision.halfExtents,
       },
-      {
-        entityDefinitionId: enemyEntityDefinition.stableId,
-        spawnMarkerId: 'spawn.enemy.primary',
+      collisionPolicy: playerCollision.policy,
+      cameraProjection: projectBundle.runtime.cameraProjection,
+      enemyRenderTarget: {
+        label: enemyDefinition.stableId,
+        position: enemyTransform.initial.position,
+        scale: [
+          enemyCollision.halfExtents[0] * 2,
+          enemyCollision.halfExtents[1] * 2,
+          enemyCollision.halfExtents[2] * 2,
+        ],
       },
-    ],
-    staticCollisionSource: 'RuntimeSessionFacade.applyCollisionConstrainedCameraInput',
-    renderSurface: 'mountAshaRendererBrowserSurface',
-  },
-  catalogs: {
-    gameplay: gameplayCatalogReadout,
-    ecrpObjectModel: objectModelReadout,
-  },
-  runtime: {
-    sessionId: 'asha-demo.playable.ecrp',
-    seed: 4103,
-    initialCameraPose: playerEntityDefinition.capabilities[0].initial,
-    collisionShape: {
-      halfExtents: playerEntityDefinition.capabilities[1].halfExtents,
     },
-    collisionPolicy: playerEntityDefinition.capabilities[1].policy,
-    cameraProjection: {
-      fovYDegrees: 55,
-      near: 0.1,
-      far: 100,
-    },
-  },
-};
+  };
+}
 
-export function readDemoProjectContentStatus() {
+export function readDemoProjectContentStatus(demoProjectContent) {
   const diagnostics = [];
+  validateProjectBundle(demoProjectContent, diagnostics);
+  validateEntitiesAgainstObjectModel(demoProjectContent, diagnostics);
+  validateAuthoredRefs(demoProjectContent, diagnostics);
+
+  return {
+    kind: 'asha_demo.project_content_status.v1',
+    valid: diagnostics.length === 0,
+    diagnostics,
+    projectBundleId: demoProjectContent.projectBundle.project?.gameId ?? null,
+    entityDefinitionCount: demoProjectContent.entityDefinitions.length,
+    sceneId: demoProjectContent.sceneDocument.sceneId,
+    sourceFiles: demoProjectContent.sourceFiles,
+    gameplayPresetHash: demoProjectContent.catalogs.upstreamGameplay.defaultPreset.hashes.presetHash,
+    ecrpObjectModelHash: demoProjectContent.catalogs.upstreamEcrpObjectModel.hashes.modelHash,
+  };
+}
+
+async function readJson(path) {
+  const response = await fetch(path, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`Failed to load ASHA demo project file ${path}: ${response.status}`);
+  }
+  return response.json();
+}
+
+function validateProjectBundle(demoProjectContent, diagnostics) {
+  const { projectBundle } = demoProjectContent;
+  if (projectBundle.kind !== 'ProjectBundle') {
+    diagnostics.push('project/project-bundle.json kind must be ProjectBundle');
+  }
+  if (projectBundle.project?.gameId !== 'asha-demo') {
+    diagnostics.push('ProjectBundle project.gameId must be asha-demo');
+  }
+  if (projectBundle.runtimeRequest?.sceneId !== 4103) {
+    diagnostics.push('ProjectBundle runtimeRequest.sceneId must be 4103');
+  }
+  if (!Array.isArray(projectBundle.sourceFiles?.entityDefinitions) || projectBundle.sourceFiles.entityDefinitions.length === 0) {
+    diagnostics.push('ProjectBundle sourceFiles.entityDefinitions must name durable entity files');
+  }
+}
+
+function validateEntitiesAgainstObjectModel(demoProjectContent, diagnostics) {
   const entityDefinitionIds = new Set(
     demoProjectContent.entityDefinitions.map((definition) => definition.stableId),
   );
 
-  for (const entry of objectModelReadout.model.entries) {
+  for (const role of ['player', 'enemy']) {
+    const entry = findFpsEcrpObjectModelEntry(role);
     if (!entityDefinitionIds.has(entry.entityDefinitionId)) {
       diagnostics.push(`missing EntityDefinition for ${entry.entityDefinitionId}`);
       continue;
@@ -184,6 +136,12 @@ export function readDemoProjectContentStatus() {
     const definition = demoProjectContent.entityDefinitions.find(
       (candidate) => candidate.stableId === entry.entityDefinitionId,
     );
+    if (definition.source?.relativePath !== entry.sourcePath) {
+      diagnostics.push(`${entry.entityDefinitionId} source.relativePath must be ${entry.sourcePath}`);
+    }
+    if (definition.displayName !== entry.displayName) {
+      diagnostics.push(`${entry.entityDefinitionId} displayName must be ${entry.displayName}`);
+    }
     const capabilityKinds = new Set(definition.capabilities.map((capability) => capability.kind));
     for (const capabilityKind of entry.capabilityKinds) {
       if (!capabilityKinds.has(capabilityKind)) {
@@ -191,15 +149,73 @@ export function readDemoProjectContentStatus() {
       }
     }
   }
+}
 
-  return {
-    kind: 'asha_demo.project_content_status.v0',
-    valid: diagnostics.length === 0,
-    diagnostics,
-    projectBundleId: demoProjectContent.projectBundle.project.gameId,
-    entityDefinitionCount: demoProjectContent.entityDefinitions.length,
-    sceneId: demoProjectContent.sceneDocument.sceneId,
-    gameplayPresetHash: gameplayCatalogReadout.defaultPreset.hashes.presetHash,
-    ecrpObjectModelHash: objectModelReadout.hashes.modelHash,
-  };
+function validateAuthoredRefs(demoProjectContent, diagnostics) {
+  const { catalogs, projectBundle, sceneDocument } = demoProjectContent;
+  const upstreamPreset = catalogs.upstreamGameplay.defaultPreset.preset;
+  const upstreamHashes = catalogs.upstreamGameplay.defaultPreset.hashes;
+
+  if (projectBundle.catalogs?.gameplayCatalogId !== catalogs.upstreamGameplay.catalog.catalogId) {
+    diagnostics.push('ProjectBundle gameplayCatalogId does not match upstream gameplay catalog');
+  }
+  if (projectBundle.catalogs?.objectModelId !== catalogs.upstreamEcrpObjectModel.model.modelId) {
+    diagnostics.push('ProjectBundle objectModelId does not match upstream ECRP object model');
+  }
+  if (catalogs.gameplay.defaultPresetId !== upstreamPreset.presetId) {
+    diagnostics.push('gameplay catalog defaultPresetId does not match upstream preset');
+  }
+  if (catalogs.gameplay.defaultPresetHash !== upstreamHashes.presetHash) {
+    diagnostics.push('gameplay catalog defaultPresetHash does not match upstream preset hash');
+  }
+  if (catalogs.gameplay.tuningHash !== upstreamHashes.tuningHash) {
+    diagnostics.push('gameplay catalog tuningHash does not match upstream tuning hash');
+  }
+  if (!deepEqual(catalogs.weapon, { kind: catalogs.weapon.kind, ...upstreamPreset.weapon })) {
+    diagnostics.push('weapon catalog tuning does not match upstream gameplay preset weapon tuning');
+  }
+  if (!deepEqual(stripKind(catalogs.levelPreset), upstreamPreset.generator)) {
+    diagnostics.push('level preset ref does not match upstream gameplay preset generator ref');
+  }
+  if (sceneDocument.levelPresetRef !== upstreamPreset.generator.presetId) {
+    diagnostics.push('SceneDocument levelPresetRef does not match level preset');
+  }
+  if (sceneDocument.generatedTunnelSeed !== upstreamPreset.generator.seed) {
+    diagnostics.push('SceneDocument generatedTunnelSeed does not match level preset');
+  }
+
+  const spawnMarkerIds = new Set(catalogs.spawns.markers.map((marker) => marker.markerId));
+  for (const placement of sceneDocument.placements ?? []) {
+    if (!spawnMarkerIds.has(placement.spawnMarkerId)) {
+      diagnostics.push(`SceneDocument placement references missing spawn marker ${placement.spawnMarkerId}`);
+    }
+  }
+  if (!Array.isArray(catalogs.materials.materials) || catalogs.materials.materials.length === 0) {
+    diagnostics.push('material catalog must contain at least one material role');
+  }
+}
+
+function requireEntityDefinition(entityDefinitions, stableId) {
+  const definition = entityDefinitions.find((candidate) => candidate.stableId === stableId);
+  if (definition === undefined) {
+    throw new Error(`ASHA demo project content is missing ${stableId}`);
+  }
+  return definition;
+}
+
+function requireCapability(entityDefinition, kind) {
+  const capability = entityDefinition.capabilities.find((candidate) => candidate.kind === kind);
+  if (capability === undefined) {
+    throw new Error(`${entityDefinition.stableId} is missing ${kind}`);
+  }
+  return capability;
+}
+
+function stripKind(value) {
+  const { kind, sceneDocument, ...withoutKind } = value;
+  return withoutKind;
+}
+
+function deepEqual(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
