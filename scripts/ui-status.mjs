@@ -12,7 +12,7 @@ export function buildUiStatus() {
         reset: 'camera_and_target_reset',
         owner: '@asha/renderer-three',
       },
-      publicImports: ['@asha/renderer-three'],
+      publicImports: ['@asha/catalog-core', '@asha/renderer-three', '@asha/runtime-bridge'],
       nonClaims: [
         'no_demo_local_three_scene',
         'no_demo_local_renderer_implementation',

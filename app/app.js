@@ -1,5 +1,9 @@
 import { mountAshaRendererBrowserSurface } from '@asha/renderer-three';
 import { createMockRuntimeSession } from '@asha/runtime-bridge';
+import {
+  demoProjectContent,
+  readDemoProjectContentStatus,
+} from './project-content.js';
 
 const canvas = document.querySelector('#asha-render-surface');
 const reticle = document.querySelector('#reticle');
@@ -17,52 +21,53 @@ if (!(canvas instanceof HTMLCanvasElement)) {
   throw new Error('ASHA renderer surface canvas is missing.');
 }
 
+const contentStatus = readDemoProjectContentStatus();
+if (!contentStatus.valid) {
+  throw new Error(`ASHA demo project content is invalid: ${contentStatus.diagnostics.join('; ')}`);
+}
+
 const runtimeSession = createMockRuntimeSession();
 runtimeSession.initialize({
-  sessionId: 'asha-demo.playable.collision',
-  seed: 4103,
-  project: {
-    gameId: 'asha-demo',
-    workspaceId: 'workspace.local',
-  },
-  projectBundle: {
-    bundleSchemaVersion: 1,
-    protocolVersion: 1,
-    sceneId: 4103,
-  },
+  sessionId: demoProjectContent.runtime.sessionId,
+  seed: demoProjectContent.runtime.seed,
+  project: demoProjectContent.projectBundle.project,
+  projectBundle: demoProjectContent.projectBundle.runtimeRequest,
 });
+const ecrpProjectLoadReceipt = runtimeSession.loadEcrpProject({
+  kind: 'runtime_session.load_ecrp_project.v0',
+  projectBundle: demoProjectContent.projectBundle,
+  entityDefinitions: demoProjectContent.entityDefinitions,
+  sceneDocument: demoProjectContent.sceneDocument,
+});
+if (!ecrpProjectLoadReceipt.accepted) {
+  throw new Error(
+    `ASHA RuntimeSession rejected demo ECRP project content: ${ecrpProjectLoadReceipt.diagnostics
+      .map((diagnostic) => `${diagnostic.code}:${diagnostic.path}`)
+      .join('; ')}`,
+  );
+}
 
-const initialCameraPose = {
-  position: [0, 1.62, 0],
-  yawDegrees: 0,
-  pitchDegrees: 0,
-};
-const collisionShape = { halfExtents: [0.25, 0.7, 0.25] };
-const collisionPolicy = { mode: 'axis_separable_slide', maxIterations: 3 };
 let runtimeCamera = createRuntimeCamera();
+let runtimeActionTick = 0;
 
 const surface = mountAshaRendererBrowserSurface(canvas, {
   autoStart: true,
   clearColor: 0x101820,
   controls: {
-    initialPosition: initialCameraPose.position,
+    initialPosition: demoProjectContent.runtime.initialCameraPose.position,
     movementAuthority: constrainCameraMovement,
   },
 });
 
-let health = 100;
 let animationFrame = null;
 let lastMovementEvent = 'Authority ready';
+let lastRuntimeEvent = 'Runtime ready';
 let reticlePulseTimer = null;
 
 function createRuntimeCamera() {
   return runtimeSession.createCamera({
-    initialPose: initialCameraPose,
-    projection: {
-      fovYDegrees: 55,
-      near: 0.1,
-      far: 100,
-    },
+    initialPose: demoProjectContent.runtime.initialCameraPose,
+    projection: demoProjectContent.runtime.cameraProjection,
     viewport: {
       width: canvas.clientWidth || 1280,
       height: canvas.clientHeight || 720,
@@ -84,8 +89,8 @@ function constrainCameraMovement(input) {
       moveSpeedUnitsPerSecond: input.moveSpeedUnitsPerSecond,
     },
     tick: input.tick,
-    shape: collisionShape,
-    policy: collisionPolicy,
+    shape: demoProjectContent.runtime.collisionShape,
+    policy: demoProjectContent.runtime.collisionPolicy,
   });
   lastMovementEvent = receipt.collided
     ? `Blocked ${receipt.blockedAxes.join(', ')}`
@@ -141,22 +146,45 @@ document.addEventListener('keydown', (event) => {
 });
 
 function firePrimary() {
-  const result = surface.firePrimary();
-  if (result.hit) {
-    health = Math.max(0, health - 3);
+  const actionReceipt = runtimeSession.submitRuntimeActionIntent({
+    kind: 'runtime_action_intent.v0',
+    action: 'primary_fire',
+    phase: 'pressed',
+    camera: runtimeCamera,
+    tick: runtimeActionTick,
+    source: 'browser_fps_pointer',
+    pressed: true,
+  });
+  runtimeActionTick += 1;
+
+  if (actionReceipt.accepted && actionReceipt.combatReadout?.outcome.kind === 'hit') {
+    lastRuntimeEvent = 'Fire hit';
     pulseReticle('hit');
   } else {
+    lastRuntimeEvent = actionReceipt.accepted ? 'Fire missed' : 'Fire rejected';
     pulseReticle('miss');
   }
+  projectRuntimeTargetState();
   renderHud();
-  return result;
+  return {
+    interaction: readRuntimeInteractionState(),
+    runtime: actionReceipt,
+  };
 }
 
 function resetLoop() {
-  health = 100;
+  const statusBefore = runtimeSession.readLifecycleStatus();
+  const restartReceipt = runtimeSession.requestSessionRestart({
+    kind: 'runtime.restart_session_intent',
+    source: 'hud_menu',
+    requireTerminal: false,
+    expectedSessionHash: statusBefore.sessionHash,
+  });
   runtimeCamera = createRuntimeCamera();
   lastMovementEvent = 'Reset';
+  lastRuntimeEvent = restartReceipt.accepted ? 'Runtime reset' : 'Reset rejected';
   surface.reset();
+  projectRuntimeTargetState();
   pulseReticle('reset');
   renderHud();
 }
@@ -174,9 +202,10 @@ function pulseReticle(kind) {
 
 function renderHud() {
   const pose = surface.cameraPose();
-  const interaction = surface.interactionState();
+  const interaction = readRuntimeInteractionState();
   const movement = surface.movementState();
   const locked = surface.pointerLocked();
+  const enemyHealth = readEnemyHealth();
 
   if (lockState instanceof HTMLElement) {
     lockState.textContent = locked ? 'LOCKED' : 'UNLOCKED';
@@ -194,11 +223,64 @@ function renderHud() {
     )}`;
   }
   if (eventState instanceof HTMLElement) {
-    eventState.textContent = movement.collided ? lastMovementEvent : interaction.lastEvent;
+    eventState.textContent = movement.collided ? lastMovementEvent : lastRuntimeEvent || interaction.lastEvent;
   }
   if (healthFill instanceof HTMLElement) {
-    healthFill.style.width = `${health}%`;
+    healthFill.style.width = `${enemyHealth.percent}%`;
   }
+}
+
+function projectRuntimeTargetState() {
+  const enemyHealth = readEnemyHealth();
+  surface.projectTargetProjection({
+    visible: !enemyHealth.dead,
+    lastEvent: enemyHealth.dead ? 'Enemy defeated' : lastRuntimeEvent,
+  });
+}
+
+function readRuntimeInteractionState() {
+  const lifecycle = runtimeSession.readLifecycleStatus();
+  const replayRecords = runtimeSession.readTelemetry().replayRecords;
+  const latestRestartIndex = replayRecords.findLastIndex(
+    (record) => record.kind === 'restart' || record.kind === 'requestSessionRestart',
+  );
+  const currentEpochRecords = latestRestartIndex === -1 ? replayRecords : replayRecords.slice(latestRestartIndex + 1);
+  const shotsFired = currentEpochRecords.filter(
+    (record) => record.kind === 'submitRuntimeActionIntent',
+  ).length;
+  const enemyDead = lifecycle.enemy.dead;
+  return {
+    hits: enemyDead ? 1 : 0,
+    lastEvent: lastRuntimeEvent,
+    remainingTargets: enemyDead ? 0 : 1,
+    shotsFired,
+    targetHealth: lifecycle.enemy.health.current,
+    totalTargets: 1,
+  };
+}
+
+function readEnemyHealth() {
+  const readout = runtimeSession.readEcrpRuntimeReadout();
+  const enemy = readout.entities.find(
+    (entity) => entity.definitionStableId === 'actor/generated-tunnel-enemy',
+  );
+  const health = enemy?.capabilities.find(
+    (capability) => capability.kind === 'health',
+  );
+  if (health?.kind !== 'health') {
+    return {
+      current: 0,
+      dead: true,
+      max: 1,
+      percent: 0,
+    };
+  }
+  return {
+    current: health.current,
+    dead: health.dead,
+    max: health.max,
+    percent: Math.max(0, Math.min(100, (health.current / health.max) * 100)),
+  };
 }
 
 function tickHud() {
@@ -213,10 +295,16 @@ globalThis.ashaRendererSurface = {
   kind: surface.kind,
   cameraPose: () => surface.cameraPose(),
   firePrimary: () => firePrimary(),
-  interactionState: () => surface.interactionState(),
+  interactionState: () => readRuntimeInteractionState(),
   movementState: () => surface.movementState(),
   pointerLocked: () => surface.pointerLocked(),
+  projectContentStatus: () => ({
+    ...readDemoProjectContentStatus(),
+    runtimeLoaded: ecrpProjectLoadReceipt.accepted,
+    runtimeBootstrapHash: ecrpProjectLoadReceipt.bootstrapHash,
+  }),
   reset: () => resetLoop(),
+  runtimeEcrpReadout: () => runtimeSession.readEcrpRuntimeReadout(),
   runtimeTelemetry: () => runtimeSession.readTelemetry(),
   snapshot: () => surface.snapshot(),
 };
