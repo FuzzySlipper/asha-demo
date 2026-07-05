@@ -6,7 +6,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const guardScriptPath = fileURLToPath(import.meta.url);
 const engineSurfaceManifestPath = resolve(repoRoot, '../asha/harness/public-surface/ts-packages.json');
 
-const allowedPackageRoots = loadAllowedAshaPackageRoots(engineSurfaceManifestPath);
+const { packageRoots: allowedPackageRoots, specifiers: allowedSpecifiers } = loadAllowedAshaSpecifiers(engineSurfaceManifestPath);
 const dependencySections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
 const scannedExtensions = new Set(['.cjs', '.cts', '.js', '.json', '.jsx', '.mjs', '.mts', '.toml', '.ts', '.tsx']);
 const ignoredDirectories = new Set(['.git', 'dist', 'node_modules']);
@@ -24,18 +24,26 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`ASHA dependency boundary check passed (${allowedPackageRoots.size} approved package roots loaded).`);
+console.log(`ASHA dependency boundary check passed (${allowedSpecifiers.size} approved ASHA specifiers loaded).`);
 
-function loadAllowedAshaPackageRoots(manifestPath) {
+function loadAllowedAshaSpecifiers(manifestPath) {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  const roots = new Set();
-  for (const entry of manifest.packages ?? []) {
-    const roles = Array.isArray(entry.allowedConsumerRoles) ? entry.allowedConsumerRoles : [];
-    if (entry.status !== 'internal' && roles.includes('asha-demo')) {
-      roots.add(entry.package);
+  const consumerPolicy = (manifest.consumerPolicies ?? []).find((entry) => entry.consumerRole === 'asha-demo');
+  if (consumerPolicy === undefined) {
+    throw new Error(`ASHA public-surface manifest ${manifestPath} has no consumer policy for asha-demo`);
+  }
+  const packageRoots = new Set();
+  const specifiers = new Set();
+  for (const packageRoot of consumerPolicy.approvedPackageRoots ?? []) {
+    packageRoots.add(packageRoot);
+    specifiers.add(packageRoot);
+  }
+  for (const specifier of consumerPolicy.approvedPackageSubpaths ?? []) {
+    if (typeof specifier === 'string') {
+      specifiers.add(specifier);
     }
   }
-  return roots;
+  return { packageRoots, specifiers };
 }
 
 function checkPackageJson() {
@@ -90,8 +98,8 @@ function checkTextFile(filePath, text) {
       errors.push(`${displayPath} references ${reference}, which is not approved for asha-demo`);
       continue;
     }
-    if (reference !== packageRoot) {
-      errors.push(`${displayPath} references ${reference}; import ASHA packages from root exports only`);
+    if (!allowedSpecifiers.has(reference)) {
+      errors.push(`${displayPath} references ${reference}; import ASHA packages from approved package exports only`);
     }
   }
 

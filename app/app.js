@@ -1,5 +1,5 @@
 import { mountAshaRendererBrowserSurface } from '@asha/renderer-three';
-import { createMockRuntimeSession } from '@asha/runtime-bridge';
+import { createMockRuntimeSession } from '@asha/runtime-bridge/reference';
 import {
   demoProjectContent,
   readDemoProjectContentStatus,
