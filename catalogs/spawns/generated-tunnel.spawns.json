@@ -11,7 +11,7 @@
     {
       "markerId": "spawn.enemy.primary",
       "role": "enemy",
-      "position": [0, 1.1, -1.35],
+      "position": [0, 0.5, -2.6],
       "yawDegrees": 180
     }
   ]

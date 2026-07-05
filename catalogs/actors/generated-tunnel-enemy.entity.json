@@ -10,14 +10,14 @@
     {
       "kind": "transform",
       "initial": {
-        "position": [0, 1.1, -1.35],
+        "position": [0, 0.5, -2.6],
         "yawDegrees": 180,
         "pitchDegrees": 0
       }
     },
     {
       "kind": "collisionBody",
-      "halfExtents": [0.35, 0.7, 0.35],
+      "halfExtents": [0.25, 0.5, 0.25],
       "policy": {
         "mode": "runtime_collision_body"
       }

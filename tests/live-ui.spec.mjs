@@ -49,6 +49,15 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
     await page.evaluate(() => globalThis.ashaRendererSurface?.snapshot?.() ?? ''),
   ).toContain('generated-tunnel-floor');
   expect(
+    await page.evaluate(() => globalThis.ashaRendererSurface?.snapshot?.() ?? ''),
+  ).toContain('generated-tunnel-wall-rib-west-1');
+  expect(
+    await page.evaluate(() => globalThis.ashaRendererSurface?.snapshot?.() ?? ''),
+  ).toContain('generated-tunnel-low-cover-east');
+  expect(
+    await page.evaluate(() => globalThis.ashaRendererSurface?.snapshot?.() ?? ''),
+  ).toContain('generated-tunnel-ceiling-crossbeam');
+  expect(
     await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeBootstrapHash ?? null),
   ).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().entityCount ?? null)).toBe(2);
