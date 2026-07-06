@@ -78,7 +78,7 @@ let lastMenuIntent = null;
 const generatedTunnelReadout = TINY_GENERATED_TUNNEL_READOUT;
 const levelFrame = createAshaRendererGeneratedTunnelRoomSurfaceFrame({
   tunnel: generatedTunnelReadout,
-  enemy: demoProjectContent.runtime.enemyRenderTarget,
+  enemy: readEnemyRenderFrameTarget(),
 });
 
 const surface = mountAshaRendererSurface(canvas, {
@@ -458,13 +458,43 @@ function renderHud() {
 
 function projectRuntimeTargetState() {
   const enemyHealth = readEnemyHealth();
-  const enemyTransform = readEnemyTransform();
-  surface.projectTargetProjection({
-    visible: !enemyHealth.dead,
-    position: enemyTransform.position,
-    scale: demoProjectContent.runtime.enemyRenderTarget.scale,
+  if (typeof surface.projectRenderTargetProjection !== 'function') {
+    const renderTarget = readEnemyRenderTarget(!enemyHealth.dead);
+    surface.projectTargetProjection({
+      visible: !enemyHealth.dead,
+      position: renderTarget.position,
+      scale: renderTarget.scale ?? demoProjectContent.runtime.enemyRenderTarget.scale,
+      lastEvent: enemyHealth.dead ? 'Enemy defeated' : lastRuntimeEvent,
+    });
+    return;
+  }
+  surface.projectRenderTargetProjection(readEnemyRenderTarget(!enemyHealth.dead), {
     lastEvent: enemyHealth.dead ? 'Enemy defeated' : lastRuntimeEvent,
   });
+}
+
+function readEnemyRenderFrameTarget() {
+  const target = readEnemyRenderTarget(true);
+  return {
+    label: target.renderLabel,
+    position: target.position,
+    scale: target.scale ?? demoProjectContent.runtime.enemyRenderTarget.scale,
+  };
+}
+
+function readEnemyRenderTarget(visible) {
+  const renderTarget = readActorCapability('actor/generated-tunnel-enemy', 'renderProjection')?.target ?? null;
+  if (renderTarget !== null) {
+    return renderTarget;
+  }
+  const enemyTransform = readEnemyTransform();
+  return {
+    kind: 'runtime_session.ecrp_render_target.v0',
+    renderLabel: demoProjectContent.runtime.enemyRenderTarget.label,
+    visible,
+    position: enemyTransform.position,
+    scale: demoProjectContent.runtime.enemyRenderTarget.scale,
+  };
 }
 
 function tickEnemyPolicy() {
