@@ -7,6 +7,7 @@ import {
   TINY_GENERATED_TUNNEL_READOUT,
   assertNativeRustRuntimeBridgeAuthority,
   createRuntimeSessionFacade,
+  readRuntimeSessionPlayableEncounterTick,
   readRuntimeSessionPlayableLoopState,
   resolveNativeRustRuntimeBridgeProvider,
 } from '@asha/runtime-bridge';
@@ -499,57 +500,64 @@ function readEnemyRenderTarget(visible) {
 }
 
 function tickEnemyPolicy() {
-  const lifecycle = readLifecycleStatus();
   if (runtimeSession === null) {
     lastRuntimeEvent = 'Enemy loop blocked: Rust runtime backend missing';
     renderHud();
     return lastEnemyPolicyReadout;
   }
-  if (paused) {
+
+  const encounterTick = readRuntimeSessionPlayableEncounterTick(runtimeSession, {
+    targetCamera: readRuntimeCameraHandle(),
+    targetPosition: runtimeCamera.pose.position,
+    tick: enemyPolicyTick,
+    shell: {
+      paused,
+    },
+  });
+  if (encounterTick.status === 'blocked') {
+    lastRuntimeEvent = encounterTickBlockedEvent(encounterTick.blockedReason);
     renderHud();
     return lastEnemyPolicyReadout;
   }
-  if (lifecycle.enemy.dead || lifecycle.player.dead) {
-    if (lifecycle.player.dead) {
-      lastRuntimeEvent = 'Player defeated';
-      renderHud();
-    }
-    return lastEnemyPolicyReadout;
-  }
 
-  const enemyTransform = readEnemyTransform();
-  const targetPose = surface.cameraPose();
-  const readout = runtimeSession.runAutonomousPolicyTick({
-    targetCamera: runtimeCamera,
-    tick: enemyPolicyTick,
-    enemy: {
-      id: 'generated-tunnel.enemy.1',
-      position: enemyTransform.position,
-    },
-    target: {
-      id: 'generated-tunnel.player',
-      position: targetPose.position,
-    },
-    combat: {
-      primaryFireRangeUnits: 2.4,
-      lineOfSight: 'clear',
-    },
-  });
   enemyPolicyTick += 1;
+  const readout = encounterTick.autonomousPolicy;
   lastEnemyPolicyReadout = readout;
 
-  if (readout.combatSummary?.status === 'accepted') {
+  if (encounterTick.combatSummary?.status === 'accepted') {
     lastRuntimeEvent = 'Enemy hit';
-  } else if (readout.movementSummary?.status === 'accepted') {
+  } else if (encounterTick.movementSummary?.status === 'accepted') {
     lastRuntimeEvent = 'Enemy moved';
   }
-  const lifecycleAfter = runtimeSession.readLifecycleStatus();
-  if (lifecycleAfter.player.dead) {
+  if (encounterTick.lifecycleAfter?.player.dead) {
     lastRuntimeEvent = 'Player defeated';
   }
   projectRuntimeTargetState();
   renderHud();
   return readout;
+}
+
+function readRuntimeCameraHandle() {
+  return typeof runtimeCamera === 'number' ? runtimeCamera : runtimeCamera.handle;
+}
+
+function encounterTickBlockedEvent(reason) {
+  if (reason === 'paused') {
+    return 'Enemy loop paused';
+  }
+  if (reason === 'player_dead') {
+    return 'Player defeated';
+  }
+  if (reason === 'enemy_dead') {
+    return 'Enemy defeated';
+  }
+  if (reason === 'missing_enemy') {
+    return 'Enemy loop blocked: enemy missing';
+  }
+  if (reason === 'missing_player') {
+    return 'Enemy loop blocked: player missing';
+  }
+  return 'Enemy loop blocked: Rust runtime backend missing';
 }
 
 function readRuntimeInteractionState() {
