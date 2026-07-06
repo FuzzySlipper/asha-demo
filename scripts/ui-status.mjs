@@ -22,8 +22,9 @@ export function buildUiStatus() {
       runtimeBackend: {
         defaultMode: 'native',
         authority: 'rust',
-        provider: 'globalThis.ashaDemoRuntimeBridge',
-        providerContract: 'asha_demo.native_runtime_bridge_provider.v1',
+        provider: 'globalThis.ashaRuntimeBridge',
+        providerAliases: ['globalThis.ashaDemoRuntimeBridge'],
+        providerContract: 'asha.runtime_bridge.native_rust_provider.v1',
         requiredBackend: 'native_rust',
         missingBackendBehavior: 'fail_closed',
         referenceFallback: false,

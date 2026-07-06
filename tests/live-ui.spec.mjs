@@ -295,6 +295,45 @@ test('@live-agent asha-demo rejects spoofed native RuntimeBridge providers', asy
               blocksLoad: false,
             };
           },
+          createCamera(request) {
+            return {
+              handle: 1,
+              pose: request.initialPose,
+              projection: request.projection,
+              viewport: request.viewport,
+              basis: {
+                forward: [0, 0, -1],
+                right: [1, 0, 0],
+                up: [0, 1, 0],
+              },
+              projectionHash: 'fnv1a64:0000000000000004',
+            };
+          },
+          applyCollisionConstrainedCameraInput() {
+            return {
+              blockedAxes: [],
+              collided: false,
+              collisionProjectionHash: 'fnv1a64:0000000000000005',
+              movementHash: 'fnv1a64:0000000000000006',
+              replayRecordKind: 'camera_collision_input',
+              snapshot: {
+                before: null,
+                attempted: null,
+                after: {
+                  pose: {
+                    position: [0, 1.62, 1.25],
+                    yawDegrees: 0,
+                    pitchDegrees: 0,
+                  },
+                  basis: {
+                    forward: [0, 0, -1],
+                    right: [1, 0, 0],
+                    up: [0, 1, 0],
+                  },
+                },
+              },
+            };
+          },
           loadFpsRuntimeSession() {
             return referenceSnapshot;
           },
@@ -309,6 +348,25 @@ test('@live-agent asha-demo rejects spoofed native RuntimeBridge providers', asy
               targetHealthAfter: null,
             };
           },
+          restartFpsRuntimeSession() {
+            return referenceSnapshot;
+          },
+          applyEnemyDirectNavMovement(request) {
+            return {
+              entity: request.entity,
+              authoritySource: 'seeded_from_request',
+              authorityTransport: 'reference_bridge',
+              from: request.seedPosition,
+              target: request.target,
+              nextWaypoint: request.seedPosition,
+              distanceUnits: 0,
+              reached: false,
+              pathHash: 'fnv1a64:0000000000000007',
+              transformHash: 'fnv1a64:0000000000000008',
+              projectionChanged: false,
+            };
+          },
+          unloadWorld() {},
         };
       },
     };
