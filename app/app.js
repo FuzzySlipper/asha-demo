@@ -6,6 +6,7 @@ import {
   RuntimeBridgeError,
   TINY_GENERATED_TUNNEL_READOUT,
   createRuntimeSessionFacade,
+  readRuntimeSessionPlayableLoopState,
 } from '@asha/runtime-bridge';
 import {
   loadDemoProjectContent,
@@ -67,11 +68,7 @@ const runtimeSession = runtimeBackend.session;
 const ecrpProjectLoadReceipt = runtimeBackend.loadReceipt;
 
 let runtimeCamera = createRuntimeCamera();
-let runtimeActionTick = 0;
 let enemyPolicyTick = 0;
-let playerHits = 0;
-let playerShotsFired = 0;
-let restartCount = 0;
 let paused = false;
 let menuMode = 'closed';
 let lastMenuIntent = null;
@@ -244,13 +241,9 @@ document.addEventListener('keydown', (event) => {
 });
 
 function firePrimary() {
-  const lifecycle = readLifecycleStatus();
-  if (runtimeSession === null || paused || lifecycle.player.dead) {
-    lastRuntimeEvent = runtimeSession === null
-      ? 'Fire blocked: Rust runtime backend missing'
-      : paused
-        ? 'Fire blocked: paused'
-        : 'Fire blocked: player defeated';
+  const playable = readPlayableLoopState();
+  if (runtimeSession === null || !playable.commands.canFire) {
+    lastRuntimeEvent = readFireBlockedEvent(playable.commands.blockedReasons);
     pulseReticle('miss');
     renderHud();
     return {
@@ -264,16 +257,13 @@ function firePrimary() {
     action: 'primary_fire',
     phase: 'pressed',
     camera: runtimeCamera,
-    tick: runtimeActionTick,
+    tick: playable.counters.actionTick,
     source: 'browser_fps_pointer',
     pressed: true,
   });
-  runtimeActionTick += 1;
-  playerShotsFired += 1;
 
   if (actionReceipt.accepted && actionReceipt.combatReadout?.outcome.kind === 'hit') {
     lastRuntimeEvent = 'Fire hit';
-    playerHits += 1;
     pulseReticle('hit');
   } else {
     lastRuntimeEvent = actionReceipt.accepted ? 'Fire missed' : 'Fire rejected';
@@ -287,13 +277,26 @@ function firePrimary() {
   };
 }
 
+function readFireBlockedEvent(blockedReasons) {
+  if (blockedReasons.includes('missing_backend')) {
+    return 'Fire blocked: Rust runtime backend missing';
+  }
+  if (blockedReasons.includes('paused')) {
+    return 'Fire blocked: paused';
+  }
+  if (blockedReasons.includes('player_dead')) {
+    return 'Fire blocked: player defeated';
+  }
+  if (blockedReasons.includes('target_defeated')) {
+    return 'Fire blocked: target defeated';
+  }
+  return 'Fire blocked';
+}
+
 function resetLoop() {
   if (runtimeSession === null) {
     runtimeCamera = createRuntimeCamera();
-    runtimeActionTick = 0;
     enemyPolicyTick = 0;
-    playerHits = 0;
-    playerShotsFired = 0;
     lastEnemyPolicyReadout = null;
     paused = false;
     menuMode = 'closed';
@@ -314,12 +317,8 @@ function resetLoop() {
     expectedSessionHash: statusBefore.sessionHash,
   });
   runtimeCamera = createRuntimeCamera();
-  runtimeActionTick = 0;
   enemyPolicyTick = 0;
-  playerHits = 0;
-  playerShotsFired = 0;
   lastEnemyPolicyReadout = null;
-  restartCount = restartReceipt.restart?.restartCount ?? restartCount;
   paused = false;
   menuMode = 'closed';
   lastMovementEvent = 'Reset';
@@ -427,8 +426,8 @@ function renderHud() {
     deathState.hidden = !lifecycle.player.dead;
   }
   if (fireButton instanceof HTMLButtonElement) {
-    fireButton.disabled = runtimeSession === null || paused || lifecycle.player.dead;
-    fireButton.dataset.blocked = String(runtimeSession === null || paused || lifecycle.player.dead);
+    fireButton.disabled = !interaction.canFire;
+    fireButton.dataset.blocked = String(!interaction.canFire);
   }
   if (pauseButton instanceof HTMLButtonElement) {
     pauseButton.textContent = paused ? 'Resume' : 'Pause';
@@ -552,23 +551,76 @@ function tickEnemyPolicy() {
 }
 
 function readRuntimeInteractionState() {
-  const lifecycle = readLifecycleStatus();
-  const enemyDead = lifecycle.enemy.dead;
+  const playable = readPlayableLoopState();
   return {
-    actionTick: runtimeActionTick,
-    hits: playerHits,
+    actionTick: playable.counters.actionTick,
+    canFire: playable.commands.canFire,
+    fireBlockedReasons: [...playable.commands.blockedReasons],
+    hits: playable.counters.hits,
     lastEvent: lastRuntimeEvent,
     lastMenuIntent,
-    lifecycleOutcome: lifecycle.outcome.kind,
+    lifecycleOutcome: readLifecycleStatus().outcome.kind,
     menuMode,
     paused,
-    playerDead: lifecycle.player.dead,
-    playerHealth: lifecycle.player.health.current,
-    restartCount,
-    remainingTargets: enemyDead ? 0 : 1,
-    shotsFired: playerShotsFired,
-    targetHealth: lifecycle.enemy.health.current,
-    totalTargets: 1,
+    playerDead: playable.health.player.dead,
+    playerHealth: playable.health.player.current,
+    restartCount: playable.currentEpoch.restartCount,
+    remainingTargets: playable.counters.remainingTargets,
+    shotsFired: playable.counters.shotsFired,
+    targetHealth: playable.health.enemy.current,
+    totalTargets: playable.counters.totalTargets,
+  };
+}
+
+function readPlayableLoopState() {
+  if (runtimeSession !== null) {
+    return readRuntimeSessionPlayableLoopState(runtimeSession, {
+      shell: {
+        paused,
+        menuMode,
+      },
+    });
+  }
+  const playerHealth = readPlayerHealth();
+  const enemyHealth = readEnemyHealth();
+  return {
+    kind: 'runtime_session.playable_loop_state.v0',
+    status: 'missing_backend',
+    sequenceId: 0,
+    tick: 0,
+    sessionHash: runtimeBackend.backendHash,
+    currentEpoch: {
+      restartCount: 0,
+      replayRecordStartIndex: 0,
+      replayRecordCount: 0,
+      source: 'after_last_restart_record',
+    },
+    counters: {
+      actionTick: 0,
+      hits: 0,
+      remainingTargets: enemyHealth.dead ? 0 : 1,
+      shotsFired: 0,
+      totalTargets: 1,
+    },
+    health: {
+      player: playerHealth,
+      enemy: enemyHealth,
+    },
+    commands: {
+      canFire: false,
+      canRestart: false,
+      blockedReasons: ['missing_backend'],
+    },
+    shell: {
+      paused,
+      menuMode,
+    },
+    target: null,
+    diagnostics: runtimeBackend.diagnostics.map((diagnostic) => ({
+      code: 'missing_runtime_session',
+      message: diagnostic.message,
+    })),
+    nonClaims: ['not_ui_authority', 'not_replay_history_counter', 'not_demo_local_authority'],
   };
 }
 
@@ -937,6 +989,7 @@ function readRuntimeTelemetry() {
   if (runtimeSession !== null) {
     return runtimeSession.readTelemetry();
   }
+  const playable = readPlayableLoopState();
   return {
     sequenceId: 0,
     tick: 0,
@@ -949,7 +1002,7 @@ function readRuntimeTelemetry() {
     sessionHash: runtimeBackend.backendHash,
     acceptedCommandCount: 0,
     rejectedCommandCount: 0,
-    restartCount,
+    restartCount: playable.currentEpoch.restartCount,
     replayRecords: [],
   };
 }
