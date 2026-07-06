@@ -12,9 +12,8 @@ const status = buildUiStatus(repoRoot);
 const errors = [];
 
 requireText(indexHtml, 'asha-renderer-browser-surface');
-requireText(indexHtml, '@asha/renderer-three');
-requireText(indexHtml, 'three');
-requireText(appJs, 'mountAshaRendererBrowserSurface');
+requireText(indexHtml, '@asha/renderer-host');
+requireText(appJs, 'mountAshaRendererSurface');
 requireText(appJs, 'createAshaRendererGeneratedTunnelRoomSurfaceFrame');
 requireText(appJs, 'hudControlToIntent');
 requireText(appJs, 'loadDemoProjectContent');
@@ -34,17 +33,29 @@ requireProjectFile(projectBundle.sourceFiles.levelPreset);
 requireProjectFile('docs/demo-surface-audit.md');
 
 if (appJs.includes("from 'three'") || appJs.includes('from "three"')) {
-  errors.push('asha-demo must not import Three.js directly; rendering is owned by @asha/renderer-three');
+  errors.push('asha-demo must not import Three.js directly; rendering is mounted through @asha/renderer-host');
+}
+if (appJs.includes('@asha/renderer-three')) {
+  errors.push('asha-demo app code must import @asha/renderer-host rather than @asha/renderer-three');
+}
+if (indexHtml.includes('"@asha/renderer-three": "/vendor/asha-renderer-three/')) {
+  errors.push('asha-demo must not expose @asha/renderer-three as a top-level import-map entry');
+}
+if (indexHtml.includes('"three": "/vendor/three/')) {
+  errors.push('asha-demo must not expose bare Three.js as a top-level import-map entry');
 }
 
 if (status.playable !== true) {
   errors.push('UI status must expose playable=true for the renderer surface');
 }
-if (status.rendererSurface?.kind !== 'asha_renderer_browser_surface.v0') {
-  errors.push('UI status must identify the ASHA renderer browser surface');
+if (status.rendererSurface?.kind !== 'asha_renderer_surface.v0') {
+  errors.push('UI status must identify the ASHA renderer host surface');
 }
-if (!status.rendererSurface?.publicImports?.includes('@asha/renderer-three')) {
-  errors.push('UI status must record @asha/renderer-three as the public rendering import');
+if (!status.rendererSurface?.publicImports?.includes('@asha/renderer-host')) {
+  errors.push('UI status must record @asha/renderer-host as the public rendering import');
+}
+if (status.rendererSurface?.publicImports?.includes('@asha/renderer-three')) {
+  errors.push('UI status must not present @asha/renderer-three as a public demo import');
 }
 
 if (errors.length > 0) {

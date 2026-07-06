@@ -1,7 +1,7 @@
 import {
   createAshaRendererGeneratedTunnelRoomSurfaceFrame,
-  mountAshaRendererBrowserSurface,
-} from '@asha/renderer-three';
+  mountAshaRendererSurface,
+} from '@asha/renderer-host';
 import {
   RuntimeBridgeError,
   TINY_GENERATED_TUNNEL_READOUT,
@@ -81,7 +81,7 @@ const levelFrame = createAshaRendererGeneratedTunnelRoomSurfaceFrame({
   enemy: demoProjectContent.runtime.enemyRenderTarget,
 });
 
-const surface = mountAshaRendererBrowserSurface(canvas, {
+const surface = mountAshaRendererSurface(canvas, {
   autoStart: true,
   clearColor: 0x101820,
   frame: levelFrame,

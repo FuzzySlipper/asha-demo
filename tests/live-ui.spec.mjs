@@ -19,7 +19,7 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   await expect.poll(async () => canvas.evaluate((node) => node.clientHeight)).toBeGreaterThan(100);
 
   const surface = await page.evaluate(() => globalThis.ashaRendererSurface?.kind ?? null);
-  expect(surface).toBe('asha_renderer_browser_surface.v0');
+  expect(surface).toBe('asha_renderer_surface.v0');
 
   const pose = await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null);
   expect(pose?.position).toEqual([0, 1.62, 1.25]);
@@ -315,6 +315,9 @@ test('@live-agent asha-demo rejects spoofed native RuntimeBridge providers', asy
   });
 
   await page.goto('/');
+  await expect
+    .poll(async () => page.evaluate(() => globalThis.ashaRendererSurface?.kind ?? null))
+    .toBe('asha_renderer_surface.v0');
   const backendStatus = await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeBackendStatus?.() ?? null);
   expect(backendStatus?.status).toBe('missing_rust_backend');
   expect(backendStatus?.diagnostics?.[0]?.message).toContain('rejected non-native RuntimeBridge provider');

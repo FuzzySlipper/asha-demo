@@ -19,10 +19,9 @@
     "@asha/contracts": "file:../asha/ts/packages/contracts",
     "@asha/game-workspace": "file:../asha/ts/packages/game-workspace",
     "@asha/render-projection": "file:../asha/ts/packages/render-projection",
-    "@asha/renderer-three": "file:../asha/ts/packages/renderer-three",
+    "@asha/renderer-host": "file:../asha/ts/packages/renderer-host",
     "@asha/runtime-bridge": "file:../asha/ts/packages/runtime-bridge",
-    "@asha/ui-dom": "file:../asha/ts/packages/ui-dom",
-    "three": "^0.184.0"
+    "@asha/ui-dom": "file:../asha/ts/packages/ui-dom"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1"

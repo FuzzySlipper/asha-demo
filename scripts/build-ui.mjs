@@ -1,16 +1,22 @@
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const ashaRendererThreeRoot = resolve(repoRoot, '../asha/ts/packages/renderer-three');
+const ashaRendererThreeRequire = createRequire(join(ashaRendererThreeRoot, 'package.json'));
 const outputRoot = join(repoRoot, 'dist/ui');
 const catalogCoreVendorRoot = join(outputRoot, 'vendor/asha-catalog-core');
 const contractsVendorRoot = join(outputRoot, 'vendor/asha-contracts');
 const renderProjectionVendorRoot = join(outputRoot, 'vendor/asha-render-projection');
-const rendererThreeVendorRoot = join(outputRoot, 'vendor/asha-renderer-three');
+const rendererHostVendorRoot = join(outputRoot, 'vendor/asha-renderer-host');
+const rendererHostBackendVendorRoot = join(rendererHostVendorRoot, 'vendor/asha-renderer-three');
+const rendererHostThreeVendorRoot = join(rendererHostVendorRoot, 'vendor/three');
 const runtimeBridgeVendorRoot = join(outputRoot, 'vendor/asha-runtime-bridge');
-const threeVendorRoot = join(outputRoot, 'vendor/three');
+const rendererHostBackendSourceRoot = join(ashaRendererThreeRoot, 'dist');
+const rendererHostThreeSourceRoot = dirname(dirname(ashaRendererThreeRequire.resolve('three')));
 
 rmSync(outputRoot, { force: true, recursive: true });
 mkdirSync(outputRoot, { recursive: true });
@@ -24,12 +30,14 @@ mkdirSync(contractsVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'contracts', 'dist'), contractsVendorRoot, { recursive: true });
 mkdirSync(renderProjectionVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'render-projection', 'dist'), renderProjectionVendorRoot, { recursive: true });
-mkdirSync(rendererThreeVendorRoot, { recursive: true });
-cpSync(join(repoRoot, 'node_modules', '@asha', 'renderer-three', 'dist'), rendererThreeVendorRoot, { recursive: true });
+mkdirSync(rendererHostVendorRoot, { recursive: true });
+cpSync(join(repoRoot, 'node_modules', '@asha', 'renderer-host', 'dist'), rendererHostVendorRoot, { recursive: true });
+mkdirSync(rendererHostBackendVendorRoot, { recursive: true });
+cpSync(rendererHostBackendSourceRoot, rendererHostBackendVendorRoot, { recursive: true });
 mkdirSync(runtimeBridgeVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'runtime-bridge', 'dist'), runtimeBridgeVendorRoot, { recursive: true });
-mkdirSync(threeVendorRoot, { recursive: true });
-cpSync(join(repoRoot, 'node_modules', 'three'), threeVendorRoot, { recursive: true });
+mkdirSync(rendererHostThreeVendorRoot, { recursive: true });
+cpSync(rendererHostThreeSourceRoot, rendererHostThreeVendorRoot, { recursive: true });
 writeFileSync(join(outputRoot, 'status.json'), `${JSON.stringify(buildUiStatus(repoRoot), null, 2)}\n`);
 
 console.log(`Built ASHA demo static UI at ${outputRoot}`);

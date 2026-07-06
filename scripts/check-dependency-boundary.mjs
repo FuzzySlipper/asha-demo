@@ -66,6 +66,12 @@ function checkPackageJson() {
   for (const section of dependencySections) {
     const dependencies = packageJson[section] ?? {};
     for (const dependencyName of Object.keys(dependencies)) {
+      if (dependencyName === 'three' || dependencyName === '@types/three') {
+        errors.push(`${section}.${dependencyName} is forbidden; Three.js is backend-owned behind @asha/renderer-host`);
+      }
+      if (dependencyName === '@asha/renderer-three') {
+        errors.push(`${section}.${dependencyName} is forbidden; asha-demo must import @asha/renderer-host`);
+      }
       if (!dependencyName.startsWith('@asha/')) {
         continue;
       }
@@ -105,6 +111,19 @@ function scanRepoFiles(directory) {
 
 function checkTextFile(filePath, text) {
   const displayPath = relative(repoRoot, filePath).split(sep).join('/');
+  if (displayPath.startsWith('app/') && /from\s+['"]@asha\/renderer-three['"]/.test(text)) {
+    errors.push(`${displayPath}: live app code must import @asha/renderer-host rather than @asha/renderer-three`);
+  }
+  if (displayPath.startsWith('app/') && /from\s+['"]three['"]/.test(text)) {
+    errors.push(`${displayPath}: live app code must not import bare Three.js`);
+  }
+  if (displayPath === 'app/index.html' && text.includes('"@asha/renderer-three": "/vendor/asha-renderer-three/')) {
+    errors.push(`${displayPath}: top-level renderer-three import-map entry is forbidden`);
+  }
+  if (displayPath === 'app/index.html' && text.includes('"three": "/vendor/three/')) {
+    errors.push(`${displayPath}: top-level bare Three.js import-map entry is forbidden`);
+  }
+
   for (const forbidden of forbiddenLiveRuntimeReferences) {
     if (forbidden.pattern.test(text)) {
       errors.push(`${displayPath}: ${forbidden.message}`);

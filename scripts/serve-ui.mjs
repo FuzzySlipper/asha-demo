@@ -1,12 +1,15 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'app');
+const ashaRendererThreeRoot = resolve(repoRoot, '../asha/ts/packages/renderer-three');
+const ashaRendererThreeRequire = createRequire(join(ashaRendererThreeRoot, 'package.json'));
 const authoredContentRoots = new Map([
   ['/catalogs/', join(repoRoot, 'catalogs')],
   ['/levels/', join(repoRoot, 'levels')],
@@ -15,9 +18,10 @@ const authoredContentRoots = new Map([
 const catalogCoreBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'catalog-core', 'dist');
 const contractsBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'contracts', 'dist');
 const renderProjectionBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'render-projection', 'dist');
-const rendererThreeBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'renderer-three', 'dist');
+const rendererHostBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'renderer-host', 'dist');
+const rendererHostBackendBrowserRoot = join(ashaRendererThreeRoot, 'dist');
 const runtimeBridgeBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'runtime-bridge', 'dist');
-const threeBrowserRoot = join(repoRoot, 'node_modules', 'three');
+const rendererHostThreeBrowserRoot = dirname(dirname(ashaRendererThreeRequire.resolve('three')));
 const args = parseArgs(process.argv.slice(2));
 const host = args.host ?? process.env.HOST ?? process.env.npm_config_host ?? '127.0.0.1';
 const port = Number(args.port ?? process.env.PORT ?? process.env.npm_config_port ?? 5173);
@@ -42,9 +46,9 @@ const server = createServer(async (request, response) => {
     await sendStaticAssetFromRoot(response, runtimeBridgeBrowserRoot, vendorPath);
     return;
   }
-  if (request.url?.startsWith('/vendor/asha-renderer-three/')) {
-    const vendorPath = request.url.replace('/vendor/asha-renderer-three/', '') || 'index.js';
-    await sendStaticAssetFromRoot(response, rendererThreeBrowserRoot, vendorPath);
+  if (request.url?.startsWith('/vendor/asha-renderer-host/vendor/asha-renderer-three/')) {
+    const vendorPath = request.url.replace('/vendor/asha-renderer-host/vendor/asha-renderer-three/', '') || 'index.js';
+    await sendStaticAssetFromRoot(response, rendererHostBackendBrowserRoot, vendorPath);
     return;
   }
   if (request.url?.startsWith('/vendor/asha-render-projection/')) {
@@ -52,9 +56,14 @@ const server = createServer(async (request, response) => {
     await sendStaticAssetFromRoot(response, renderProjectionBrowserRoot, vendorPath);
     return;
   }
-  if (request.url?.startsWith('/vendor/three/')) {
-    const vendorPath = request.url.replace('/vendor/three/', '') || 'build/three.module.js';
-    await sendStaticAssetFromRoot(response, threeBrowserRoot, vendorPath);
+  if (request.url?.startsWith('/vendor/asha-renderer-host/vendor/three/')) {
+    const vendorPath = request.url.replace('/vendor/asha-renderer-host/vendor/three/', '') || 'build/three.module.js';
+    await sendStaticAssetFromRoot(response, rendererHostThreeBrowserRoot, vendorPath);
+    return;
+  }
+  if (request.url?.startsWith('/vendor/asha-renderer-host/')) {
+    const vendorPath = request.url.replace('/vendor/asha-renderer-host/', '') || 'index.js';
+    await sendStaticAssetFromRoot(response, rendererHostBrowserRoot, vendorPath);
     return;
   }
   if (request.url?.startsWith('/vendor/asha-contracts/')) {

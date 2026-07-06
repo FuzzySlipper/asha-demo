@@ -12,7 +12,7 @@ quiet load-bearing structure.
 | Static target dummy content | Removed from `catalogs/actors`; the demo now loads `demo-player.entity.json` and `generated-tunnel-enemy.entity.json`. | #4217 |
 | Flat-room scene naming | Replaced with `levels/scenes/generated-tunnel-room.scene.json`. | #4217 |
 | Inert options/exit controls | No options or exit buttons are present in the product surface. | #4220 owns future menu work |
-| Local Three.js/rendering implementation risk | Demo imports only public ASHA package roots; renderer implementation stays in `@asha/renderer-three`. | none |
+| Local Three.js/rendering implementation risk | Demo imports `@asha/renderer-host`; the Three.js backend remains transitive ASHA host plumbing rather than a demo dependency or app import. | #4386 |
 | Local health/combat/lifecycle authority risk | Fire, health, death, and restart use `RuntimeSession` readouts/intents; demo UI projects state. | #4224/#4217 |
 | Proof-page artifacts appearing as product UI | No proof dashboard is mounted. Live smoke and screenshots stay in `tests/` and `artifacts/`. | none |
 | Player health, enemy attack, full death loop | Not implemented in current demo surface. | #4219 |
