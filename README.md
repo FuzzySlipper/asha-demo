@@ -19,7 +19,7 @@ This repo contains the first ASHA Game Project demo surface:
 - `catalogs/actors/`, `catalogs/gameplay/`, `catalogs/materials/`, `catalogs/spawns/`, and `catalogs/weapons/` hold inspectable demo content.
 - `levels/presets/`, `levels/scenes/`, `assets/`, and `replays/` are source roots for demo-owned content and evidence.
 - `policies/` is documentation-only until ASHA exposes an approved public policy-authoring surface.
-- The served UI consumes public ASHA package roots to drive an integrated reference RuntimeSession loop: first-person generated-tunnel room rendering from the public renderer projection, browser-operable movement/look controls with collision readout, deterministic generated tunnel preset/readout, enemy placement from durable ECRP content, primary-fire health/HUD feedback, typed HUD/menu controls, death status, and typed restart receipt.
+- The served UI consumes public ASHA package roots to drive an integrated RuntimeSession loop: first-person generated-tunnel room rendering from the public renderer projection, browser-operable movement/look controls with collision readout, deterministic generated tunnel projection, enemy placement from durable ECRP content, primary-fire health/HUD feedback, typed HUD/menu controls, death status, and typed restart receipt. Runtime authority defaults to a Rust-backed public bridge provider; a plain static browser session fails closed with a visible missing-backend diagnostic instead of using reference authority.
 
 Run `npm run check:dependencies` before adding code or package dependencies. The guard reads ASHA's public-surface manifest and rejects private ASHA packages, generated contract file paths, Rust crate paths, and package-internal `src/*` imports.
 
@@ -27,10 +27,11 @@ Run `npm run test:live-ui` only with `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` 
 
 ## Current Boundaries
 
-This is a reference playable loop, not a full native FPS. Runtime authority,
-collision, combat, health/lifecycle, generation, policy, and render projection
-stay in public ASHA surfaces. The demo repo owns authored project files,
-browser mounting, HUD placement, and the human-facing playable page.
+This is a public-surface playable loop, not a full native FPS host. Runtime
+authority, collision, combat, health/lifecycle, generation, policy, and render
+projection stay in public ASHA surfaces. The demo repo owns authored project
+files, browser mounting, HUD placement, and the human-facing playable page. The
+demo does not use reference/mock RuntimeSession authority as its product path.
 
 Known unfinished demo pieces are tracked in `docs/demo-surface-audit.md` as a
 small owner-task table. Do not recreate a broad disclaimer document; remove,

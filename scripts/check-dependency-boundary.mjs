@@ -11,6 +11,20 @@ const dependencySections = ['dependencies', 'devDependencies', 'peerDependencies
 const scannedExtensions = new Set(['.cjs', '.cts', '.js', '.json', '.jsx', '.mjs', '.mts', '.toml', '.ts', '.tsx']);
 const ignoredDirectories = new Set(['.git', 'dist', 'node_modules']);
 const ignoredFiles = new Set(['package-lock.json']);
+const forbiddenLiveRuntimeReferences = [
+  {
+    pattern: /@asha\/runtime-bridge\/reference/,
+    message: 'live asha-demo code must not import the reference RuntimeSession subpath',
+  },
+  {
+    pattern: /\bcreateMockRuntimeSession\b/,
+    message: 'live asha-demo code must not create a reference/mock RuntimeSession',
+  },
+  {
+    pattern: /\breference_mock\b/,
+    message: 'live asha-demo metadata must not select reference_mock as product authority',
+  },
+];
 const errors = [];
 
 checkPackageJson();
@@ -91,6 +105,12 @@ function scanRepoFiles(directory) {
 
 function checkTextFile(filePath, text) {
   const displayPath = relative(repoRoot, filePath).split(sep).join('/');
+  for (const forbidden of forbiddenLiveRuntimeReferences) {
+    if (forbidden.pattern.test(text)) {
+      errors.push(`${displayPath}: ${forbidden.message}`);
+    }
+  }
+
   const ashaReferences = text.match(/@asha\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_./-]+)?/g) ?? [];
   for (const reference of ashaReferences) {
     const packageRoot = reference.split('/').slice(0, 2).join('/');

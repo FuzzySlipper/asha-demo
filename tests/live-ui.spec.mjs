@@ -38,7 +38,6 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
       'catalogs/actors/generated-tunnel-enemy.entity.json',
     ],
   });
-  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeLoaded ?? null)).toBe(true);
   expect(
     await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().levelRenderProjectionHash ?? null),
   ).toBe('fnv1a64:21eb8696f6f3b5c4');
@@ -57,6 +56,34 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(
     await page.evaluate(() => globalThis.ashaRendererSurface?.snapshot?.() ?? ''),
   ).toContain('generated-tunnel-ceiling-crossbeam');
+  const initialRuntimeBootstrapHash = await page.evaluate(
+    () => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeBootstrapHash ?? null,
+  );
+  if (initialRuntimeBootstrapHash !== null) {
+    expect(initialRuntimeBootstrapHash).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
+  }
+
+  const backendStatus = await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeBackendStatus?.() ?? null);
+  expect(backendStatus?.profile).toMatchObject({
+    mode: 'rust',
+    productAuthority: true,
+    referenceFallback: false,
+  });
+
+  if (backendStatus?.status === 'missing_rust_backend') {
+    expect(await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeLoaded ?? null)).toBe(false);
+    expect(backendStatus?.diagnostics?.[0]?.message).toContain('does not fall back to reference authority');
+    await expect(page.locator('#fire-button')).toBeDisabled();
+    expect(await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().authority.source ?? null)).toBe(
+      'missing_backend',
+    );
+    expect(await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().entityCount ?? null)).toBe(0);
+    expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().remainingTargets ?? null)).toBe(1);
+    return;
+  }
+
+  expect(backendStatus?.status).toBe('rust_authority');
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeLoaded ?? null)).toBe(true);
   expect(
     await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeBootstrapHash ?? null),
   ).toMatch(/^fnv1a64:[0-9a-f]{16}$/);

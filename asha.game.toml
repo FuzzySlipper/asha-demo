@@ -1,6 +1,6 @@
 # ASHA Game Project manifest for the human-facing demo repo.
-# The served UI loads the ProjectBundle and attaches a reference RuntimeSession
-# through public ASHA package surfaces.
+# The served UI loads the ProjectBundle and attaches a public Rust-backed
+# RuntimeSession when a host provides the runtime bridge.
 
 [asha]
 engine_version = "0.1.0"
@@ -21,8 +21,8 @@ policy_packages = []
 dev_command = "npm run dev"
 devtools_endpoint = "ws://127.0.0.1:7391"
 wasm_or_native_entry = "dist/runtime/index.js"
-backend_mode = "reference"
-backend_profile = "reference"
+backend_mode = "rust"
+backend_profile = "public-runtime-bridge"
 backend_proof_refs = ["artifacts/4217/generated-tunnel-room.png"]
 
 [studio]

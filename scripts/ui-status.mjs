@@ -19,8 +19,14 @@ export function buildUiStatus() {
         contentValidation: '@asha/catalog-core',
         rendering: '@asha/renderer-three',
       },
+      runtimeBackend: {
+        defaultMode: 'rust',
+        provider: 'globalThis.ashaDemoRuntimeBridge',
+        missingBackendBehavior: 'fail_closed',
+        referenceFallback: false,
+      },
     },
     currentSurface:
-      'Generated-tunnel room demo with durable ProjectBundle/ECRP content, public ASHA renderer surface, RuntimeSession collision, primary-fire combat, HUD, and restart.',
+      'Generated-tunnel room demo with durable ProjectBundle/ECRP content, public ASHA renderer surface, Rust-backed RuntimeSession authority when a public bridge provider is attached, and fail-closed HUD diagnostics otherwise.',
   };
 }

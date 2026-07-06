@@ -2,7 +2,11 @@ import {
   createAshaRendererGeneratedTunnelRoomSurfaceFrame,
   mountAshaRendererBrowserSurface,
 } from '@asha/renderer-three';
-import { createMockRuntimeSession } from '@asha/runtime-bridge/reference';
+import {
+  RuntimeBridgeError,
+  TINY_GENERATED_TUNNEL_READOUT,
+  createRuntimeSessionFacade,
+} from '@asha/runtime-bridge';
 import {
   loadDemoProjectContent,
   readDemoProjectContentStatus,
@@ -58,26 +62,9 @@ if (!contentStatus.valid) {
   throw new Error(`ASHA demo project content is invalid: ${contentStatus.diagnostics.join('; ')}`);
 }
 
-const runtimeSession = createMockRuntimeSession();
-runtimeSession.initialize({
-  sessionId: demoProjectContent.runtime.sessionId,
-  seed: demoProjectContent.runtime.seed,
-  project: demoProjectContent.projectBundle.project,
-  projectBundle: demoProjectContent.projectBundle.runtimeRequest,
-});
-const ecrpProjectLoadReceipt = runtimeSession.loadEcrpProject({
-  kind: 'runtime_session.load_ecrp_project.v0',
-  projectBundle: demoProjectContent.projectBundle,
-  entityDefinitions: demoProjectContent.entityDefinitions,
-  sceneDocument: demoProjectContent.sceneDocument,
-});
-if (!ecrpProjectLoadReceipt.accepted) {
-  throw new Error(
-    `ASHA RuntimeSession rejected demo ECRP project content: ${ecrpProjectLoadReceipt.diagnostics
-      .map((diagnostic) => `${diagnostic.code}:${diagnostic.path}`)
-      .join('; ')}`,
-  );
-}
+const runtimeBackend = await createDemoRuntimeBackend(demoProjectContent);
+const runtimeSession = runtimeBackend.session;
+const ecrpProjectLoadReceipt = runtimeBackend.loadReceipt;
 
 let runtimeCamera = createRuntimeCamera();
 let runtimeActionTick = 0;
@@ -88,10 +75,7 @@ let restartCount = 0;
 let paused = false;
 let menuMode = 'closed';
 let lastMenuIntent = null;
-const generatedTunnelReadout = runtimeSession.readGeneratedTunnelReadout({
-  presetId: demoProjectContent.catalogs.levelPreset.presetId,
-  seed: demoProjectContent.catalogs.levelPreset.seed,
-});
+const generatedTunnelReadout = TINY_GENERATED_TUNNEL_READOUT;
 const levelFrame = createAshaRendererGeneratedTunnelRoomSurfaceFrame({
   tunnel: generatedTunnelReadout,
   enemy: demoProjectContent.runtime.enemyRenderTarget,
@@ -115,18 +99,33 @@ let lastRuntimeEvent = 'Runtime ready';
 let reticlePulseTimer = null;
 
 function createRuntimeCamera() {
+  if (runtimeSession === null) {
+    return {
+      handle: -1,
+      pose: demoProjectContent.runtime.initialCameraPose,
+      projection: demoProjectContent.runtime.cameraProjection,
+      viewport: readViewport(),
+    };
+  }
   return runtimeSession.createCamera({
     initialPose: demoProjectContent.runtime.initialCameraPose,
     projection: demoProjectContent.runtime.cameraProjection,
-    viewport: {
-      width: canvas.clientWidth || 1280,
-      height: canvas.clientHeight || 720,
-    },
+    viewport: readViewport(),
   }).snapshot.camera;
 }
 
 function constrainCameraMovement(input) {
-  const lifecycle = runtimeSession.readLifecycleStatus();
+  if (runtimeSession === null) {
+    lastMovementEvent = runtimeBackend.diagnostics[0]?.message ?? 'Movement blocked: Rust runtime backend missing';
+    return {
+      blockedAxes: ['x', 'y', 'z'],
+      collided: true,
+      movementHash: runtimeBackend.backendHash,
+      pose: runtimeCamera.pose,
+    };
+  }
+
+  const lifecycle = readLifecycleStatus();
   const blockedByUi = paused || lifecycle.player.dead;
   const inputForAuthority = blockedByUi
     ? {
@@ -245,9 +244,13 @@ document.addEventListener('keydown', (event) => {
 });
 
 function firePrimary() {
-  const lifecycle = runtimeSession.readLifecycleStatus();
-  if (paused || lifecycle.player.dead) {
-    lastRuntimeEvent = paused ? 'Fire blocked: paused' : 'Fire blocked: player defeated';
+  const lifecycle = readLifecycleStatus();
+  if (runtimeSession === null || paused || lifecycle.player.dead) {
+    lastRuntimeEvent = runtimeSession === null
+      ? 'Fire blocked: Rust runtime backend missing'
+      : paused
+        ? 'Fire blocked: paused'
+        : 'Fire blocked: player defeated';
     pulseReticle('miss');
     renderHud();
     return {
@@ -285,7 +288,25 @@ function firePrimary() {
 }
 
 function resetLoop() {
-  const statusBefore = runtimeSession.readLifecycleStatus();
+  if (runtimeSession === null) {
+    runtimeCamera = createRuntimeCamera();
+    runtimeActionTick = 0;
+    enemyPolicyTick = 0;
+    playerHits = 0;
+    playerShotsFired = 0;
+    lastEnemyPolicyReadout = null;
+    paused = false;
+    menuMode = 'closed';
+    lastMovementEvent = 'Reset unavailable: Rust runtime backend missing';
+    lastRuntimeEvent = lastMovementEvent;
+    surface.reset();
+    projectRuntimeTargetState();
+    pulseReticle('miss');
+    renderHud();
+    return;
+  }
+
+  const statusBefore = readLifecycleStatus();
   const restartReceipt = runtimeSession.requestSessionRestart({
     kind: 'runtime.restart_session_intent',
     source: 'hud_menu',
@@ -362,7 +383,7 @@ function pulseReticle(kind) {
 function renderHud() {
   const pose = surface.cameraPose();
   const interaction = readRuntimeInteractionState();
-  const lifecycle = runtimeSession.readLifecycleStatus();
+  const lifecycle = readLifecycleStatus();
   const movement = surface.movementState();
   const locked = surface.pointerLocked();
   const enemyHealth = readEnemyHealth();
@@ -388,7 +409,9 @@ function renderHud() {
     )}`;
   }
   if (eventState instanceof HTMLElement) {
-    eventState.textContent = lifecycle.player.dead
+    eventState.textContent = runtimeSession === null
+      ? runtimeBackend.diagnostics[0]?.message ?? 'Rust runtime backend missing'
+      : lifecycle.player.dead
       ? `${lifecycle.outcome.label} - restart available`
       : movement.collided
         ? lastMovementEvent
@@ -404,8 +427,8 @@ function renderHud() {
     deathState.hidden = !lifecycle.player.dead;
   }
   if (fireButton instanceof HTMLButtonElement) {
-    fireButton.disabled = paused || lifecycle.player.dead;
-    fireButton.dataset.blocked = String(paused || lifecycle.player.dead);
+    fireButton.disabled = runtimeSession === null || paused || lifecycle.player.dead;
+    fireButton.dataset.blocked = String(runtimeSession === null || paused || lifecycle.player.dead);
   }
   if (pauseButton instanceof HTMLButtonElement) {
     pauseButton.textContent = paused ? 'Resume' : 'Pause';
@@ -445,7 +468,12 @@ function projectRuntimeTargetState() {
 }
 
 function tickEnemyPolicy() {
-  const lifecycle = runtimeSession.readLifecycleStatus();
+  const lifecycle = readLifecycleStatus();
+  if (runtimeSession === null) {
+    lastRuntimeEvent = 'Enemy loop blocked: Rust runtime backend missing';
+    renderHud();
+    return lastEnemyPolicyReadout;
+  }
   if (paused) {
     renderHud();
     return lastEnemyPolicyReadout;
@@ -494,7 +522,7 @@ function tickEnemyPolicy() {
 }
 
 function readRuntimeInteractionState() {
-  const lifecycle = runtimeSession.readLifecycleStatus();
+  const lifecycle = readLifecycleStatus();
   const enemyDead = lifecycle.enemy.dead;
   return {
     actionTick: runtimeActionTick,
@@ -549,11 +577,15 @@ function readHealth(stableId) {
 }
 
 function readActorCapability(stableId, kind) {
-  const readout = runtimeSession.readEcrpRuntimeReadout();
+  const readout = readEcrpRuntimeReadout();
   const enemy = readout.entities.find(
     (entity) => entity.definitionStableId === stableId,
   );
-  return enemy?.capabilities.find((capability) => capability.kind === kind) ?? null;
+  const runtimeCapability = enemy?.capabilities.find((capability) => capability.kind === kind) ?? null;
+  if (runtimeCapability !== null) {
+    return runtimeCapability;
+  }
+  return readAuthoredActorCapability(stableId, kind);
 }
 
 function tickHud() {
@@ -580,12 +612,291 @@ globalThis.ashaRendererSurface = {
     ...readDemoProjectContentStatus(demoProjectContent),
     levelRenderProjectionHash: generatedTunnelReadout.renderProjection.hash,
     levelSurfaceLabels: ['generated-tunnel-floor', demoProjectContent.runtime.enemyRenderTarget.label],
-    runtimeLoaded: ecrpProjectLoadReceipt.accepted,
+    runtimeBackend: runtimeBackend.status,
+    runtimeBackendDiagnostics: runtimeBackend.diagnostics,
+    runtimeBackendProfile: runtimeBackend.profile,
+    runtimeLoaded: runtimeBackend.available && ecrpProjectLoadReceipt.accepted,
     runtimeBootstrapHash: ecrpProjectLoadReceipt.bootstrapHash,
   }),
   reset: () => resetLoop(),
-  runtimeEcrpReadout: () => runtimeSession.readEcrpRuntimeReadout(),
-  runtimeTelemetry: () => runtimeSession.readTelemetry(),
+  runtimeBackendStatus: () => runtimeBackend,
+  runtimeEcrpReadout: () => readEcrpRuntimeReadout(),
+  runtimeTelemetry: () => readRuntimeTelemetry(),
   snapshot: () => surface.snapshot(),
   tickEnemyPolicy: () => tickEnemyPolicy(),
 };
+
+async function createDemoRuntimeBackend(content) {
+  const profile = {
+    kind: 'asha_demo.runtime_backend_profile.v1',
+    mode: 'rust',
+    transport: 'public_runtime_bridge',
+    providerGlobal: 'globalThis.ashaDemoRuntimeBridge',
+    productAuthority: true,
+    referenceFallback: false,
+  };
+
+  try {
+    const bridge = await readInjectedRuntimeBridge();
+    if (bridge === null) {
+      return unavailableRuntimeBackend(
+        profile,
+        'missing_rust_runtime_backend',
+        'ASHA demo requires a public Rust RuntimeBridge provider; static browser mode does not fall back to reference authority.',
+      );
+    }
+
+    const session = createRuntimeSessionFacade({ bridge, mode: 'rust' });
+    session.initialize({
+      sessionId: content.runtime.sessionId,
+      seed: content.runtime.seed,
+      project: content.projectBundle.project,
+      projectBundle: content.projectBundle.runtimeRequest,
+    });
+    const loadReceipt = session.loadEcrpProject({
+      kind: 'runtime_session.load_ecrp_project.v0',
+      projectBundle: content.projectBundle,
+      entityDefinitions: content.entityDefinitions,
+      sceneDocument: content.sceneDocument,
+    });
+
+    if (!loadReceipt.accepted) {
+      return unavailableRuntimeBackend(
+        profile,
+        'rust_runtime_rejected_project',
+        `Rust RuntimeSession rejected demo ECRP content: ${formatLoadDiagnostics(loadReceipt.diagnostics)}`,
+        loadReceipt,
+        'rust_backend_failed',
+      );
+    }
+
+    return {
+      available: true,
+      status: 'rust_authority',
+      session,
+      loadReceipt,
+      diagnostics: [],
+      profile,
+      backendHash: loadReceipt.bootstrapHash ?? 'rust-authority:loaded',
+    };
+  } catch (error) {
+    const diagnostic = errorToBackendDiagnostic(error);
+    return unavailableRuntimeBackend(profile, diagnostic.code, diagnostic.message);
+  }
+}
+
+async function readInjectedRuntimeBridge() {
+  const provider = globalThis.ashaDemoRuntimeBridge ?? globalThis.ashaRuntimeBridge ?? null;
+  if (provider === null) {
+    return null;
+  }
+  const candidate = typeof provider === 'function'
+    ? provider()
+    : typeof provider.createRuntimeBridge === 'function'
+      ? provider.createRuntimeBridge()
+      : provider.bridge ?? provider;
+  const bridge = await candidate;
+  if (isRuntimeBridge(bridge)) {
+    return bridge;
+  }
+  throw new RuntimeBridgeError(
+    'invalid_input',
+    'globalThis.ashaDemoRuntimeBridge must provide the public RuntimeBridge interface',
+  );
+}
+
+function isRuntimeBridge(value) {
+  return value !== null
+    && typeof value === 'object'
+    && typeof value.initializeEngine === 'function'
+    && typeof value.loadWorldBundle === 'function'
+    && typeof value.loadFpsRuntimeSession === 'function'
+    && typeof value.applyFpsPrimaryFire === 'function';
+}
+
+function unavailableRuntimeBackend(profile, code, message, loadReceipt = null, status = 'missing_rust_backend') {
+  return {
+    available: false,
+    status,
+    session: null,
+    loadReceipt: loadReceipt ?? {
+      kind: 'runtime_session.ecrp_project_load_receipt.v0',
+      sequenceId: 0,
+      accepted: false,
+      diagnostics: [{ code, path: 'runtime.backend', detail: message }],
+      entityCount: 0,
+      bootstrapHash: null,
+      sessionHashBefore: 'missing-rust-backend',
+      sessionHashAfter: 'missing-rust-backend',
+    },
+    diagnostics: [{ code, severity: 'error', message }],
+    profile,
+    backendHash: `missing-rust-backend:${code}`,
+  };
+}
+
+function errorToBackendDiagnostic(error) {
+  if (error instanceof RuntimeBridgeError) {
+    return {
+      code: error.kind === 'native_unavailable' ? 'missing_rust_runtime_backend' : error.kind,
+      message: error.message,
+    };
+  }
+  return {
+    code: 'runtime_backend_error',
+    message: error instanceof Error ? error.message : String(error),
+  };
+}
+
+function formatLoadDiagnostics(diagnostics) {
+  return diagnostics
+    .map((diagnostic) => `${diagnostic.code}:${diagnostic.path}`)
+    .join('; ');
+}
+
+function readViewport() {
+  return {
+    width: canvas.clientWidth || 1280,
+    height: canvas.clientHeight || 720,
+  };
+}
+
+function readLifecycleStatus() {
+  if (runtimeSession !== null) {
+    return runtimeSession.readLifecycleStatus();
+  }
+  return fallbackLifecycleStatus();
+}
+
+function fallbackLifecycleStatus() {
+  const playerHealth = readAuthoredActorCapability('actor/demo-player', 'health') ?? {
+    current: 0,
+    max: 1,
+    dead: true,
+  };
+  const enemyHealth = readAuthoredActorCapability('actor/generated-tunnel-enemy', 'health') ?? {
+    current: 0,
+    max: 1,
+    dead: true,
+  };
+  return {
+    kind: 'runtime_session.lifecycle_status.v0',
+    scenario: 'generated_tunnel',
+    sequenceId: 0,
+    tick: 0,
+    sessionHash: runtimeBackend.backendHash,
+    player: {
+      role: 'player',
+      health: {
+        entity: 10,
+        current: playerHealth.current,
+        max: playerHealth.max,
+        dead: playerHealth.dead,
+        healthHash: 'missing-rust-backend:player-health',
+      },
+      dead: playerHealth.dead,
+    },
+    enemy: {
+      role: 'enemy',
+      health: {
+        entity: 20,
+        current: enemyHealth.current,
+        max: enemyHealth.max,
+        dead: enemyHealth.dead,
+        healthHash: 'missing-rust-backend:enemy-health',
+      },
+      dead: enemyHealth.dead,
+    },
+    outcome: {
+      kind: 'in_progress',
+      terminal: false,
+      reason: 'none',
+      label: 'Runtime backend missing',
+    },
+    restart: {
+      eligible: false,
+      intentKind: 'runtime.restart_session_intent',
+      reason: 'rust_epoch_restart',
+    },
+    events: [],
+    fixture: {
+      seed: demoProjectContent.runtime.seed,
+      sceneId: demoProjectContent.projectBundle.runtimeRequest.sceneId,
+      bundleSchemaVersion: demoProjectContent.projectBundle.runtimeRequest.bundleSchemaVersion,
+      protocolVersion: demoProjectContent.projectBundle.runtimeRequest.protocolVersion,
+      resetHash: runtimeBackend.backendHash,
+    },
+    hashes: {
+      lifecycleHash: runtimeBackend.backendHash,
+      playerHealthHash: 'missing-rust-backend:player-health',
+      enemyHealthHash: 'missing-rust-backend:enemy-health',
+      replayHash: runtimeBackend.backendHash,
+    },
+    nonClaims: ['not_save_load_persistence', 'not_ui_authority', 'not_demo_local_lifecycle'],
+  };
+}
+
+function readEcrpRuntimeReadout() {
+  if (runtimeSession !== null) {
+    return runtimeSession.readEcrpRuntimeReadout();
+  }
+  return {
+    kind: 'runtime_session.ecrp_readout.v0',
+    sequenceId: 0,
+    tick: 0,
+    sessionHash: runtimeBackend.backendHash,
+    authority: {
+      mode: 'rust',
+      source: 'missing_backend',
+      surface: 'runtime_session.fps.public_bridge_required.v0',
+      readSets: [],
+    },
+    entityCount: 0,
+    entities: [],
+  };
+}
+
+function readRuntimeTelemetry() {
+  if (runtimeSession !== null) {
+    return runtimeSession.readTelemetry();
+  }
+  return {
+    sequenceId: 0,
+    tick: 0,
+    composition: {
+      loadedWorld: null,
+      fatalCount: 1,
+      totalCount: 1,
+      blocksLoad: true,
+    },
+    sessionHash: runtimeBackend.backendHash,
+    acceptedCommandCount: 0,
+    rejectedCommandCount: 0,
+    restartCount,
+    replayRecords: [],
+  };
+}
+
+function readAuthoredActorCapability(stableId, kind) {
+  const definition = demoProjectContent.entityDefinitions.find(
+    (candidate) => candidate.stableId === stableId,
+  );
+  const capability = definition?.capabilities.find((candidate) => candidate.kind === kind) ?? null;
+  if (capability?.kind === 'transform') {
+    return {
+      kind: 'transform',
+      position: capability.initial.position,
+      yawDegrees: capability.initial.yawDegrees,
+      pitchDegrees: capability.initial.pitchDegrees,
+    };
+  }
+  if (capability?.kind === 'health') {
+    return {
+      kind: 'health',
+      current: capability.current,
+      max: capability.max,
+      dead: capability.current <= 0,
+    };
+  }
+  return capability;
+}
