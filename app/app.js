@@ -18,6 +18,7 @@ const eventState = document.querySelector('#event-state');
 const healthFill = document.querySelector('#health-fill');
 const playerHealthState = document.querySelector('#player-health-state');
 const playerHealthFill = document.querySelector('#player-health-fill');
+const deathState = document.querySelector('#death-state');
 const lockButton = document.querySelector('#lock-button');
 const fireButton = document.querySelector('#fire-button');
 const resetButton = document.querySelector('#reset-button');
@@ -58,6 +59,7 @@ let runtimeActionTick = 0;
 let enemyPolicyTick = 0;
 let playerHits = 0;
 let playerShotsFired = 0;
+let restartCount = 0;
 const generatedTunnelReadout = runtimeSession.readGeneratedTunnelReadout({
   presetId: demoProjectContent.catalogs.levelPreset.presetId,
   seed: demoProjectContent.catalogs.levelPreset.seed,
@@ -96,13 +98,25 @@ function createRuntimeCamera() {
 }
 
 function constrainCameraMovement(input) {
+  const lifecycle = runtimeSession.readLifecycleStatus();
+  const inputForAuthority = lifecycle.player.dead
+    ? {
+        moveForward: 0,
+        moveRight: 0,
+        moveUp: 0,
+      }
+    : {
+        moveForward: input.moveForward,
+        moveRight: input.moveRight,
+        moveUp: input.moveUp,
+      };
   const receipt = runtimeSession.applyCollisionConstrainedCameraInput({
     camera: runtimeCamera,
     grid: 1,
     input: {
-      moveForward: input.moveForward,
-      moveRight: input.moveRight,
-      moveUp: input.moveUp,
+      moveForward: inputForAuthority.moveForward,
+      moveRight: inputForAuthority.moveRight,
+      moveUp: inputForAuthority.moveUp,
       yawDeltaDegrees: input.yawDeltaDegrees,
       pitchDeltaDegrees: input.pitchDeltaDegrees,
       dtSeconds: input.dtSeconds,
@@ -112,7 +126,9 @@ function constrainCameraMovement(input) {
     shape: demoProjectContent.runtime.collisionShape,
     policy: demoProjectContent.runtime.collisionPolicy,
   });
-  lastMovementEvent = receipt.collided
+  lastMovementEvent = lifecycle.player.dead
+    ? 'Movement blocked: player defeated'
+    : receipt.collided
     ? `Blocked ${receipt.blockedAxes.join(', ')}`
     : 'Moved';
   return {
@@ -169,6 +185,17 @@ document.addEventListener('keydown', (event) => {
 });
 
 function firePrimary() {
+  const lifecycle = runtimeSession.readLifecycleStatus();
+  if (lifecycle.player.dead) {
+    lastRuntimeEvent = 'Fire blocked: player defeated';
+    pulseReticle('miss');
+    renderHud();
+    return {
+      interaction: readRuntimeInteractionState(),
+      runtime: null,
+    };
+  }
+
   const actionReceipt = runtimeSession.submitRuntimeActionIntent({
     kind: 'runtime_action_intent.v0',
     action: 'primary_fire',
@@ -206,10 +233,12 @@ function resetLoop() {
     expectedSessionHash: statusBefore.sessionHash,
   });
   runtimeCamera = createRuntimeCamera();
+  runtimeActionTick = 0;
   enemyPolicyTick = 0;
   playerHits = 0;
   playerShotsFired = 0;
   lastEnemyPolicyReadout = null;
+  restartCount = restartReceipt.restart?.restartCount ?? restartCount;
   lastMovementEvent = 'Reset';
   lastRuntimeEvent = restartReceipt.accepted ? 'Runtime reset' : 'Reset rejected';
   surface.reset();
@@ -232,6 +261,7 @@ function pulseReticle(kind) {
 function renderHud() {
   const pose = surface.cameraPose();
   const interaction = readRuntimeInteractionState();
+  const lifecycle = runtimeSession.readLifecycleStatus();
   const movement = surface.movementState();
   const locked = surface.pointerLocked();
   const enemyHealth = readEnemyHealth();
@@ -249,6 +279,7 @@ function renderHud() {
   }
   if (playerHealthState instanceof HTMLElement) {
     playerHealthState.textContent = `${playerHealth.current}/${playerHealth.max}`;
+    playerHealthState.dataset.dead = String(lifecycle.player.dead);
   }
   if (poseState instanceof HTMLElement) {
     poseState.textContent = `${pose.position[0].toFixed(1)}, ${pose.position[2].toFixed(1)} | ${Math.round(
@@ -256,13 +287,24 @@ function renderHud() {
     )}`;
   }
   if (eventState instanceof HTMLElement) {
-    eventState.textContent = movement.collided ? lastMovementEvent : lastRuntimeEvent || interaction.lastEvent;
+    eventState.textContent = lifecycle.player.dead
+      ? `${lifecycle.outcome.label} - restart available`
+      : movement.collided
+        ? lastMovementEvent
+        : lastRuntimeEvent || interaction.lastEvent;
   }
   if (healthFill instanceof HTMLElement) {
     healthFill.style.width = `${enemyHealth.percent}%`;
   }
   if (playerHealthFill instanceof HTMLElement) {
     playerHealthFill.style.width = `${playerHealth.percent}%`;
+  }
+  if (deathState instanceof HTMLElement) {
+    deathState.hidden = !lifecycle.player.dead;
+  }
+  if (fireButton instanceof HTMLButtonElement) {
+    fireButton.disabled = lifecycle.player.dead;
+    fireButton.dataset.blocked = String(lifecycle.player.dead);
   }
 }
 
@@ -280,6 +322,10 @@ function projectRuntimeTargetState() {
 function tickEnemyPolicy() {
   const lifecycle = runtimeSession.readLifecycleStatus();
   if (lifecycle.enemy.dead || lifecycle.player.dead) {
+    if (lifecycle.player.dead) {
+      lastRuntimeEvent = 'Player defeated';
+      renderHud();
+    }
     return lastEnemyPolicyReadout;
   }
 
@@ -309,6 +355,10 @@ function tickEnemyPolicy() {
   } else if (readout.movementSummary?.status === 'accepted') {
     lastRuntimeEvent = 'Enemy moved';
   }
+  const lifecycleAfter = runtimeSession.readLifecycleStatus();
+  if (lifecycleAfter.player.dead) {
+    lastRuntimeEvent = 'Player defeated';
+  }
   projectRuntimeTargetState();
   renderHud();
   return readout;
@@ -318,8 +368,13 @@ function readRuntimeInteractionState() {
   const lifecycle = runtimeSession.readLifecycleStatus();
   const enemyDead = lifecycle.enemy.dead;
   return {
+    actionTick: runtimeActionTick,
     hits: playerHits,
     lastEvent: lastRuntimeEvent,
+    lifecycleOutcome: lifecycle.outcome.kind,
+    playerDead: lifecycle.player.dead,
+    playerHealth: lifecycle.player.health.current,
+    restartCount,
     remainingTargets: enemyDead ? 0 : 1,
     shotsFired: playerShotsFired,
     targetHealth: lifecycle.enemy.health.current,

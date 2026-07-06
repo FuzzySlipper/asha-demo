@@ -85,17 +85,20 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
     const beforeTransform = readTransform();
     const beforePlayerHealth = readPlayerHealth();
     let lastReadout = null;
-    for (let index = 0; index < 10; index += 1) {
+    for (let index = 0; index < 30; index += 1) {
       lastReadout = globalThis.ashaRendererSurface?.tickEnemyPolicy?.() ?? null;
-      if (readPlayerHealth()?.current < beforePlayerHealth.current) {
+      if (readPlayerHealth()?.dead) {
         break;
       }
     }
+    const blockedFire = globalThis.ashaRendererSurface?.firePrimary?.() ?? null;
     return {
       beforeTransform,
       afterTransform: readTransform(),
       beforePlayerHealth,
       afterPlayerHealth: readPlayerHealth(),
+      blockedFire,
+      deathStateVisible: !document.querySelector('#death-state')?.hidden,
       lastReadout,
       loopState: globalThis.ashaRendererSurface?.enemyLoopState?.() ?? null,
       interaction: globalThis.ashaRendererSurface?.interactionState?.() ?? null,
@@ -107,8 +110,20 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(enemyLoopResult.lastReadout?.movementSummary?.status).toBe('accepted');
   expect(enemyLoopResult.loopState?.kind).toBe('runtime_session.autonomous_policy_tick.v0');
   expect(enemyLoopResult.afterPlayerHealth?.current).toBeLessThan(enemyLoopResult.beforePlayerHealth?.current);
+  expect(enemyLoopResult.afterPlayerHealth).toMatchObject({ kind: 'health', current: 0, max: 100, dead: true });
   expect(enemyLoopResult.lastReadout?.combatSummary?.status).toBe('accepted');
+  expect(enemyLoopResult.deathStateVisible).toBe(true);
+  expect(enemyLoopResult.blockedFire?.runtime).toBeNull();
+  expect(enemyLoopResult.blockedFire?.interaction?.playerDead).toBe(true);
   expect(enemyLoopResult.interaction?.shotsFired).toBe(0);
+
+  await page.evaluate(() => globalThis.ashaRendererSurface?.reset?.());
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().shotsFired ?? null)).toBe(0);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().actionTick ?? null)).toBe(0);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().playerDead ?? null)).toBe(false);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().playerHealth ?? null)).toBe(100);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(1);
+  expect(await page.evaluate(() => document.querySelector('#death-state')?.hidden ?? null)).toBe(true);
 
   await canvas.evaluate((node) => node.focus());
   await page.keyboard.down('KeyW');
@@ -144,7 +159,9 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
 
   await page.evaluate(() => globalThis.ashaRendererSurface?.reset?.());
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().shotsFired ?? null)).toBe(0);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().actionTick ?? null)).toBe(0);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().remainingTargets ?? null)).toBe(1);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(2);
   expect(
     await page.evaluate(() => {
       const enemy = globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().entities.find(
