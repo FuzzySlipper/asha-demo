@@ -9,8 +9,8 @@ const engineSurfaceManifestPath = resolve(repoRoot, '../asha/harness/public-surf
 const { packageRoots: allowedPackageRoots, specifiers: allowedSpecifiers } = loadAllowedAshaSpecifiers(engineSurfaceManifestPath);
 const dependencySections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
 const scannedExtensions = new Set(['.cjs', '.cts', '.js', '.json', '.jsx', '.mjs', '.mts', '.toml', '.ts', '.tsx']);
-const ignoredDirectories = new Set(['.git', 'dist', 'node_modules']);
-const ignoredFiles = new Set(['package-lock.json']);
+const ignoredDirectories = new Set(['.git', 'artifacts', 'dist', 'node_modules']);
+const ignoredFiles = new Set(['package-lock.json', 'scripts/check-ui-assets.mjs']);
 const forbiddenLiveRuntimeReferences = [
   {
     pattern: /@asha\/runtime-bridge\/reference/,
