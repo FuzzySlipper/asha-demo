@@ -16,6 +16,7 @@ requireText(indexHtml, '@asha/renderer-three');
 requireText(indexHtml, 'three');
 requireText(appJs, 'mountAshaRendererBrowserSurface');
 requireText(appJs, 'createAshaRendererGeneratedTunnelRoomSurfaceFrame');
+requireText(appJs, 'hudControlToIntent');
 requireText(appJs, 'loadDemoProjectContent');
 requireText(appJs, 'readGeneratedTunnelReadout');
 requireText(appJs, 'generated-tunnel-enemy');

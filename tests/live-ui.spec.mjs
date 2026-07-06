@@ -69,6 +69,35 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
     ),
   ).toEqual(['actor/demo-player', 'actor/generated-tunnel-enemy']);
 
+  await page.locator('#pause-button').click();
+  await expect(page.locator('#pause-menu')).toBeVisible();
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().paused ?? null)).toBe(true);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().menuMode ?? null)).toBe('paused');
+  await expect(page.locator('#fire-button')).toBeDisabled();
+  await page.locator('#options-button').click();
+  await expect(page.locator('#options-pane')).toBeVisible();
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().menuMode ?? null)).toBe('options');
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().lastMenuIntent?.kind ?? null)).toBe(
+    'ui.open_options_intent',
+  );
+  await page.locator('#exit-button').click();
+  await expect(page.locator('#exit-state')).toBeVisible();
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().menuMode ?? null)).toBe('exit');
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().lastMenuIntent?.kind ?? null)).toBe(
+    'ui.exit_to_menu_intent',
+  );
+  await page.locator('#resume-button').click();
+  await expect(page.locator('#pause-menu')).toBeHidden();
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().paused ?? null)).toBe(false);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().lastMenuIntent?.kind ?? null)).toBe(
+    'ui.resume_intent',
+  );
+  await page.locator('#pause-button').click();
+  await page.locator('#menu-reset-button').click();
+  await expect(page.locator('#pause-menu')).toBeHidden();
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(1);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().actionTick ?? null)).toBe(0);
+
   const enemyLoopResult = await page.evaluate(() => {
     const readTransform = () => {
       const enemy = globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().entities.find(
@@ -122,7 +151,7 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().actionTick ?? null)).toBe(0);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().playerDead ?? null)).toBe(false);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().playerHealth ?? null)).toBe(100);
-  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(1);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(2);
   expect(await page.evaluate(() => document.querySelector('#death-state')?.hidden ?? null)).toBe(true);
 
   await canvas.evaluate((node) => node.focus());
@@ -161,7 +190,7 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().shotsFired ?? null)).toBe(0);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().actionTick ?? null)).toBe(0);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().remainingTargets ?? null)).toBe(1);
-  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(2);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(3);
   expect(
     await page.evaluate(() => {
       const enemy = globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().entities.find(

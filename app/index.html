@@ -63,8 +63,31 @@
     <nav class="command-bar" aria-label="ASHA demo commands">
       <button id="lock-button" type="button">Lock</button>
       <button id="fire-button" type="button">Fire</button>
+      <button id="pause-button" type="button">Pause</button>
       <button id="reset-button" type="button">Reset</button>
     </nav>
+    <section id="pause-menu" class="pause-menu" data-mode="closed" data-demo-readout="pause-menu" hidden>
+      <div class="pause-dialog" role="dialog" aria-modal="true" aria-labelledby="pause-menu-title">
+        <h1 id="pause-menu-title">Paused</h1>
+        <p id="pause-menu-status">Runtime paused. Resume or restart through typed HUD intents.</p>
+        <div class="pause-actions">
+          <button id="resume-button" type="button" data-control-id="hud-resume">Resume</button>
+          <button id="menu-reset-button" type="button" data-control-id="hud-restart">Restart</button>
+          <button id="options-button" type="button" data-control-id="hud-options">Options</button>
+          <button id="exit-button" type="button" data-control-id="hud-exit">Exit</button>
+        </div>
+        <div id="options-pane" class="menu-pane" hidden>
+          <strong>Options</strong>
+          <span>Move 3.0 units/s</span>
+          <span>Look 0.1 deg/px</span>
+          <span>Runtime collision and combat authority enabled</span>
+        </div>
+        <div id="exit-state" class="menu-pane" hidden>
+          <strong>Exited to menu</strong>
+          <span>The demo is paused and pointer lock is released.</span>
+        </div>
+      </div>
+    </section>
     <script type="module" src="/app.js"></script>
   </body>
 </html>

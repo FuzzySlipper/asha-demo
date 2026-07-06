@@ -21,7 +21,32 @@ const playerHealthFill = document.querySelector('#player-health-fill');
 const deathState = document.querySelector('#death-state');
 const lockButton = document.querySelector('#lock-button');
 const fireButton = document.querySelector('#fire-button');
+const pauseButton = document.querySelector('#pause-button');
 const resetButton = document.querySelector('#reset-button');
+const pauseMenu = document.querySelector('#pause-menu');
+const pauseMenuStatus = document.querySelector('#pause-menu-status');
+const resumeButton = document.querySelector('#resume-button');
+const menuResetButton = document.querySelector('#menu-reset-button');
+const optionsButton = document.querySelector('#options-button');
+const exitButton = document.querySelector('#exit-button');
+const optionsPane = document.querySelector('#options-pane');
+const exitState = document.querySelector('#exit-state');
+
+function hudControlToIntent(controlId) {
+  if (controlId === 'hud-resume') {
+    return { kind: 'ui.resume_intent', source: 'hud_menu' };
+  }
+  if (controlId === 'hud-restart') {
+    return { kind: 'runtime.restart_session_intent', source: 'hud_menu' };
+  }
+  if (controlId === 'hud-options') {
+    return { kind: 'ui.open_options_intent', source: 'hud_menu' };
+  }
+  if (controlId === 'hud-exit') {
+    return { kind: 'ui.exit_to_menu_intent', source: 'hud_menu' };
+  }
+  return null;
+}
 
 if (!(canvas instanceof HTMLCanvasElement)) {
   throw new Error('ASHA renderer surface canvas is missing.');
@@ -60,6 +85,9 @@ let enemyPolicyTick = 0;
 let playerHits = 0;
 let playerShotsFired = 0;
 let restartCount = 0;
+let paused = false;
+let menuMode = 'closed';
+let lastMenuIntent = null;
 const generatedTunnelReadout = runtimeSession.readGeneratedTunnelReadout({
   presetId: demoProjectContent.catalogs.levelPreset.presetId,
   seed: demoProjectContent.catalogs.levelPreset.seed,
@@ -99,7 +127,8 @@ function createRuntimeCamera() {
 
 function constrainCameraMovement(input) {
   const lifecycle = runtimeSession.readLifecycleStatus();
-  const inputForAuthority = lifecycle.player.dead
+  const blockedByUi = paused || lifecycle.player.dead;
+  const inputForAuthority = blockedByUi
     ? {
         moveForward: 0,
         moveRight: 0,
@@ -110,6 +139,8 @@ function constrainCameraMovement(input) {
         moveRight: input.moveRight,
         moveUp: input.moveUp,
       };
+  const yawDeltaDegrees = paused ? 0 : input.yawDeltaDegrees;
+  const pitchDeltaDegrees = paused ? 0 : input.pitchDeltaDegrees;
   const receipt = runtimeSession.applyCollisionConstrainedCameraInput({
     camera: runtimeCamera,
     grid: 1,
@@ -117,8 +148,8 @@ function constrainCameraMovement(input) {
       moveForward: inputForAuthority.moveForward,
       moveRight: inputForAuthority.moveRight,
       moveUp: inputForAuthority.moveUp,
-      yawDeltaDegrees: input.yawDeltaDegrees,
-      pitchDeltaDegrees: input.pitchDeltaDegrees,
+      yawDeltaDegrees,
+      pitchDeltaDegrees,
       dtSeconds: input.dtSeconds,
       moveSpeedUnitsPerSecond: input.moveSpeedUnitsPerSecond,
     },
@@ -126,11 +157,13 @@ function constrainCameraMovement(input) {
     shape: demoProjectContent.runtime.collisionShape,
     policy: demoProjectContent.runtime.collisionPolicy,
   });
-  lastMovementEvent = lifecycle.player.dead
-    ? 'Movement blocked: player defeated'
-    : receipt.collided
-    ? `Blocked ${receipt.blockedAxes.join(', ')}`
-    : 'Moved';
+  lastMovementEvent = paused
+    ? 'Movement paused'
+    : lifecycle.player.dead
+      ? 'Movement blocked: player defeated'
+      : receipt.collided
+        ? `Blocked ${receipt.blockedAxes.join(', ')}`
+        : 'Moved';
   return {
     blockedAxes: receipt.blockedAxes,
     collided: receipt.collided,
@@ -166,6 +199,30 @@ resetButton?.addEventListener('click', () => {
   resetLoop();
 });
 
+pauseButton?.addEventListener('click', () => {
+  if (paused) {
+    handleHudControl('hud-resume');
+  } else {
+    openPauseMenu('paused');
+  }
+});
+
+resumeButton?.addEventListener('click', () => {
+  handleHudControl('hud-resume');
+});
+
+menuResetButton?.addEventListener('click', () => {
+  handleHudControl('hud-restart');
+});
+
+optionsButton?.addEventListener('click', () => {
+  handleHudControl('hud-options');
+});
+
+exitButton?.addEventListener('click', () => {
+  handleHudControl('hud-exit');
+});
+
 document.addEventListener('pointerdown', (event) => {
   if (event.button !== 0 || !surface.pointerLocked()) {
     return;
@@ -175,7 +232,10 @@ document.addEventListener('pointerdown', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.code === 'Space' && surface.pointerLocked()) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    openPauseMenu('paused');
+  } else if (event.code === 'Space' && surface.pointerLocked()) {
     event.preventDefault();
     firePrimary();
   } else if (event.code === 'KeyR') {
@@ -186,8 +246,8 @@ document.addEventListener('keydown', (event) => {
 
 function firePrimary() {
   const lifecycle = runtimeSession.readLifecycleStatus();
-  if (lifecycle.player.dead) {
-    lastRuntimeEvent = 'Fire blocked: player defeated';
+  if (paused || lifecycle.player.dead) {
+    lastRuntimeEvent = paused ? 'Fire blocked: paused' : 'Fire blocked: player defeated';
     pulseReticle('miss');
     renderHud();
     return {
@@ -239,12 +299,53 @@ function resetLoop() {
   playerShotsFired = 0;
   lastEnemyPolicyReadout = null;
   restartCount = restartReceipt.restart?.restartCount ?? restartCount;
+  paused = false;
+  menuMode = 'closed';
   lastMovementEvent = 'Reset';
   lastRuntimeEvent = restartReceipt.accepted ? 'Runtime reset' : 'Reset rejected';
   surface.reset();
   projectRuntimeTargetState();
   pulseReticle('reset');
   renderHud();
+}
+
+function openPauseMenu(mode) {
+  paused = true;
+  menuMode = mode;
+  document.exitPointerLock?.();
+  lastRuntimeEvent = mode === 'exit' ? 'Exited to menu' : 'Paused';
+  renderHud();
+  return readRuntimeInteractionState();
+}
+
+function closePauseMenu() {
+  paused = false;
+  menuMode = 'closed';
+  lastRuntimeEvent = 'Resumed';
+  renderHud();
+  return readRuntimeInteractionState();
+}
+
+function handleHudControl(controlId) {
+  const intent = hudControlToIntent(controlId);
+  if (intent === null) {
+    return null;
+  }
+  lastMenuIntent = intent;
+  if (intent.kind === 'ui.resume_intent') {
+    return closePauseMenu();
+  }
+  if (intent.kind === 'runtime.restart_session_intent') {
+    resetLoop();
+    return readRuntimeInteractionState();
+  }
+  if (intent.kind === 'ui.open_options_intent') {
+    return openPauseMenu('options');
+  }
+  if (intent.kind === 'ui.exit_to_menu_intent') {
+    return openPauseMenu('exit');
+  }
+  return null;
 }
 
 function pulseReticle(kind) {
@@ -303,8 +404,32 @@ function renderHud() {
     deathState.hidden = !lifecycle.player.dead;
   }
   if (fireButton instanceof HTMLButtonElement) {
-    fireButton.disabled = lifecycle.player.dead;
-    fireButton.dataset.blocked = String(lifecycle.player.dead);
+    fireButton.disabled = paused || lifecycle.player.dead;
+    fireButton.dataset.blocked = String(paused || lifecycle.player.dead);
+  }
+  if (pauseButton instanceof HTMLButtonElement) {
+    pauseButton.textContent = paused ? 'Resume' : 'Pause';
+  }
+  if (pauseMenu instanceof HTMLElement) {
+    pauseMenu.hidden = menuMode === 'closed';
+    pauseMenu.dataset.mode = menuMode;
+  }
+  if (pauseMenuStatus instanceof HTMLElement) {
+    pauseMenuStatus.textContent =
+      menuMode === 'exit'
+        ? 'Exited to menu. Resume or restart when ready.'
+        : menuMode === 'options'
+          ? 'Options are read-only for this demo build.'
+          : 'Runtime paused. Resume or restart through typed HUD intents.';
+  }
+  if (resumeButton instanceof HTMLButtonElement) {
+    resumeButton.disabled = lifecycle.player.dead;
+  }
+  if (optionsPane instanceof HTMLElement) {
+    optionsPane.hidden = menuMode !== 'options';
+  }
+  if (exitState instanceof HTMLElement) {
+    exitState.hidden = menuMode !== 'exit';
   }
 }
 
@@ -321,6 +446,10 @@ function projectRuntimeTargetState() {
 
 function tickEnemyPolicy() {
   const lifecycle = runtimeSession.readLifecycleStatus();
+  if (paused) {
+    renderHud();
+    return lastEnemyPolicyReadout;
+  }
   if (lifecycle.enemy.dead || lifecycle.player.dead) {
     if (lifecycle.player.dead) {
       lastRuntimeEvent = 'Player defeated';
@@ -371,7 +500,10 @@ function readRuntimeInteractionState() {
     actionTick: runtimeActionTick,
     hits: playerHits,
     lastEvent: lastRuntimeEvent,
+    lastMenuIntent,
     lifecycleOutcome: lifecycle.outcome.kind,
+    menuMode,
+    paused,
     playerDead: lifecycle.player.dead,
     playerHealth: lifecycle.player.health.current,
     restartCount,
