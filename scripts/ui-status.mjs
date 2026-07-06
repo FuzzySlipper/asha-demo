@@ -20,7 +20,8 @@ export function buildUiStatus() {
         rendering: '@asha/renderer-three',
       },
       runtimeBackend: {
-        defaultMode: 'rust',
+        defaultMode: 'native',
+        authority: 'rust',
         provider: 'globalThis.ashaDemoRuntimeBridge',
         missingBackendBehavior: 'fail_closed',
         referenceFallback: false,

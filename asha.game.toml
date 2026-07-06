@@ -21,8 +21,8 @@ policy_packages = []
 dev_command = "npm run dev"
 devtools_endpoint = "ws://127.0.0.1:7391"
 wasm_or_native_entry = "dist/runtime/index.js"
-backend_mode = "rust"
-backend_profile = "public-runtime-bridge"
+backend_mode = "native"
+backend_profile = "native.napi.launcher.v1"
 backend_proof_refs = ["artifacts/4217/generated-tunnel-room.png"]
 
 [studio]
