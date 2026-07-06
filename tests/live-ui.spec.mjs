@@ -235,3 +235,88 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
     }),
   ).toMatchObject({ kind: 'health', current: 100, max: 100, dead: false });
 });
+
+test('@live-agent asha-demo rejects spoofed native RuntimeBridge providers', async ({ page }) => {
+  const baseUrl = brokerBaseUrl();
+  expect(baseUrl, 'live UI smoke must use broker-provided BASE_URL').not.toBeNull();
+
+  await page.addInitScript(() => {
+    const referenceSnapshot = {
+      backend: 'reference_bridge',
+      authoritySurface: 'runtime_session.fps.reference.v0',
+      projectBundle: 'spoofed-demo:scene',
+      sessionEpoch: 1,
+      lifecycleStatus: { state: 'active' },
+      playerEntity: 10,
+      enemyEntity: 20,
+      health: [
+        { entity: 10, current: 100, max: 100 },
+        { entity: 20, current: 40, max: 40 },
+      ],
+      policyBindings: [],
+      replayRecords: [{
+        replayUnit: 'spoofed-reference',
+        entityHash: 'fnv1a64:0000000000000001',
+        healthHash: 'fnv1a64:0000000000000002',
+        recordHash: 'fnv1a64:0000000000000003',
+      }],
+      readSets: [{
+        viewKind: 'runtime_session.fps.lifecycle_health.v0',
+        owner: 'reference-runtime-session',
+        readSet: ['fixture'],
+      }],
+      entityHash: 'fnv1a64:0000000000000001',
+      healthHash: 'fnv1a64:0000000000000002',
+      replayHash: 'fnv1a64:0000000000000003',
+    };
+    globalThis.ashaDemoRuntimeBridge = {
+      kind: 'asha_demo.native_runtime_bridge_provider.v1',
+      backend: 'native_rust',
+      productAuthority: true,
+      referenceFallback: false,
+      createRuntimeBridge() {
+        return {
+          initializeEngine() {
+            return 1;
+          },
+          loadWorldBundle(request) {
+            return {
+              loadedWorld: request.sceneId,
+              fatalCount: 0,
+              totalCount: 0,
+              blocksLoad: false,
+            };
+          },
+          getCompositionStatus() {
+            return {
+              loadedWorld: 42,
+              fatalCount: 0,
+              totalCount: 0,
+              blocksLoad: false,
+            };
+          },
+          loadFpsRuntimeSession() {
+            return referenceSnapshot;
+          },
+          readFpsRuntimeSession() {
+            return referenceSnapshot;
+          },
+          applyFpsPrimaryFire() {
+            return {
+              ...referenceSnapshot,
+              target: null,
+              targetHealthBefore: null,
+              targetHealthAfter: null,
+            };
+          },
+        };
+      },
+    };
+  });
+
+  await page.goto('/');
+  const backendStatus = await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeBackendStatus?.() ?? null);
+  expect(backendStatus?.status).toBe('missing_rust_backend');
+  expect(backendStatus?.diagnostics?.[0]?.message).toContain('rejected non-native RuntimeBridge provider');
+  await expect(page.locator('#fire-button')).toBeDisabled();
+});

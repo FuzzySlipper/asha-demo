@@ -632,17 +632,28 @@ async function createDemoRuntimeBackend(content) {
     mode: 'rust',
     transport: 'public_runtime_bridge',
     providerGlobal: 'globalThis.ashaDemoRuntimeBridge',
+    providerContract: 'asha_demo.native_runtime_bridge_provider.v1',
+    requiredBackend: 'native_rust',
     productAuthority: true,
     referenceFallback: false,
   };
 
   try {
-    const bridge = await readInjectedRuntimeBridge();
+    const provider = readInjectedRuntimeBridgeProvider();
+    if (provider === null) {
+      return unavailableRuntimeBackend(
+        profile,
+        'missing_rust_runtime_backend',
+        'ASHA demo requires a public native Rust RuntimeBridge provider; static browser mode does not fall back to reference authority.',
+      );
+    }
+
+    const bridge = await readProvidedRuntimeBridge(provider);
     if (bridge === null) {
       return unavailableRuntimeBackend(
         profile,
         'missing_rust_runtime_backend',
-        'ASHA demo requires a public Rust RuntimeBridge provider; static browser mode does not fall back to reference authority.',
+        'ASHA demo RuntimeBridge provider did not return a bridge; reference authority is not accepted.',
       );
     }
 
@@ -669,6 +680,7 @@ async function createDemoRuntimeBackend(content) {
         'rust_backend_failed',
       );
     }
+    assertNativeRustAuthority({ bridge, session, profile });
 
     return {
       available: true,
@@ -685,11 +697,21 @@ async function createDemoRuntimeBackend(content) {
   }
 }
 
-async function readInjectedRuntimeBridge() {
+function readInjectedRuntimeBridgeProvider() {
   const provider = globalThis.ashaDemoRuntimeBridge ?? globalThis.ashaRuntimeBridge ?? null;
   if (provider === null) {
     return null;
   }
+  if (!isNativeRustRuntimeBridgeProvider(provider)) {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      'globalThis.ashaDemoRuntimeBridge must be an asha_demo.native_runtime_bridge_provider.v1 provider with native_rust authority metadata; raw RuntimeBridge/reference providers are rejected.',
+    );
+  }
+  return provider;
+}
+
+async function readProvidedRuntimeBridge(provider) {
   const candidate = typeof provider === 'function'
     ? provider()
     : typeof provider.createRuntimeBridge === 'function'
@@ -705,13 +727,38 @@ async function readInjectedRuntimeBridge() {
   );
 }
 
+function isNativeRustRuntimeBridgeProvider(value) {
+  return value !== null
+    && (typeof value === 'object' || typeof value === 'function')
+    && value.kind === 'asha_demo.native_runtime_bridge_provider.v1'
+    && value.productAuthority === true
+    && value.referenceFallback === false
+    && value.backend === 'native_rust';
+}
+
 function isRuntimeBridge(value) {
   return value !== null
     && typeof value === 'object'
     && typeof value.initializeEngine === 'function'
     && typeof value.loadWorldBundle === 'function'
     && typeof value.loadFpsRuntimeSession === 'function'
+    && typeof value.readFpsRuntimeSession === 'function'
     && typeof value.applyFpsPrimaryFire === 'function';
+}
+
+function assertNativeRustAuthority({ bridge, session, profile }) {
+  const readout = session.readEcrpRuntimeReadout();
+  const snapshot = bridge.readFpsRuntimeSession();
+  if (
+    readout.authority.mode !== 'rust'
+    || readout.authority.source !== 'rust_bridge'
+    || snapshot.backend !== profile.requiredBackend
+  ) {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      `ASHA demo rejected non-native RuntimeBridge provider: ECRP source=${readout.authority.source}, FPS backend=${snapshot.backend}`,
+    );
+  }
 }
 
 function unavailableRuntimeBackend(profile, code, message, loadReceipt = null, status = 'missing_rust_backend') {
