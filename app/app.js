@@ -16,6 +16,8 @@ const shotState = document.querySelector('#shot-state');
 const poseState = document.querySelector('#pose-state');
 const eventState = document.querySelector('#event-state');
 const healthFill = document.querySelector('#health-fill');
+const playerHealthState = document.querySelector('#player-health-state');
+const playerHealthFill = document.querySelector('#player-health-fill');
 const lockButton = document.querySelector('#lock-button');
 const fireButton = document.querySelector('#fire-button');
 const resetButton = document.querySelector('#reset-button');
@@ -53,6 +55,9 @@ if (!ecrpProjectLoadReceipt.accepted) {
 
 let runtimeCamera = createRuntimeCamera();
 let runtimeActionTick = 0;
+let enemyPolicyTick = 0;
+let playerHits = 0;
+let playerShotsFired = 0;
 const generatedTunnelReadout = runtimeSession.readGeneratedTunnelReadout({
   presetId: demoProjectContent.catalogs.levelPreset.presetId,
   seed: demoProjectContent.catalogs.levelPreset.seed,
@@ -73,6 +78,8 @@ const surface = mountAshaRendererBrowserSurface(canvas, {
 });
 
 let animationFrame = null;
+let enemyLoopTimer = null;
+let lastEnemyPolicyReadout = null;
 let lastMovementEvent = 'Authority ready';
 let lastRuntimeEvent = 'Runtime ready';
 let reticlePulseTimer = null;
@@ -125,6 +132,9 @@ window.addEventListener('beforeunload', () => {
   if (animationFrame !== null) {
     window.cancelAnimationFrame(animationFrame);
   }
+  if (enemyLoopTimer !== null) {
+    window.clearInterval(enemyLoopTimer);
+  }
   surface.dispose();
 });
 
@@ -169,9 +179,11 @@ function firePrimary() {
     pressed: true,
   });
   runtimeActionTick += 1;
+  playerShotsFired += 1;
 
   if (actionReceipt.accepted && actionReceipt.combatReadout?.outcome.kind === 'hit') {
     lastRuntimeEvent = 'Fire hit';
+    playerHits += 1;
     pulseReticle('hit');
   } else {
     lastRuntimeEvent = actionReceipt.accepted ? 'Fire missed' : 'Fire rejected';
@@ -194,6 +206,10 @@ function resetLoop() {
     expectedSessionHash: statusBefore.sessionHash,
   });
   runtimeCamera = createRuntimeCamera();
+  enemyPolicyTick = 0;
+  playerHits = 0;
+  playerShotsFired = 0;
+  lastEnemyPolicyReadout = null;
   lastMovementEvent = 'Reset';
   lastRuntimeEvent = restartReceipt.accepted ? 'Runtime reset' : 'Reset rejected';
   surface.reset();
@@ -219,6 +235,7 @@ function renderHud() {
   const movement = surface.movementState();
   const locked = surface.pointerLocked();
   const enemyHealth = readEnemyHealth();
+  const playerHealth = readPlayerHealth();
 
   if (lockState instanceof HTMLElement) {
     lockState.textContent = locked ? 'LOCKED' : 'UNLOCKED';
@@ -229,6 +246,9 @@ function renderHud() {
   }
   if (shotState instanceof HTMLElement) {
     shotState.textContent = `${interaction.hits}/${interaction.shotsFired}`;
+  }
+  if (playerHealthState instanceof HTMLElement) {
+    playerHealthState.textContent = `${playerHealth.current}/${playerHealth.max}`;
   }
   if (poseState instanceof HTMLElement) {
     poseState.textContent = `${pose.position[0].toFixed(1)}, ${pose.position[2].toFixed(1)} | ${Math.round(
@@ -241,45 +261,90 @@ function renderHud() {
   if (healthFill instanceof HTMLElement) {
     healthFill.style.width = `${enemyHealth.percent}%`;
   }
+  if (playerHealthFill instanceof HTMLElement) {
+    playerHealthFill.style.width = `${playerHealth.percent}%`;
+  }
 }
 
 function projectRuntimeTargetState() {
   const enemyHealth = readEnemyHealth();
+  const enemyTransform = readEnemyTransform();
   surface.projectTargetProjection({
     visible: !enemyHealth.dead,
+    position: enemyTransform.position,
+    scale: demoProjectContent.runtime.enemyRenderTarget.scale,
     lastEvent: enemyHealth.dead ? 'Enemy defeated' : lastRuntimeEvent,
   });
 }
 
+function tickEnemyPolicy() {
+  const lifecycle = runtimeSession.readLifecycleStatus();
+  if (lifecycle.enemy.dead || lifecycle.player.dead) {
+    return lastEnemyPolicyReadout;
+  }
+
+  const enemyTransform = readEnemyTransform();
+  const targetPose = surface.cameraPose();
+  const readout = runtimeSession.runAutonomousPolicyTick({
+    targetCamera: runtimeCamera,
+    tick: enemyPolicyTick,
+    enemy: {
+      id: 'generated-tunnel.enemy.1',
+      position: enemyTransform.position,
+    },
+    target: {
+      id: 'generated-tunnel.player',
+      position: targetPose.position,
+    },
+    combat: {
+      primaryFireRangeUnits: 2.4,
+      lineOfSight: 'clear',
+    },
+  });
+  enemyPolicyTick += 1;
+  lastEnemyPolicyReadout = readout;
+
+  if (readout.combatSummary?.status === 'accepted') {
+    lastRuntimeEvent = 'Enemy hit';
+  } else if (readout.movementSummary?.status === 'accepted') {
+    lastRuntimeEvent = 'Enemy moved';
+  }
+  projectRuntimeTargetState();
+  renderHud();
+  return readout;
+}
+
 function readRuntimeInteractionState() {
   const lifecycle = runtimeSession.readLifecycleStatus();
-  const replayRecords = runtimeSession.readTelemetry().replayRecords;
-  const latestRestartIndex = replayRecords.findLastIndex(
-    (record) => record.kind === 'restart' || record.kind === 'requestSessionRestart',
-  );
-  const currentEpochRecords = latestRestartIndex === -1 ? replayRecords : replayRecords.slice(latestRestartIndex + 1);
-  const shotsFired = currentEpochRecords.filter(
-    (record) => record.kind === 'submitRuntimeActionIntent',
-  ).length;
   const enemyDead = lifecycle.enemy.dead;
   return {
-    hits: enemyDead ? 1 : 0,
+    hits: playerHits,
     lastEvent: lastRuntimeEvent,
     remainingTargets: enemyDead ? 0 : 1,
-    shotsFired,
+    shotsFired: playerShotsFired,
     targetHealth: lifecycle.enemy.health.current,
     totalTargets: 1,
   };
 }
 
+function readEnemyTransform() {
+  return readActorCapability('actor/generated-tunnel-enemy', 'transform') ?? {
+    position: demoProjectContent.runtime.enemyRenderTarget.position,
+    yawDegrees: 0,
+    pitchDegrees: 0,
+  };
+}
+
 function readEnemyHealth() {
-  const readout = runtimeSession.readEcrpRuntimeReadout();
-  const enemy = readout.entities.find(
-    (entity) => entity.definitionStableId === 'actor/generated-tunnel-enemy',
-  );
-  const health = enemy?.capabilities.find(
-    (capability) => capability.kind === 'health',
-  );
+  return readHealth('actor/generated-tunnel-enemy');
+}
+
+function readPlayerHealth() {
+  return readHealth('actor/demo-player');
+}
+
+function readHealth(stableId) {
+  const health = readActorCapability(stableId, 'health');
   if (health?.kind !== 'health') {
     return {
       current: 0,
@@ -296,18 +361,31 @@ function readEnemyHealth() {
   };
 }
 
+function readActorCapability(stableId, kind) {
+  const readout = runtimeSession.readEcrpRuntimeReadout();
+  const enemy = readout.entities.find(
+    (entity) => entity.definitionStableId === stableId,
+  );
+  return enemy?.capabilities.find((capability) => capability.kind === kind) ?? null;
+}
+
 function tickHud() {
   renderHud();
   animationFrame = window.requestAnimationFrame(tickHud);
 }
 
 renderHud();
+projectRuntimeTargetState();
+enemyLoopTimer = window.setInterval(() => {
+  tickEnemyPolicy();
+}, 750);
 tickHud();
 
 globalThis.ashaRendererSurface = {
   kind: surface.kind,
   cameraPose: () => surface.cameraPose(),
   firePrimary: () => firePrimary(),
+  enemyLoopState: () => lastEnemyPolicyReadout,
   interactionState: () => readRuntimeInteractionState(),
   movementState: () => surface.movementState(),
   pointerLocked: () => surface.pointerLocked(),
@@ -322,4 +400,5 @@ globalThis.ashaRendererSurface = {
   runtimeEcrpReadout: () => runtimeSession.readEcrpRuntimeReadout(),
   runtimeTelemetry: () => runtimeSession.readTelemetry(),
   snapshot: () => surface.snapshot(),
+  tickEnemyPolicy: () => tickEnemyPolicy(),
 };

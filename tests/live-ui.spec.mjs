@@ -69,6 +69,47 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
     ),
   ).toEqual(['actor/demo-player', 'actor/generated-tunnel-enemy']);
 
+  const enemyLoopResult = await page.evaluate(() => {
+    const readTransform = () => {
+      const enemy = globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().entities.find(
+        (entity) => entity.definitionStableId === 'actor/generated-tunnel-enemy',
+      );
+      return enemy?.capabilities.find((capability) => capability.kind === 'transform') ?? null;
+    };
+    const readPlayerHealth = () => {
+      const player = globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().entities.find(
+        (entity) => entity.definitionStableId === 'actor/demo-player',
+      );
+      return player?.capabilities.find((capability) => capability.kind === 'health') ?? null;
+    };
+    const beforeTransform = readTransform();
+    const beforePlayerHealth = readPlayerHealth();
+    let lastReadout = null;
+    for (let index = 0; index < 10; index += 1) {
+      lastReadout = globalThis.ashaRendererSurface?.tickEnemyPolicy?.() ?? null;
+      if (readPlayerHealth()?.current < beforePlayerHealth.current) {
+        break;
+      }
+    }
+    return {
+      beforeTransform,
+      afterTransform: readTransform(),
+      beforePlayerHealth,
+      afterPlayerHealth: readPlayerHealth(),
+      lastReadout,
+      loopState: globalThis.ashaRendererSurface?.enemyLoopState?.() ?? null,
+      interaction: globalThis.ashaRendererSurface?.interactionState?.() ?? null,
+    };
+  });
+  expect(enemyLoopResult.beforeTransform?.kind).toBe('transform');
+  expect(enemyLoopResult.afterTransform?.kind).toBe('transform');
+  expect(enemyLoopResult.afterTransform?.position).not.toEqual(enemyLoopResult.beforeTransform?.position);
+  expect(enemyLoopResult.lastReadout?.movementSummary?.status).toBe('accepted');
+  expect(enemyLoopResult.loopState?.kind).toBe('runtime_session.autonomous_policy_tick.v0');
+  expect(enemyLoopResult.afterPlayerHealth?.current).toBeLessThan(enemyLoopResult.beforePlayerHealth?.current);
+  expect(enemyLoopResult.lastReadout?.combatSummary?.status).toBe('accepted');
+  expect(enemyLoopResult.interaction?.shotsFired).toBe(0);
+
   await canvas.evaluate((node) => node.focus());
   await page.keyboard.down('KeyW');
   await page.waitForTimeout(600);
@@ -112,4 +153,12 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
       return enemy?.capabilities.find((capability) => capability.kind === 'health') ?? null;
     }),
   ).toMatchObject({ kind: 'health', current: 40, max: 40, dead: false });
+  expect(
+    await page.evaluate(() => {
+      const player = globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().entities.find(
+        (entity) => entity.definitionStableId === 'actor/demo-player',
+      );
+      return player?.capabilities.find((capability) => capability.kind === 'health') ?? null;
+    }),
+  ).toMatchObject({ kind: 'health', current: 100, max: 100, dead: false });
 });
