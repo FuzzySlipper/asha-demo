@@ -14,8 +14,9 @@ import {
 import {
   loadDemoProjectContent,
   readDemoProjectContentStatus,
-} from './project-content.js';
+} from '../content/project-content.js';
 
+export async function bootGame() {
 const canvas = document.querySelector('#asha-render-surface');
 const reticle = document.querySelector('#reticle');
 const lockState = document.querySelector('#lock-state');
@@ -692,7 +693,7 @@ enemyLoopTimer = window.setInterval(() => {
 }, 750);
 tickHud();
 
-globalThis.ashaRendererSurface = {
+(globalThis as any).ashaRendererSurface = {
   kind: surface.kind,
   cameraPose: () => surface.cameraPose(),
   firePrimary: () => firePrimary(),
@@ -721,7 +722,7 @@ globalThis.ashaRendererSurface = {
 async function createDemoRuntimeBackend(content) {
   try {
     const providerResolution = await resolveNativeRustRuntimeBridgeProvider({
-      globalScope: globalThis,
+      globalScope: globalThis as Record<string, any>,
       providerGlobalNames: ['ashaDemoRuntimeBridge', 'ashaRuntimeBridge'],
     });
     const profile = providerResolution.profile;
@@ -983,4 +984,5 @@ function readAuthoredActorCapability(stableId, kind) {
     };
   }
   return capability;
+}
 }

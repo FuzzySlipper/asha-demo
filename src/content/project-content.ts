@@ -1,4 +1,5 @@
 import {
+  type FpsEcrpRuntimeRole,
   findFpsEcrpObjectModelEntry,
   readFpsEcrpObjectModel,
   readFpsGameplayPresetCatalog,
@@ -127,7 +128,8 @@ function validateEntitiesAgainstObjectModel(demoProjectContent, diagnostics) {
     demoProjectContent.entityDefinitions.map((definition) => definition.stableId),
   );
 
-  for (const role of ['player', 'enemy']) {
+  const requiredRoles: readonly FpsEcrpRuntimeRole[] = ['player', 'enemy'];
+  for (const role of requiredRoles) {
     const entry = findFpsEcrpObjectModelEntry(role);
     if (!entityDefinitionIds.has(entry.entityDefinitionId)) {
       diagnostics.push(`missing EntityDefinition for ${entry.entityDefinitionId}`);

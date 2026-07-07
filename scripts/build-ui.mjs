@@ -1,4 +1,5 @@
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,10 +21,12 @@ const rendererHostThreeSourceRoot = dirname(dirname(ashaRendererThreeRequire.res
 
 rmSync(outputRoot, { force: true, recursive: true });
 mkdirSync(outputRoot, { recursive: true });
-cpSync(join(repoRoot, 'app'), outputRoot, { recursive: true });
+cpSync(join(repoRoot, 'app', 'index.html'), join(outputRoot, 'index.html'));
+cpSync(join(repoRoot, 'app', 'styles.css'), join(outputRoot, 'styles.css'));
 cpSync(join(repoRoot, 'catalogs'), join(outputRoot, 'catalogs'), { recursive: true });
 cpSync(join(repoRoot, 'levels'), join(outputRoot, 'levels'), { recursive: true });
 cpSync(join(repoRoot, 'project'), join(outputRoot, 'project'), { recursive: true });
+runTypeScriptBuild();
 mkdirSync(catalogCoreVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'catalog-core', 'dist'), catalogCoreVendorRoot, { recursive: true });
 mkdirSync(contractsVendorRoot, { recursive: true });
@@ -41,3 +44,13 @@ cpSync(rendererHostThreeSourceRoot, rendererHostThreeVendorRoot, { recursive: tr
 writeFileSync(join(outputRoot, 'status.json'), `${JSON.stringify(buildUiStatus(repoRoot), null, 2)}\n`);
 
 console.log(`Built ASHA demo static UI at ${outputRoot}`);
+
+function runTypeScriptBuild() {
+  const result = spawnSync('npx', ['tsc', '-p', 'tsconfig.json'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  });
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}

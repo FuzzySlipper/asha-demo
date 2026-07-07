@@ -5,7 +5,8 @@ import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const indexHtml = readFileSync(join(repoRoot, 'app/index.html'), 'utf8');
-const appJs = readFileSync(join(repoRoot, 'app/app.js'), 'utf8');
+const appTs = readFileSync(join(repoRoot, 'src/bootstrap/boot-game.ts'), 'utf8');
+const entrypointTs = readFileSync(join(repoRoot, 'src/app.ts'), 'utf8');
 const projectBundle = readJson('project/project-bundle.json');
 const styles = readFileSync(join(repoRoot, 'app/styles.css'), 'utf8');
 const status = buildUiStatus(repoRoot);
@@ -13,13 +14,14 @@ const errors = [];
 
 requireText(indexHtml, 'asha-renderer-browser-surface');
 requireText(indexHtml, '@asha/renderer-host');
-requireText(appJs, 'mountAshaRendererSurface');
-requireText(appJs, 'createAshaRendererGeneratedTunnelRoomSurfaceFrame');
-requireText(appJs, 'hudControlToIntent');
-requireText(appJs, 'loadDemoProjectContent');
-requireText(appJs, 'TINY_GENERATED_TUNNEL_READOUT');
-requireText(appJs, 'createRuntimeSessionFacade');
-requireText(appJs, 'generated-tunnel-enemy');
+requireText(entrypointTs, 'bootGame');
+requireText(appTs, 'mountAshaRendererSurface');
+requireText(appTs, 'createAshaRendererGeneratedTunnelRoomSurfaceFrame');
+requireText(appTs, 'hudControlToIntent');
+requireText(appTs, 'loadDemoProjectContent');
+requireText(appTs, 'TINY_GENERATED_TUNNEL_READOUT');
+requireText(appTs, 'createRuntimeSessionFacade');
+requireText(appTs, 'generated-tunnel-enemy');
 requireText(styles, '#asha-render-surface');
 requireProjectFile('project/project-bundle.json');
 requireProjectFile(projectBundle.sourceFiles.sceneDocument);
@@ -32,10 +34,10 @@ for (const path of Object.values(projectBundle.sourceFiles.catalogRefs)) {
 requireProjectFile(projectBundle.sourceFiles.levelPreset);
 requireProjectFile('docs/demo-surface-audit.md');
 
-if (appJs.includes("from 'three'") || appJs.includes('from "three"')) {
+if (appTs.includes("from 'three'") || appTs.includes('from "three"')) {
   errors.push('asha-demo must not import Three.js directly; rendering is mounted through @asha/renderer-host');
 }
-if (appJs.includes('@asha/renderer-three')) {
+if (appTs.includes('@asha/renderer-three')) {
   errors.push('asha-demo app code must import @asha/renderer-host rather than @asha/renderer-three');
 }
 if (indexHtml.includes('"@asha/renderer-three": "/vendor/asha-renderer-three/')) {

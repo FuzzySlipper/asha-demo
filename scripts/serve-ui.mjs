@@ -1,30 +1,31 @@
 import { createReadStream } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { createRequire } from 'node:module';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const appRoot = join(repoRoot, 'app');
-const ashaRendererThreeRoot = resolve(repoRoot, '../asha-engine/ts/packages/renderer-three');
-const ashaRendererThreeRequire = createRequire(join(ashaRendererThreeRoot, 'package.json'));
+const appRoot = join(repoRoot, 'dist/ui');
 const authoredContentRoots = new Map([
-  ['/catalogs/', join(repoRoot, 'catalogs')],
-  ['/levels/', join(repoRoot, 'levels')],
-  ['/project/', join(repoRoot, 'project')],
+  ['/catalogs/', join(appRoot, 'catalogs')],
+  ['/levels/', join(appRoot, 'levels')],
+  ['/project/', join(appRoot, 'project')],
 ]);
-const catalogCoreBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'catalog-core', 'dist');
-const contractsBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'contracts', 'dist');
-const renderProjectionBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'render-projection', 'dist');
-const rendererHostBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'renderer-host', 'dist');
-const rendererHostBackendBrowserRoot = join(ashaRendererThreeRoot, 'dist');
-const runtimeBridgeBrowserRoot = join(repoRoot, 'node_modules', '@asha', 'runtime-bridge', 'dist');
-const rendererHostThreeBrowserRoot = dirname(dirname(ashaRendererThreeRequire.resolve('three')));
+const vendorRoot = join(appRoot, 'vendor');
+const catalogCoreBrowserRoot = join(vendorRoot, 'asha-catalog-core');
+const contractsBrowserRoot = join(vendorRoot, 'asha-contracts');
+const renderProjectionBrowserRoot = join(vendorRoot, 'asha-render-projection');
+const rendererHostBrowserRoot = join(vendorRoot, 'asha-renderer-host');
+const rendererHostBackendBrowserRoot = join(rendererHostBrowserRoot, 'vendor/asha-renderer-three');
+const runtimeBridgeBrowserRoot = join(vendorRoot, 'asha-runtime-bridge');
+const rendererHostThreeBrowserRoot = join(rendererHostBrowserRoot, 'vendor/three');
 const args = parseArgs(process.argv.slice(2));
 const host = args.host ?? process.env.HOST ?? process.env.npm_config_host ?? '127.0.0.1';
 const port = Number(args.port ?? process.env.PORT ?? process.env.npm_config_port ?? 5173);
+
+runStaticUiBuild();
 
 const server = createServer(async (request, response) => {
   response.setHeader('X-Den-Project', 'asha-demo');
@@ -149,4 +150,14 @@ function parseArgs(argv) {
     }
   }
   return parsed;
+}
+
+function runStaticUiBuild() {
+  const result = spawnSync('npm', ['run', 'build'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  });
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
 }

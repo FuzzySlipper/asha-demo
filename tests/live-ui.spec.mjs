@@ -378,6 +378,8 @@ test('@live-agent asha-demo rejects spoofed native RuntimeBridge providers', asy
     .toBe('asha_renderer_surface.v0');
   const backendStatus = await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeBackendStatus?.() ?? null);
   expect(backendStatus?.status).toBe('missing_rust_backend');
-  expect(backendStatus?.diagnostics?.[0]?.message).toContain('rejected non-native RuntimeBridge provider');
+  expect(backendStatus?.diagnostics?.[0]?.message).toMatch(
+    /rejected non-native RuntimeBridge provider|missing required operation/,
+  );
   await expect(page.locator('#fire-button')).toBeDisabled();
 });

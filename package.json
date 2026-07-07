@@ -24,6 +24,7 @@
     "@asha/ui-dom": "file:../asha-engine/ts/packages/ui-dom"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1"
+    "@playwright/test": "^1.61.1",
+    "typescript": "^6.0.3"
   }
 }
