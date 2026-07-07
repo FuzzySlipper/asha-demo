@@ -1,0 +1,22 @@
+{
+  "kind": "asha_demo.host_config.v1",
+  "mode": "standalone_compiled",
+  "status": "planned_pending_upstream_native_host_surface",
+  "projectBundle": "project/project-bundle.json",
+  "contentRoot": "dist/ui",
+  "runtimeProvider": {
+    "kind": "native_runtime_bridge_provider",
+    "injection": "globalThis.ashaRuntimeBridge",
+    "alias": "globalThis.ashaDemoRuntimeBridge",
+    "required": true,
+    "referenceFallback": false
+  },
+  "renderSurface": {
+    "owner": "@asha/renderer-host",
+    "backend": "host_private"
+  },
+  "launch": {
+    "command": "npm run standalone",
+    "portPolicy": "no_manual_dev_server_port"
+  }
+}

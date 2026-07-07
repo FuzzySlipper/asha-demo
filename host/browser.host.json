@@ -1,0 +1,21 @@
+{
+  "kind": "asha_demo.host_config.v1",
+  "mode": "browser_served",
+  "projectBundle": "project/project-bundle.json",
+  "contentRoot": ".",
+  "runtimeProvider": {
+    "kind": "native_runtime_bridge_provider",
+    "injection": "globalThis.ashaRuntimeBridge",
+    "alias": "globalThis.ashaDemoRuntimeBridge",
+    "required": true,
+    "referenceFallback": false
+  },
+  "renderSurface": {
+    "owner": "@asha/renderer-host",
+    "backend": "host_private"
+  },
+  "launch": {
+    "command": "npm run dev",
+    "portPolicy": "broker_or_den_serve_owned"
+  }
+}
