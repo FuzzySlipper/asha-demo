@@ -29,6 +29,9 @@ scope remains `@asha/*`.
 
 ```sh
 npm run check:dependencies
+npm run check:architecture
+npm run check:demo-rs
+npm run check:host
 npm test
 npm run build
 ```
@@ -49,7 +52,66 @@ This repo contains the first ASHA Game Project demo surface:
 
 Run `npm run check:dependencies` before adding code or package dependencies. The guard reads ASHA's public-surface manifest and rejects private ASHA packages, generated contract file paths, Rust crate paths, and package-internal `src/*` imports.
 
+Run `npm run check:architecture` before moving source boundaries. It rejects
+bloated `src/app.ts`, handwritten app/source JavaScript, private ASHA imports,
+renderer backend imports, and modules that mix RuntimeSession calls with direct
+DOM projection mutation.
+
+Run `npm run check:demo-rs` before changing demo-owned Rust tooling or the game
+manifest. It compiles the downstream Rust preflight crate and checks stable
+demo-owned content metadata without importing ASHA internals.
+
+Run `npm run check:host` before changing host manifests. It verifies browser and
+standalone host configs use the same ProjectBundle/content path and native
+RuntimeBridge provider contract without reference fallback.
+
 Run `npm run test:live-ui` only with `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` set by the Den Playwright broker or an equivalent local dev-server wrapper. The live UI smoke checks objective text/readout values and writes screenshots under `PLAYWRIGHT_BROKER_ARTIFACT_ROOT` when provided.
+
+## Source Layout
+
+This repo follows ASHA's game-agent source organization guide:
+`../asha-engine/docs/game-agent-code-organization.md`.
+
+- `src/app.ts` is an entrypoint only. It imports `bootGame()`, calls it, and
+  reports fatal startup errors.
+- `src/bootstrap/` composes the demo, mounts adapters, wires browser events, and
+  starts the frame loop. It should not become a declaration pile or gameplay
+  authority module.
+- `src/content/` loads authored ProjectBundle/ECRP/catalog files and performs
+  consumer-side preflight/readout shaping.
+- `src/runtime/` is the ASHA runtime gateway. Direct RuntimeSession/native
+  provider calls belong here, not in HUD, shell, or feature projection code.
+- `src/input/` maps local controls to typed intents such as `HudMenuIntent`.
+- `src/projection/` builds non-authoritative HUD/menu/readout descriptors from
+  RuntimeSession projections plus shell state.
+- `src/shell/` owns DOM lookup, DOM mutation, reticle updates, and browser host
+  rendering adapters.
+- `demo-rs/` owns demo-specific Rust tooling only. The current crate validates
+  content/manifest metadata; it does not own runtime authority.
+- `host/` describes browser-served and planned standalone host shapes.
+
+Add new game content under `catalogs/`, `levels/`, `assets/`, or `project/`.
+Add new HUD/readout shape under `src/projection/`, DOM rendering under
+`src/shell/`, control mapping under `src/input/`, and RuntimeSession calls under
+`src/runtime/`. Feature-specific assembly should move under `src/features/`
+when a feature grows past the current generated-tunnel loop.
+
+## Authority Split
+
+ASHA Rust decides accepted state. `asha-demo` TypeScript describes content,
+collects browser input, projects HUD/menu/readouts, and submits typed intents.
+Demo code must not own:
+
+- RuntimeSession authority;
+- generic collision, combat, health/lifecycle, pathfinding, replay, or restart
+  authority;
+- renderer backend authority or direct Three.js wiring;
+- generated ASHA contract truth or private engine/package internals;
+- reference/mock RuntimeSession as product authority.
+
+Demo-owned Rust may own content/tooling preflight now. Future game-specific Rust
+authority must follow `../asha-engine/docs/game-rust-authority-extension-model.md`
+and the planned upstream extension tasks (#4516/#4517/#4518).
 
 ## Current Boundaries
 
@@ -59,9 +121,15 @@ projection stay in public ASHA surfaces. The demo repo owns authored project
 files, browser mounting, HUD placement, and the human-facing playable page. The
 demo does not use reference/mock RuntimeSession authority as its product path.
 
-Known unfinished demo pieces are tracked in `docs/demo-surface-audit.md` as a
-small owner-task table. Do not recreate a broad disclaimer document; remove,
-implement, or assign placeholders when they appear.
+Browser-served mode is runnable through `npm run dev` or the Den Playwright
+broker. Standalone compiled mode is planned and described in
+`docs/host-architecture.md`; it is blocked on upstream native host/provider
+packaging task #4521. Do not implement standalone as a shortcut to a manually
+managed localhost port.
+
+Known unfinished demo pieces are tracked in `docs/demo-surface-audit.md` and Den
+tasks. Do not recreate a broad disclaimer document; remove, implement, or assign
+placeholders when they appear.
 
 ## Live UI evidence
 
