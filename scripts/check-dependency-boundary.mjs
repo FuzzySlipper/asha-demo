@@ -10,7 +10,11 @@ const { packageRoots: allowedPackageRoots, specifiers: allowedSpecifiers } = loa
 const dependencySections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
 const scannedExtensions = new Set(['.cjs', '.cts', '.js', '.json', '.jsx', '.mjs', '.mts', '.toml', '.ts', '.tsx']);
 const ignoredDirectories = new Set(['.git', 'artifacts', 'dist', 'node_modules']);
-const ignoredFiles = new Set(['package-lock.json', 'scripts/check-ui-assets.mjs']);
+const ignoredFiles = new Set([
+  'package-lock.json',
+  'scripts/check-source-architecture.mjs',
+  'scripts/check-ui-assets.mjs',
+]);
 const forbiddenLiveRuntimeReferences = [
   {
     pattern: /@asha\/runtime-bridge\/reference/,

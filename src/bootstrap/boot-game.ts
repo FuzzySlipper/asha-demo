@@ -10,6 +10,7 @@ import { projectHudView } from '../projection/hud-view.js';
 import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
 import { readDemoHudElements } from '../shell/hud-elements.js';
 import { renderHudElements } from '../shell/hud-renderer.js';
+import { pulseReticleElement } from '../shell/reticle-renderer.js';
 import {
   loadDemoProjectContent,
   readDemoProjectContentStatus,
@@ -334,14 +335,7 @@ function handleHudControl(controlId) {
 }
 
 function pulseReticle(kind) {
-  if (!(reticle instanceof HTMLElement)) {
-    return;
-  }
-  reticle.dataset.state = kind;
-  window.clearTimeout(reticlePulseTimer);
-  reticlePulseTimer = window.setTimeout(() => {
-    reticle.dataset.state = 'idle';
-  }, 140);
+  reticlePulseTimer = pulseReticleElement(reticle, kind, reticlePulseTimer);
 }
 
 function renderHud() {

@@ -6,12 +6,13 @@
   "description": "Human-facing ASHA playable-loop demo built on public ASHA surfaces.",
   "scripts": {
     "build": "node scripts/build-ui.mjs",
+    "check:architecture": "node scripts/check-source-architecture.mjs",
     "check:dependencies": "node scripts/check-dependency-boundary.mjs",
     "check:ui": "node scripts/check-ui-assets.mjs",
     "dev": "node scripts/serve-ui.mjs",
     "skeleton:status": "node scripts/print-skeleton-status.mjs",
     "test:live-ui": "playwright test -c playwright.config.mjs",
-    "typecheck": "npm run check:dependencies && npm run check:ui",
+    "typecheck": "npm run check:dependencies && npm run check:architecture && npm run check:ui",
     "test": "npm run typecheck"
   },
   "dependencies": {
