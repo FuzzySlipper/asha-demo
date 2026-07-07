@@ -1,4 +1,5 @@
 node_modules/
 dist/
+demo-rs/target/
 playwright-report/
 test-results/

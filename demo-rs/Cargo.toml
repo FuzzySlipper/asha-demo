@@ -1,0 +1,4 @@
+[workspace]
+members = ["crates/demo-preflight"]
+resolver = "2"
+
