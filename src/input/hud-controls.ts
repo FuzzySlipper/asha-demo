@@ -1,4 +1,6 @@
-export function hudControlToIntent(controlId: string): any {
+import type { HudMenuIntent } from '@asha/ui-dom';
+
+export function hudControlToIntent(controlId: string): HudMenuIntent | null {
   if (controlId === 'hud-resume') {
     return { kind: 'ui.resume_intent', source: 'hud_menu' };
   }

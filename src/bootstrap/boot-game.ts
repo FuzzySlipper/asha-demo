@@ -6,7 +6,7 @@ import {
   TINY_GENERATED_TUNNEL_READOUT,
 } from '@asha/runtime-bridge';
 import { hudControlToIntent } from '../input/hud-controls.js';
-import { projectHudView } from '../projection/hud-view.js';
+import { type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
 import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
 import { readDemoHudElements } from '../shell/hud-elements.js';
 import { renderHudElements } from '../shell/hud-renderer.js';
@@ -38,7 +38,7 @@ const ecrpProjectLoadReceipt = runtimeBackend.loadReceipt;
 let runtimeCamera = createRuntimeCamera();
 let enemyPolicyTick = 0;
 let paused = false;
-let menuMode = 'closed';
+let menuMode: DemoMenuMode = 'closed';
 let lastMenuIntent = null;
 const generatedTunnelReadout = TINY_GENERATED_TUNNEL_READOUT;
 const levelFrame = createAshaRendererGeneratedTunnelRoomSurfaceFrame({
@@ -295,7 +295,7 @@ function resetLoop() {
   renderHud();
 }
 
-function openPauseMenu(mode) {
+function openPauseMenu(mode: DemoMenuMode) {
   paused = true;
   menuMode = mode;
   document.exitPointerLock?.();

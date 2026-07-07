@@ -43,7 +43,8 @@ export function renderHudElements(elements: any, view: any): void {
     elements.pauseMenuStatus.textContent = view.pauseMenuStatus;
   }
   if (elements.resumeButton instanceof HTMLButtonElement) {
-    elements.resumeButton.disabled = view.playerDead;
+    const resumeControl = view.pauseMenuControls.find((control) => control.id === 'hud-resume');
+    elements.resumeButton.disabled = Boolean(resumeControl?.disabled);
   }
   if (elements.optionsPane instanceof HTMLElement) {
     elements.optionsPane.hidden = view.menuMode !== 'options';
