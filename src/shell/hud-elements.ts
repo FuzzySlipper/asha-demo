@@ -1,0 +1,27 @@
+export function readDemoHudElements(): any {
+  return {
+    canvas: document.querySelector('#asha-render-surface'),
+    deathState: document.querySelector('#death-state'),
+    eventState: document.querySelector('#event-state'),
+    exitButton: document.querySelector('#exit-button'),
+    exitState: document.querySelector('#exit-state'),
+    fireButton: document.querySelector('#fire-button'),
+    healthFill: document.querySelector('#health-fill'),
+    lockButton: document.querySelector('#lock-button'),
+    lockState: document.querySelector('#lock-state'),
+    menuResetButton: document.querySelector('#menu-reset-button'),
+    optionsButton: document.querySelector('#options-button'),
+    optionsPane: document.querySelector('#options-pane'),
+    pauseButton: document.querySelector('#pause-button'),
+    pauseMenu: document.querySelector('#pause-menu'),
+    pauseMenuStatus: document.querySelector('#pause-menu-status'),
+    playerHealthFill: document.querySelector('#player-health-fill'),
+    playerHealthState: document.querySelector('#player-health-state'),
+    poseState: document.querySelector('#pose-state'),
+    resetButton: document.querySelector('#reset-button'),
+    resumeButton: document.querySelector('#resume-button'),
+    reticle: document.querySelector('#reticle'),
+    shotState: document.querySelector('#shot-state'),
+    targetState: document.querySelector('#target-state'),
+  };
+}

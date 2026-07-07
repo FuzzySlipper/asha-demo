@@ -3,59 +3,22 @@ import {
   mountAshaRendererSurface,
 } from '@asha/renderer-host';
 import {
-  RuntimeBridgeError,
   TINY_GENERATED_TUNNEL_READOUT,
-  assertNativeRustRuntimeBridgeAuthority,
-  createRuntimeSessionFacade,
-  readRuntimeSessionPlayableEncounterTick,
-  readRuntimeSessionPlayableLoopState,
-  resolveNativeRustRuntimeBridgeProvider,
 } from '@asha/runtime-bridge';
+import { hudControlToIntent } from '../input/hud-controls.js';
+import { projectHudView } from '../projection/hud-view.js';
+import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
+import { readDemoHudElements } from '../shell/hud-elements.js';
+import { renderHudElements } from '../shell/hud-renderer.js';
 import {
   loadDemoProjectContent,
   readDemoProjectContentStatus,
 } from '../content/project-content.js';
 
 export async function bootGame() {
-const canvas = document.querySelector('#asha-render-surface');
-const reticle = document.querySelector('#reticle');
-const lockState = document.querySelector('#lock-state');
-const targetState = document.querySelector('#target-state');
-const shotState = document.querySelector('#shot-state');
-const poseState = document.querySelector('#pose-state');
-const eventState = document.querySelector('#event-state');
-const healthFill = document.querySelector('#health-fill');
-const playerHealthState = document.querySelector('#player-health-state');
-const playerHealthFill = document.querySelector('#player-health-fill');
-const deathState = document.querySelector('#death-state');
-const lockButton = document.querySelector('#lock-button');
-const fireButton = document.querySelector('#fire-button');
-const pauseButton = document.querySelector('#pause-button');
-const resetButton = document.querySelector('#reset-button');
-const pauseMenu = document.querySelector('#pause-menu');
-const pauseMenuStatus = document.querySelector('#pause-menu-status');
-const resumeButton = document.querySelector('#resume-button');
-const menuResetButton = document.querySelector('#menu-reset-button');
-const optionsButton = document.querySelector('#options-button');
-const exitButton = document.querySelector('#exit-button');
-const optionsPane = document.querySelector('#options-pane');
-const exitState = document.querySelector('#exit-state');
-
-function hudControlToIntent(controlId) {
-  if (controlId === 'hud-resume') {
-    return { kind: 'ui.resume_intent', source: 'hud_menu' };
-  }
-  if (controlId === 'hud-restart') {
-    return { kind: 'runtime.restart_session_intent', source: 'hud_menu' };
-  }
-  if (controlId === 'hud-options') {
-    return { kind: 'ui.open_options_intent', source: 'hud_menu' };
-  }
-  if (controlId === 'hud-exit') {
-    return { kind: 'ui.exit_to_menu_intent', source: 'hud_menu' };
-  }
-  return null;
-}
+const elements = readDemoHudElements();
+const canvas = elements.canvas;
+const reticle = elements.reticle;
 
 if (!(canvas instanceof HTMLCanvasElement)) {
   throw new Error('ASHA renderer surface canvas is missing.');
@@ -68,7 +31,7 @@ if (!contentStatus.valid) {
 }
 
 const runtimeBackend = await createDemoRuntimeBackend(demoProjectContent);
-const runtimeSession = runtimeBackend.session;
+const runtimeGateway = createDemoRuntimeGateway(runtimeBackend);
 const ecrpProjectLoadReceipt = runtimeBackend.loadReceipt;
 
 let runtimeCamera = createRuntimeCamera();
@@ -100,7 +63,7 @@ let lastRuntimeEvent = 'Runtime ready';
 let reticlePulseTimer = null;
 
 function createRuntimeCamera() {
-  if (runtimeSession === null) {
+  if (!runtimeGateway.available()) {
     return {
       handle: -1,
       pose: demoProjectContent.runtime.initialCameraPose,
@@ -108,7 +71,7 @@ function createRuntimeCamera() {
       viewport: readViewport(),
     };
   }
-  return runtimeSession.createCamera({
+  return runtimeGateway.createCamera({
     initialPose: demoProjectContent.runtime.initialCameraPose,
     projection: demoProjectContent.runtime.cameraProjection,
     viewport: readViewport(),
@@ -116,7 +79,7 @@ function createRuntimeCamera() {
 }
 
 function constrainCameraMovement(input) {
-  if (runtimeSession === null) {
+  if (!runtimeGateway.available()) {
     lastMovementEvent = runtimeBackend.diagnostics[0]?.message ?? 'Movement blocked: Rust runtime backend missing';
     return {
       blockedAxes: ['x', 'y', 'z'],
@@ -141,7 +104,7 @@ function constrainCameraMovement(input) {
       };
   const yawDeltaDegrees = paused ? 0 : input.yawDeltaDegrees;
   const pitchDeltaDegrees = paused ? 0 : input.pitchDeltaDegrees;
-  const receipt = runtimeSession.applyCollisionConstrainedCameraInput({
+  const receipt = runtimeGateway.applyCollisionConstrainedCameraInput({
     camera: runtimeCamera,
     grid: 1,
     input: {
@@ -187,19 +150,19 @@ window.addEventListener('beforeunload', () => {
   surface.dispose();
 });
 
-lockButton?.addEventListener('click', () => {
+elements.lockButton?.addEventListener('click', () => {
   surface.lockPointer();
 });
 
-fireButton?.addEventListener('click', () => {
+elements.fireButton?.addEventListener('click', () => {
   firePrimary();
 });
 
-resetButton?.addEventListener('click', () => {
+elements.resetButton?.addEventListener('click', () => {
   resetLoop();
 });
 
-pauseButton?.addEventListener('click', () => {
+elements.pauseButton?.addEventListener('click', () => {
   if (paused) {
     handleHudControl('hud-resume');
   } else {
@@ -207,19 +170,19 @@ pauseButton?.addEventListener('click', () => {
   }
 });
 
-resumeButton?.addEventListener('click', () => {
+elements.resumeButton?.addEventListener('click', () => {
   handleHudControl('hud-resume');
 });
 
-menuResetButton?.addEventListener('click', () => {
+elements.menuResetButton?.addEventListener('click', () => {
   handleHudControl('hud-restart');
 });
 
-optionsButton?.addEventListener('click', () => {
+elements.optionsButton?.addEventListener('click', () => {
   handleHudControl('hud-options');
 });
 
-exitButton?.addEventListener('click', () => {
+elements.exitButton?.addEventListener('click', () => {
   handleHudControl('hud-exit');
 });
 
@@ -246,7 +209,7 @@ document.addEventListener('keydown', (event) => {
 
 function firePrimary() {
   const playable = readPlayableLoopState();
-  if (runtimeSession === null || !playable.commands.canFire) {
+  if (!runtimeGateway.available() || !playable.commands.canFire) {
     lastRuntimeEvent = readFireBlockedEvent(playable.commands.blockedReasons);
     pulseReticle('miss');
     renderHud();
@@ -256,9 +219,7 @@ function firePrimary() {
     };
   }
 
-  const actionReceipt = runtimeSession.submitRuntimeActionIntent({
-    kind: 'runtime_action_intent.v0',
-    action: 'primary_fire',
+  const actionReceipt = runtimeGateway.submitPrimaryFire({
     phase: 'pressed',
     camera: runtimeCamera,
     tick: playable.counters.actionTick,
@@ -298,7 +259,7 @@ function readFireBlockedEvent(blockedReasons) {
 }
 
 function resetLoop() {
-  if (runtimeSession === null) {
+  if (!runtimeGateway.available()) {
     runtimeCamera = createRuntimeCamera();
     enemyPolicyTick = 0;
     lastEnemyPolicyReadout = null;
@@ -314,7 +275,7 @@ function resetLoop() {
   }
 
   const statusBefore = readLifecycleStatus();
-  const restartReceipt = runtimeSession.requestSessionRestart({
+  const restartReceipt = runtimeGateway.requestSessionRestart({
     kind: 'runtime.restart_session_intent',
     source: 'hud_menu',
     requireTerminal: false,
@@ -392,71 +353,21 @@ function renderHud() {
   const enemyHealth = readEnemyHealth();
   const playerHealth = readPlayerHealth();
 
-  if (lockState instanceof HTMLElement) {
-    lockState.textContent = locked ? 'LOCKED' : 'UNLOCKED';
-    lockState.dataset.locked = String(locked);
-  }
-  if (targetState instanceof HTMLElement) {
-    targetState.textContent = `${interaction.remainingTargets}/${interaction.totalTargets}`;
-  }
-  if (shotState instanceof HTMLElement) {
-    shotState.textContent = `${interaction.hits}/${interaction.shotsFired}`;
-  }
-  if (playerHealthState instanceof HTMLElement) {
-    playerHealthState.textContent = `${playerHealth.current}/${playerHealth.max}`;
-    playerHealthState.dataset.dead = String(lifecycle.player.dead);
-  }
-  if (poseState instanceof HTMLElement) {
-    poseState.textContent = `${pose.position[0].toFixed(1)}, ${pose.position[2].toFixed(1)} | ${Math.round(
-      pose.yawDegrees,
-    )}`;
-  }
-  if (eventState instanceof HTMLElement) {
-    eventState.textContent = runtimeSession === null
-      ? runtimeBackend.diagnostics[0]?.message ?? 'Rust runtime backend missing'
-      : lifecycle.player.dead
-      ? `${lifecycle.outcome.label} - restart available`
-      : movement.collided
-        ? lastMovementEvent
-        : lastRuntimeEvent || interaction.lastEvent;
-  }
-  if (healthFill instanceof HTMLElement) {
-    healthFill.style.width = `${enemyHealth.percent}%`;
-  }
-  if (playerHealthFill instanceof HTMLElement) {
-    playerHealthFill.style.width = `${playerHealth.percent}%`;
-  }
-  if (deathState instanceof HTMLElement) {
-    deathState.hidden = !lifecycle.player.dead;
-  }
-  if (fireButton instanceof HTMLButtonElement) {
-    fireButton.disabled = !interaction.canFire;
-    fireButton.dataset.blocked = String(!interaction.canFire);
-  }
-  if (pauseButton instanceof HTMLButtonElement) {
-    pauseButton.textContent = paused ? 'Resume' : 'Pause';
-  }
-  if (pauseMenu instanceof HTMLElement) {
-    pauseMenu.hidden = menuMode === 'closed';
-    pauseMenu.dataset.mode = menuMode;
-  }
-  if (pauseMenuStatus instanceof HTMLElement) {
-    pauseMenuStatus.textContent =
-      menuMode === 'exit'
-        ? 'Exited to menu. Resume or restart when ready.'
-        : menuMode === 'options'
-          ? 'Options are read-only for this demo build.'
-          : 'Runtime paused. Resume or restart through typed HUD intents.';
-  }
-  if (resumeButton instanceof HTMLButtonElement) {
-    resumeButton.disabled = lifecycle.player.dead;
-  }
-  if (optionsPane instanceof HTMLElement) {
-    optionsPane.hidden = menuMode !== 'options';
-  }
-  if (exitState instanceof HTMLElement) {
-    exitState.hidden = menuMode !== 'exit';
-  }
+  renderHudElements(elements, projectHudView({
+    backendMissingLabel: runtimeBackend.diagnostics[0]?.message ?? 'Rust runtime backend missing',
+    enemyHealth,
+    interaction,
+    lastMovementEvent,
+    lastRuntimeEvent,
+    lifecycle,
+    locked,
+    menuMode,
+    movement,
+    paused,
+    playerHealth,
+    pose,
+    runtimeAvailable: runtimeGateway.available(),
+  }));
 }
 
 function projectRuntimeTargetState() {
@@ -501,13 +412,13 @@ function readEnemyRenderTarget(visible) {
 }
 
 function tickEnemyPolicy() {
-  if (runtimeSession === null) {
+  if (!runtimeGateway.available()) {
     lastRuntimeEvent = 'Enemy loop blocked: Rust runtime backend missing';
     renderHud();
     return lastEnemyPolicyReadout;
   }
 
-  const encounterTick = readRuntimeSessionPlayableEncounterTick(runtimeSession, {
+  const encounterTick = runtimeGateway.readPlayableEncounterTick({
     targetCamera: readRuntimeCameraHandle(),
     targetPosition: runtimeCamera.pose.position,
     tick: enemyPolicyTick,
@@ -584,13 +495,12 @@ function readRuntimeInteractionState() {
 }
 
 function readPlayableLoopState() {
-  if (runtimeSession !== null) {
-    return readRuntimeSessionPlayableLoopState(runtimeSession, {
-      shell: {
-        paused,
-        menuMode,
-      },
-    });
+  const runtimePlayable = runtimeGateway.readPlayableLoopState({
+    paused,
+    menuMode,
+  });
+  if (runtimePlayable !== null) {
+    return runtimePlayable;
   }
   const playerHealth = readPlayerHealth();
   const enemyHealth = readEnemyHealth();
@@ -719,125 +629,6 @@ tickHud();
   tickEnemyPolicy: () => tickEnemyPolicy(),
 };
 
-async function createDemoRuntimeBackend(content) {
-  try {
-    const providerResolution = await resolveNativeRustRuntimeBridgeProvider({
-      globalScope: globalThis as Record<string, any>,
-      providerGlobalNames: ['ashaDemoRuntimeBridge', 'ashaRuntimeBridge'],
-    });
-    const profile = providerResolution.profile;
-    if (providerResolution.status !== 'available') {
-      const diagnostic = providerResolution.diagnostics[0] ?? {
-        code: 'missing_rust_runtime_backend',
-        message: 'ASHA demo requires a public native Rust RuntimeBridge provider; static browser mode does not fall back to reference authority.',
-      };
-      return unavailableRuntimeBackend(
-        profile,
-        diagnostic.code,
-        diagnostic.message,
-      );
-    }
-
-    const bridge = providerResolution.bridge;
-
-    const session = createRuntimeSessionFacade({ bridge, mode: 'rust' });
-    session.initialize({
-      sessionId: content.runtime.sessionId,
-      seed: content.runtime.seed,
-      project: content.projectBundle.project,
-      projectBundle: content.projectBundle.runtimeRequest,
-    });
-    const loadReceipt = session.loadEcrpProject({
-      kind: 'runtime_session.load_ecrp_project.v0',
-      projectBundle: content.projectBundle,
-      entityDefinitions: content.entityDefinitions,
-      sceneDocument: content.sceneDocument,
-    });
-
-    if (!loadReceipt.accepted) {
-      return unavailableRuntimeBackend(
-        profile,
-        'rust_runtime_rejected_project',
-        `Rust RuntimeSession rejected demo ECRP content: ${formatLoadDiagnostics(loadReceipt.diagnostics)}`,
-        loadReceipt,
-        'rust_backend_failed',
-      );
-    }
-    const readout = session.readEcrpRuntimeReadout();
-    const snapshot = bridge.readFpsRuntimeSession();
-    assertNativeRustRuntimeBridgeAuthority({
-      ecrpAuthority: readout.authority,
-      fpsSnapshot: snapshot,
-    });
-
-    return {
-      available: true,
-      status: 'rust_authority',
-      session,
-      loadReceipt,
-      diagnostics: [],
-      profile,
-      backendHash: loadReceipt.bootstrapHash ?? 'rust-authority:loaded',
-    };
-  } catch (error) {
-    const diagnostic = errorToBackendDiagnostic(error);
-    return unavailableRuntimeBackend(
-      {
-        kind: 'runtime_bridge.native_rust_provider_profile.v1',
-        mode: 'rust',
-        transport: 'public_runtime_bridge_provider',
-        providerGlobal: 'globalThis.ashaDemoRuntimeBridge',
-        providerContract: 'asha_demo.native_runtime_bridge_provider.v1',
-        requiredBackend: 'native_rust',
-        productAuthority: true,
-        referenceFallback: false,
-      },
-      diagnostic.code,
-      diagnostic.message,
-    );
-  }
-}
-
-function unavailableRuntimeBackend(profile, code, message, loadReceipt = null, status = 'missing_rust_backend') {
-  return {
-    available: false,
-    status,
-    session: null,
-    loadReceipt: loadReceipt ?? {
-      kind: 'runtime_session.ecrp_project_load_receipt.v0',
-      sequenceId: 0,
-      accepted: false,
-      diagnostics: [{ code, path: 'runtime.backend', detail: message }],
-      entityCount: 0,
-      bootstrapHash: null,
-      sessionHashBefore: 'missing-rust-backend',
-      sessionHashAfter: 'missing-rust-backend',
-    },
-    diagnostics: [{ code, severity: 'error', message }],
-    profile,
-    backendHash: `missing-rust-backend:${code}`,
-  };
-}
-
-function errorToBackendDiagnostic(error) {
-  if (error instanceof RuntimeBridgeError) {
-    return {
-      code: error.kind === 'native_unavailable' ? 'missing_rust_runtime_backend' : error.kind,
-      message: error.message,
-    };
-  }
-  return {
-    code: 'runtime_backend_error',
-    message: error instanceof Error ? error.message : String(error),
-  };
-}
-
-function formatLoadDiagnostics(diagnostics) {
-  return diagnostics
-    .map((diagnostic) => `${diagnostic.code}:${diagnostic.path}`)
-    .join('; ');
-}
-
 function readViewport() {
   return {
     width: canvas.clientWidth || 1280,
@@ -846,8 +637,9 @@ function readViewport() {
 }
 
 function readLifecycleStatus() {
-  if (runtimeSession !== null) {
-    return runtimeSession.readLifecycleStatus();
+  const status = runtimeGateway.readLifecycleStatus();
+  if (status !== null) {
+    return status;
   }
   return fallbackLifecycleStatus();
 }
@@ -921,8 +713,9 @@ function fallbackLifecycleStatus() {
 }
 
 function readEcrpRuntimeReadout() {
-  if (runtimeSession !== null) {
-    return runtimeSession.readEcrpRuntimeReadout();
+  const readout = runtimeGateway.readEcrpRuntimeReadout();
+  if (readout !== null) {
+    return readout;
   }
   return {
     kind: 'runtime_session.ecrp_readout.v0',
@@ -941,8 +734,9 @@ function readEcrpRuntimeReadout() {
 }
 
 function readRuntimeTelemetry() {
-  if (runtimeSession !== null) {
-    return runtimeSession.readTelemetry();
+  const telemetry = runtimeGateway.readTelemetry();
+  if (telemetry !== null) {
+    return telemetry;
   }
   const playable = readPlayableLoopState();
   return {
