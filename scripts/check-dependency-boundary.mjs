@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const guardScriptPath = fileURLToPath(import.meta.url);
-const engineSurfaceManifestPath = resolve(repoRoot, '../asha/harness/public-surface/ts-packages.json');
+const engineSurfaceManifestPath = resolve(repoRoot, '../asha-engine/harness/public-surface/ts-packages.json');
 
 const { packageRoots: allowedPackageRoots, specifiers: allowedSpecifiers } = loadAllowedAshaSpecifiers(engineSurfaceManifestPath);
 const dependencySections = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
@@ -143,8 +143,8 @@ function checkTextFile(filePath, text) {
   }
 
   const forbiddenPathPatterns = [
-    /\.\.\/asha\/engine-rs\b/,
-    /\.\.\/asha\/ts\/packages\/[^"'\s]+\/src\b/,
+    /\.\.\/(?:asha-engine|asha)\/engine-rs\b/,
+    /\.\.\/(?:asha-engine|asha)\/ts\/packages\/[^"'\s]+\/src\b/,
     /\bengine-rs\/crates\b/,
     /\bts\/packages\/contracts\/src\/generated\b/,
     /\bcontracts\/src\/generated\b/,

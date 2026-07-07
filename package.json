@@ -15,13 +15,13 @@
     "test": "npm run typecheck"
   },
   "dependencies": {
-    "@asha/catalog-core": "file:../asha/ts/packages/catalog-core",
-    "@asha/contracts": "file:../asha/ts/packages/contracts",
-    "@asha/game-workspace": "file:../asha/ts/packages/game-workspace",
-    "@asha/render-projection": "file:../asha/ts/packages/render-projection",
-    "@asha/renderer-host": "file:../asha/ts/packages/renderer-host",
-    "@asha/runtime-bridge": "file:../asha/ts/packages/runtime-bridge",
-    "@asha/ui-dom": "file:../asha/ts/packages/ui-dom"
+    "@asha/catalog-core": "file:../asha-engine/ts/packages/catalog-core",
+    "@asha/contracts": "file:../asha-engine/ts/packages/contracts",
+    "@asha/game-workspace": "file:../asha-engine/ts/packages/game-workspace",
+    "@asha/render-projection": "file:../asha-engine/ts/packages/render-projection",
+    "@asha/renderer-host": "file:../asha-engine/ts/packages/renderer-host",
+    "@asha/runtime-bridge": "file:../asha-engine/ts/packages/runtime-bridge",
+    "@asha/ui-dom": "file:../asha-engine/ts/packages/ui-dom"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1"

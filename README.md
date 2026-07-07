@@ -8,7 +8,33 @@ This repository is intentionally separate from `asha-testing`, which owns synthe
 
 Start with the product README and runnable demo experience first. Add proof or evidence harnesses later only when they support the human-facing demo, and keep them secondary to the product flow.
 
-Use the engine-owned public surface manifest in `/home/dev/asha/harness/public-surface/ts-packages.json` to decide which ASHA packages are approved for this repo. If a demo needs a missing engine capability, request or add that public surface in ASHA instead of copying `asha-testing` internals or proof scaffolding.
+Use the engine-owned public surface manifest in `/home/dev/asha-engine/harness/public-surface/ts-packages.json` to decide which ASHA packages are approved for this repo. If a demo needs a missing engine capability, request or add that public surface in ASHA instead of copying `asha-testing` internals or proof scaffolding.
+
+## Fresh setup
+
+Clone beside the engine repo:
+
+```sh
+cd /home/dev
+git clone git@github.com:FuzzySlipper/asha-engine.git asha-engine
+git clone git@github.com:FuzzySlipper/asha-demo.git asha-demo
+cd asha-demo
+npm install
+```
+
+The local package links in `package.json` expect `../asha-engine`. The package
+scope remains `@asha/*`.
+
+## Verification
+
+```sh
+npm run check:dependencies
+npm test
+npm run build
+```
+
+For interactive browser evidence, run `npm run dev -- --host 127.0.0.1 --port
+5173` or let the Den Playwright broker provide the host and port.
 
 ## Demo Surface
 

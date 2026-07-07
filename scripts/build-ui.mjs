@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ashaRendererThreeRoot = resolve(repoRoot, '../asha/ts/packages/renderer-three');
+const ashaRendererThreeRoot = resolve(repoRoot, '../asha-engine/ts/packages/renderer-three');
 const ashaRendererThreeRequire = createRequire(join(ashaRendererThreeRoot, 'package.json'));
 const outputRoot = join(repoRoot, 'dist/ui');
 const catalogCoreVendorRoot = join(outputRoot, 'vendor/asha-catalog-core');

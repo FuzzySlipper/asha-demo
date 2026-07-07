@@ -8,7 +8,7 @@ import { buildUiStatus } from './ui-status.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'app');
-const ashaRendererThreeRoot = resolve(repoRoot, '../asha/ts/packages/renderer-three');
+const ashaRendererThreeRoot = resolve(repoRoot, '../asha-engine/ts/packages/renderer-three');
 const ashaRendererThreeRequire = createRequire(join(ashaRendererThreeRoot, 'package.json'));
 const authoredContentRoots = new Map([
   ['/catalogs/', join(repoRoot, 'catalogs')],
