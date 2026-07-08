@@ -29,10 +29,17 @@ go run ./playwright-broker/cmd/den-playwright run asha-demo \
 Run the integrated public ASHA playable-loop UI with:
 
 ```sh
-npm run dev -- --host 127.0.0.1 --port 5173
+npm run dev -- --port 5173
 ```
 
-The command accepts `--host` and `--port`, and also respects `HOST` / `PORT` or npm config values. The broker manifest passes broker-owned `{host}` and `{port}` placeholders instead of hardcoding a port.
+The command uses the public `@asha/browser-host` package to install the native
+Rust RuntimeBridge provider before app boot. It defaults to `0.0.0.0`, accepts
+`--host` and `--port`, and also respects `HOST` / `PORT` or npm config values.
+The broker manifest passes broker-owned `{host}` and `{port}` placeholders
+instead of hardcoding a port.
+
+Run `npm run dev:static -- --port 5173` only for the static no-provider
+fail-closed diagnostic path.
 
 ## Manifest
 
@@ -41,7 +48,7 @@ The repo root has `.den-playwright.json` with:
 - project identity `asha-demo`;
 - `serve.command` using broker-owned `{host}` and `{port}` placeholders;
 - `healthUrl` set to `/health`;
-- `readyText` and `identityHeader` checks for `asha-demo`;
+- `readyText` for `asha-demo` and the `X-ASHA-Browser-Host` identity header;
 - `tests.command` invoking Playwright;
 - `tests.artifactPolicy` set to `live-ui`.
 

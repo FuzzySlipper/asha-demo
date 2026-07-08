@@ -13,6 +13,7 @@
     "check:standalone": "node scripts/standalone-host.mjs",
     "check:ui": "node scripts/check-ui-assets.mjs",
     "dev": "node scripts/serve-ui.mjs",
+    "dev:static": "node scripts/serve-static-ui.mjs",
     "skeleton:status": "node scripts/print-skeleton-status.mjs",
     "standalone": "node scripts/standalone-host.mjs",
     "test:live-ui": "playwright test -c playwright.config.mjs",
@@ -21,6 +22,7 @@
   },
   "dependencies": {
     "@asha/catalog-core": "file:../asha-engine/ts/packages/catalog-core",
+    "@asha/browser-host": "file:../asha-engine/ts/packages/browser-host",
     "@asha/contracts": "file:../asha-engine/ts/packages/contracts",
     "@asha/game-workspace": "file:../asha-engine/ts/packages/game-workspace",
     "@asha/render-projection": "file:../asha-engine/ts/packages/render-projection",

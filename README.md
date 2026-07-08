@@ -37,8 +37,10 @@ npm test
 npm run build
 ```
 
-For interactive browser evidence, run `npm run dev -- --host 127.0.0.1 --port
-5173` or let the Den Playwright broker provide the host and port.
+For interactive browser evidence, run `npm run dev -- --port 5173` or let the
+Den Playwright broker provide the host and port. The default browser host binds
+to `0.0.0.0` and installs the public native Rust RuntimeBridge provider before
+app boot.
 
 ## Demo Surface
 
@@ -127,10 +129,12 @@ projection stay in public ASHA surfaces. The demo repo owns authored project
 files, browser mounting, HUD placement, and the human-facing playable page. The
 demo does not use reference/mock RuntimeSession authority as its product path.
 
-Browser-served mode is runnable through `npm run dev` or the Den Playwright
-broker. Standalone compiled mode is checked through `npm run standalone` and
-described in `docs/host-architecture.md`. Do not regress standalone into a
-shortcut to a manually managed localhost port.
+Browser-served native-provider mode is runnable through `npm run dev` or the Den
+Playwright broker. Static no-provider diagnostics are still available through
+`npm run dev:static` for fail-closed coverage. Standalone compiled mode is
+checked through `npm run standalone` and described in
+`docs/host-architecture.md`. Do not regress standalone into a shortcut to a
+manually managed localhost port.
 
 Known unfinished demo pieces are tracked in `docs/demo-surface-audit.md` and Den
 tasks. Do not recreate a broad disclaimer document; remove, implement, or assign
@@ -138,4 +142,11 @@ placeholders when they appear.
 
 ## Live UI evidence
 
-Run `npm run dev -- --host 127.0.0.1 --port 5173` to serve the public ASHA demo UI. Without a native Rust RuntimeBridge provider, the page is a fail-closed diagnostic surface rather than the playable authority path. `asha-demo` is opted into the Den Playwright broker via `.den-playwright.json`; see `docs/playwright-broker.md` for the command shape, required `BASE_URL`/`PLAYWRIGHT_BROKER_BASE_URL` behavior, and evidence expectations.
+Run `npm run dev -- --port 5173` to serve the public ASHA demo UI through
+`@asha/browser-host`. That host injects the native Rust RuntimeBridge provider
+before app boot, so human browser play should report `rust_authority`. Run
+`npm run dev:static -- --port 5173` only when intentionally checking the
+fail-closed no-provider diagnostic path. `asha-demo` is opted into the Den
+Playwright broker via `.den-playwright.json`; see `docs/playwright-broker.md`
+for the command shape, required `BASE_URL`/`PLAYWRIGHT_BROKER_BASE_URL`
+behavior, and evidence expectations.

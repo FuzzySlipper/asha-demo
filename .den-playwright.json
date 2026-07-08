@@ -5,7 +5,7 @@
     "preferredPort": 5173,
     "healthUrl": "/health",
     "readyText": "\"project\": \"asha-demo\"",
-    "identityHeader": "X-Den-Project",
+    "identityHeader": "X-ASHA-Browser-Host",
     "reusePolicy": "broker_owned",
     "startupTimeout": "45s"
   },

@@ -184,10 +184,13 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(2);
   expect(await page.evaluate(() => document.querySelector('#death-state')?.hidden ?? null)).toBe(true);
 
+  const poseBeforeMove = await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null);
   await canvas.evaluate((node) => node.focus());
   await page.keyboard.down('KeyW');
   await page.waitForTimeout(600);
   await page.keyboard.up('KeyW');
+  const poseAfterMove = await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null);
+  expect(poseAfterMove?.position).not.toEqual(poseBeforeMove?.position);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().authority ?? null)).toBe(
     'external_collision',
   );

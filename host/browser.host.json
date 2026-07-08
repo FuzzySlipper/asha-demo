@@ -16,6 +16,8 @@
   },
   "launch": {
     "command": "npm run dev",
-    "portPolicy": "broker_or_den_serve_owned"
+    "portPolicy": "native_browser_host_default_0_0_0_0_or_broker_owned",
+    "hostPackage": "@asha/browser-host",
+    "compatibilityVersion": "browser-host.v0"
   }
 }

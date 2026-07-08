@@ -49,6 +49,8 @@ cpSync(join(repoRoot, 'node_modules', '@asha', 'ui-dom', 'dist', 'hud.js'), join
 mkdirSync(rendererHostThreeVendorRoot, { recursive: true });
 cpSync(rendererHostThreeSourceRoot, rendererHostThreeVendorRoot, { recursive: true });
 writeFileSync(join(outputRoot, 'status.json'), `${JSON.stringify(buildUiStatus(repoRoot), null, 2)}\n`);
+mkdirSync(join(outputRoot, 'api'), { recursive: true });
+writeFileSync(join(outputRoot, 'api', 'status'), `${JSON.stringify(buildUiStatus(repoRoot), null, 2)}\n`);
 
 console.log(`Built ASHA demo static UI at ${outputRoot}`);
 

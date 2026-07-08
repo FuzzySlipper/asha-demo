@@ -5,9 +5,11 @@ Status: current host boundary for #4486 and standalone follow-through #4841.
 `asha-demo` has one game content path and two host shapes:
 
 - **Browser-served mode** serves the compiled `dist/ui` surface through the
-  local dev-server/broker path. It loads `project/project-bundle.json` and
-  expects a public native RuntimeBridge provider at `globalThis.ashaRuntimeBridge`
-  or the compatibility alias `globalThis.ashaDemoRuntimeBridge`.
+  public `@asha/browser-host` dev host. It loads `project/project-bundle.json`
+  and installs a public native RuntimeBridge provider at
+  `globalThis.ashaRuntimeBridge` before app boot. The compatibility alias
+  `globalThis.ashaDemoRuntimeBridge` remains accepted for fail-closed spoof
+  coverage, but the product path uses the public provider global.
 - **Standalone compiled mode** uses the same built UI/content and the same
   public provider contract, packaged through the host bootstrap in
   `host/standalone-bootstrap.mjs` and checked by `npm run standalone`.
@@ -25,6 +27,9 @@ The host manifests live in `host/browser.host.json` and
 `host/standalone.host.json`. The parity check requires both manifests to point
 at the same ProjectBundle and use native provider injection without reference
 fallback.
+
+The browser command is `npm run dev`, backed by `@asha/browser-host` and default
+LAN binding. The static no-provider diagnostic path is `npm run dev:static`.
 
 The standalone command is a host-side smoke for the packaged app path. It builds
 `dist/ui`, installs the public native Rust RuntimeBridge provider before app

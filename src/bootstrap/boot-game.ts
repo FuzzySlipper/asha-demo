@@ -65,19 +65,20 @@ let lastRuntimeEvent = 'Runtime ready';
 let reticlePulseTimer = null;
 
 function createRuntimeCamera() {
+  const fallbackCamera = {
+    handle: -1,
+    pose: demoProjectContent.runtime.initialCameraPose,
+    projection: demoProjectContent.runtime.cameraProjection,
+    viewport: readViewport(),
+  };
   if (!runtimeGateway.available()) {
-    return {
-      handle: -1,
-      pose: demoProjectContent.runtime.initialCameraPose,
-      projection: demoProjectContent.runtime.cameraProjection,
-      viewport: readViewport(),
-    };
+    return fallbackCamera;
   }
   return runtimeGateway.createCamera({
     initialPose: demoProjectContent.runtime.initialCameraPose,
     projection: demoProjectContent.runtime.cameraProjection,
     viewport: readViewport(),
-  }).snapshot.camera;
+  })?.snapshot ?? fallbackCamera;
 }
 
 function constrainCameraMovement(input) {
@@ -107,7 +108,7 @@ function constrainCameraMovement(input) {
   const yawDeltaDegrees = paused ? 0 : input.yawDeltaDegrees;
   const pitchDeltaDegrees = paused ? 0 : input.pitchDeltaDegrees;
   const receipt = runtimeGateway.applyCollisionConstrainedCameraInput({
-    camera: runtimeCamera,
+    camera: readRuntimeCameraHandle(),
     grid: 1,
     input: {
       moveForward: inputForAuthority.moveForward,
@@ -122,6 +123,7 @@ function constrainCameraMovement(input) {
     shape: demoProjectContent.runtime.collisionShape,
     policy: demoProjectContent.runtime.collisionPolicy,
   });
+  runtimeCamera = receipt.snapshot.after;
   lastMovementEvent = paused
     ? 'Movement paused'
     : lifecycle.player.dead
@@ -460,7 +462,10 @@ function tickEnemyPolicy() {
 }
 
 function readRuntimeCameraHandle() {
-  return typeof runtimeCamera === 'number' ? runtimeCamera : runtimeCamera.handle;
+  if (typeof runtimeCamera === 'number') {
+    return runtimeCamera;
+  }
+  return runtimeCamera.handle ?? runtimeCamera.camera;
 }
 
 function encounterTickBlockedEvent(reason) {
