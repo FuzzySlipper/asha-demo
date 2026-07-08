@@ -10,11 +10,13 @@
     "check:demo-rs": "cargo run -q --manifest-path demo-rs/Cargo.toml --bin asha-demo-preflight -- .",
     "check:dependencies": "node scripts/check-dependency-boundary.mjs",
     "check:host": "node scripts/check-host-parity.mjs",
+    "check:standalone": "node scripts/standalone-host.mjs",
     "check:ui": "node scripts/check-ui-assets.mjs",
     "dev": "node scripts/serve-ui.mjs",
     "skeleton:status": "node scripts/print-skeleton-status.mjs",
+    "standalone": "node scripts/standalone-host.mjs",
     "test:live-ui": "playwright test -c playwright.config.mjs",
-    "typecheck": "npm run check:dependencies && npm run check:architecture && npm run check:demo-rs && npm run check:host && npm run check:ui",
+    "typecheck": "npm run check:dependencies && npm run check:architecture && npm run check:demo-rs && npm run check:host && npm run check:ui && npm run check:standalone",
     "test": "npm run typecheck"
   },
   "dependencies": {

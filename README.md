@@ -32,6 +32,7 @@ npm run check:dependencies
 npm run check:architecture
 npm run check:demo-rs
 npm run check:host
+npm run check:standalone
 npm test
 npm run build
 ```
@@ -65,6 +66,11 @@ Run `npm run check:host` before changing host manifests. It verifies browser and
 standalone host configs use the same ProjectBundle/content path and native
 RuntimeBridge provider contract without reference fallback.
 
+Run `npm run standalone` before changing packaged-host behavior. It builds the
+same UI/content bundle, installs the public native RuntimeBridge provider from
+host bootstrap, loads RuntimeSession content without a manually selected
+dev-server port, and writes `dist/standalone/status.json`.
+
 Run `npm run test:live-ui` only with `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` set by the Den Playwright broker or an equivalent local dev-server wrapper. The live UI smoke checks objective text/readout values and writes screenshots under `PLAYWRIGHT_BROKER_ARTIFACT_ROOT` when provided.
 
 ## Source Layout
@@ -88,7 +94,7 @@ This repo follows ASHA's game-agent source organization guide:
   rendering adapters.
 - `demo-rs/` owns demo-specific Rust tooling only. The current crate validates
   content/manifest metadata; it does not own runtime authority.
-- `host/` describes browser-served and planned standalone host shapes.
+- `host/` describes browser-served and standalone host shapes.
 
 Add new game content under `catalogs/`, `levels/`, `assets/`, or `project/`.
 Add new HUD/readout shape under `src/projection/`, DOM rendering under
@@ -122,10 +128,9 @@ files, browser mounting, HUD placement, and the human-facing playable page. The
 demo does not use reference/mock RuntimeSession authority as its product path.
 
 Browser-served mode is runnable through `npm run dev` or the Den Playwright
-broker. Standalone compiled mode is planned and described in
-`docs/host-architecture.md`; it is blocked on upstream native host/provider
-packaging task #4521. Do not implement standalone as a shortcut to a manually
-managed localhost port.
+broker. Standalone compiled mode is checked through `npm run standalone` and
+described in `docs/host-architecture.md`. Do not regress standalone into a
+shortcut to a manually managed localhost port.
 
 Known unfinished demo pieces are tracked in `docs/demo-surface-audit.md` and Den
 tasks. Do not recreate a broad disclaimer document; remove, implement, or assign

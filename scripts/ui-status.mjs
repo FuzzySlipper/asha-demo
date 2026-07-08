@@ -12,11 +12,12 @@ export function buildUiStatus() {
         reset: 'runtime_session_restart_and_camera_reset',
         owner: '@asha/renderer-host',
       },
-      publicImports: ['@asha/catalog-core', '@asha/renderer-host', '@asha/runtime-bridge'],
+      publicImports: ['@asha/catalog-core', '@asha/renderer-host', '@asha/runtime-bridge', '@asha/ui-dom'],
       authorityOwners: {
         collision: '@asha/runtime-bridge',
         combat: '@asha/runtime-bridge',
         contentValidation: '@asha/catalog-core',
+        hudProjection: '@asha/ui-dom',
         rendering: '@asha/renderer-host',
       },
       runtimeBackend: {

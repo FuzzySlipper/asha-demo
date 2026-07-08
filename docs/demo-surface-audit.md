@@ -1,6 +1,6 @@
 # Demo Surface Audit
 
-Status: current as of ASHA task #4487.
+Status: current as of ASHA tasks #4487, #4841, and #4842.
 
 This is a lightweight audit of product-surface stubs and half implementations.
 It is not a broad claims framework; it exists so unfinished pieces do not become
@@ -16,6 +16,6 @@ quiet load-bearing structure.
 | Local health/combat/lifecycle authority risk | Fire, health, death, and restart use `RuntimeSession` readouts/intents; demo UI projects state. | #4224/#4217 |
 | Proof-page artifacts appearing as product UI | No proof dashboard is mounted. Live smoke and screenshots stay in `tests/` and `artifacts/`. | none |
 | Player health, enemy attack, death/restart loop | Implemented through RuntimeSession readouts/intents and live UI smoke coverage. | #4219/#4485 |
-| Polished pause/options/menu flow | Basic typed pause/options/exit flow is present; richer game-HUD public primitives are planned upstream. | #4522 |
+| Polished pause/options/menu flow | Basic typed pause/options/exit flow is present and projected through public `@asha/ui-dom` game HUD/menu primitives. | #4522/#4842 |
 | Studio open/attach/control product path | Not implemented in `asha-demo`; belongs to Studio workflow. | #4221 |
-| Compiled standalone host | Planned host manifest exists, but no compiled standalone app is claimed yet. | #4521 |
+| Compiled standalone host | Demo-owned host bootstrap and `npm run standalone` native provider smoke exist. The smoke uses the built UI/content and no manually selected dev-server port. | #4521/#4841 |

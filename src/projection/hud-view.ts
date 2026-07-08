@@ -1,17 +1,22 @@
-import type { EditorControl, HudMenuIntent } from '@asha/ui-dom';
+import {
+  buildGameHudProjection,
+  hudControlToIntent,
+  type EditorControl,
+  type GameHudProjection,
+  type GameHudProjectionInput,
+  type HudMenuIntent,
+} from '@asha/ui-dom';
 
 export type DemoMenuMode = 'closed' | 'paused' | 'options' | 'exit';
 
-interface DemoHudHealthView {
-  readonly current: number;
-  readonly max: number;
-  readonly percent: number;
-  readonly dead: boolean;
-}
-
 interface DemoHudViewInput {
   readonly backendMissingLabel: string;
-  readonly enemyHealth: DemoHudHealthView;
+  readonly enemyHealth: {
+    readonly current: number;
+    readonly max: number;
+    readonly percent: number;
+    readonly dead: boolean;
+  };
   readonly interaction: any;
   readonly lastMovementEvent: string;
   readonly lastRuntimeEvent: string;
@@ -20,7 +25,12 @@ interface DemoHudViewInput {
   readonly menuMode: DemoMenuMode;
   readonly movement: any;
   readonly paused: boolean;
-  readonly playerHealth: DemoHudHealthView;
+  readonly playerHealth: {
+    readonly current: number;
+    readonly max: number;
+    readonly percent: number;
+    readonly dead: boolean;
+  };
   readonly pose: {
     readonly position: readonly [number, number, number];
     readonly yawDegrees: number;
@@ -34,6 +44,7 @@ export interface DemoHudControlDescriptor extends EditorControl {
 
 export interface DemoHudView {
   readonly canFire: boolean;
+  readonly gameHud: GameHudProjection;
   readonly enemyHealthPercent: number;
   readonly eventLabel: string;
   readonly locked: boolean;
@@ -74,58 +85,128 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
       : movement.collided
         ? lastMovementEvent
         : lastRuntimeEvent || interaction.lastEvent;
+  const gameHud = buildGameHudProjection(buildGameHudInput({
+    enemyHealth,
+    eventLabel,
+    interaction,
+    lifecycle,
+    locked,
+    menuMode,
+    paused,
+    playerHealth,
+    pose,
+  }));
+  const playerHealthBar = requireHealthBar(gameHud, 'player-health');
+  const enemyHealthBar = requireHealthBar(gameHud, 'target-health');
 
   return {
     canFire: interaction.canFire,
-    enemyHealthPercent: enemyHealth.percent,
+    gameHud,
+    enemyHealthPercent: enemyHealthBar.ratio * 100,
     eventLabel,
     locked,
     lockLabel: locked ? 'LOCKED' : 'UNLOCKED',
     menuMode,
     pauseLabel: paused ? 'Resume' : 'Pause',
-    pauseMenuControls: projectPauseMenuControls(lifecycle),
+    pauseMenuControls: projectPauseMenuControls(gameHud),
     pauseMenuStatus: projectPauseMenuStatus(menuMode),
     playerDead: lifecycle.player.dead,
-    playerHealthLabel: `${playerHealth.current}/${playerHealth.max}`,
-    playerHealthPercent: playerHealth.percent,
+    playerHealthLabel: `${playerHealthBar.current}/${playerHealthBar.max}`,
+    playerHealthPercent: playerHealthBar.ratio * 100,
     poseLabel: `${pose.position[0].toFixed(1)}, ${pose.position[2].toFixed(1)} | ${Math.round(pose.yawDegrees)}`,
-    shotLabel: `${interaction.hits}/${interaction.shotsFired}`,
+    shotLabel: `${gameHud.combat.hits}/${gameHud.combat.shotsFired}`,
     targetLabel: `${interaction.remainingTargets}/${interaction.totalTargets}`,
   };
 }
 
-function projectPauseMenuControls(lifecycle: any): readonly DemoHudControlDescriptor[] {
-  return [
-    {
-      id: 'hud-resume',
-      role: 'button',
-      label: 'Resume',
-      value: 'ui.resume_intent',
-      disabled: lifecycle.player.dead,
-      intent: { kind: 'ui.resume_intent', source: 'hud_menu' },
+function buildGameHudInput(input: {
+  readonly enemyHealth: DemoHudViewInput['enemyHealth'];
+  readonly eventLabel: string;
+  readonly interaction: any;
+  readonly lifecycle: any;
+  readonly locked: boolean;
+  readonly menuMode: DemoMenuMode;
+  readonly paused: boolean;
+  readonly playerHealth: DemoHudViewInput['playerHealth'];
+  readonly pose: DemoHudViewInput['pose'];
+}): GameHudProjectionInput {
+  return {
+    healthBars: [
+      {
+        id: 'player-health',
+        role: 'player',
+        title: 'Player',
+        entity: input.lifecycle.player.entity ?? 0,
+        current: input.playerHealth.current,
+        max: input.playerHealth.max,
+        dead: input.playerHealth.dead,
+      },
+      {
+        id: 'target-health',
+        role: 'target',
+        title: 'Target',
+        entity: input.lifecycle.enemy.entity ?? 0,
+        current: input.enemyHealth.current,
+        max: input.enemyHealth.max,
+        dead: input.enemyHealth.dead,
+      },
+    ],
+    combat: {
+      shotsFired: input.interaction.shotsFired,
+      hits: input.interaction.hits,
+      misses: Math.max(0, input.interaction.shotsFired - input.interaction.hits),
+      restartCount: input.interaction.restartCount,
+      actionTick: input.interaction.actionTick,
     },
-    {
-      id: 'hud-restart',
-      role: 'button',
-      label: 'Restart',
-      value: 'runtime.restart_session_intent',
-      intent: { kind: 'runtime.restart_session_intent', source: 'hud_menu' },
+    input: {
+      pointerLocked: input.locked,
+      movementEnabled: !input.paused && !input.lifecycle.player.dead,
+      fireEnabled: input.interaction.canFire,
+      paused: input.paused,
     },
-    {
-      id: 'hud-options',
-      role: 'button',
-      label: 'Options',
-      value: 'ui.open_options_intent',
-      intent: { kind: 'ui.open_options_intent', source: 'hud_menu' },
+    pose: {
+      position: `${input.pose.position[0].toFixed(1)}, ${input.pose.position[1].toFixed(1)}, ${input.pose.position[2].toFixed(1)}`,
+      facing: `${Math.round(input.pose.yawDegrees)}`,
+      camera: 'first-person',
     },
-    {
-      id: 'hud-exit',
-      role: 'button',
-      label: 'Exit',
-      value: 'ui.exit_to_menu_intent',
-      intent: { kind: 'ui.exit_to_menu_intent', source: 'hud_menu' },
-    },
-  ];
+    status: [{
+      id: 'runtime-event',
+      tone: input.lifecycle.player.dead ? 'danger' : 'info',
+      text: input.eventLabel,
+    }],
+    events: [{
+      id: 'runtime-event',
+      tone: input.lifecycle.player.dead ? 'danger' : 'info',
+      text: input.eventLabel,
+    }],
+    menuOpen: input.menuMode !== 'closed',
+    menuControls: [
+      { id: 'hud-resume', label: 'Resume', value: 'ui.resume_intent', disabled: input.lifecycle.player.dead },
+      { id: 'hud-restart', label: 'Restart', value: 'runtime.restart_session_intent' },
+      { id: 'hud-options', label: 'Options', value: 'ui.open_options_intent' },
+      { id: 'hud-exit', label: 'Exit', value: 'ui.exit_to_menu_intent' },
+    ],
+  };
+}
+
+function projectPauseMenuControls(gameHud: GameHudProjection): readonly DemoHudControlDescriptor[] {
+  return gameHud.menu.controls
+    .map((control) => {
+      const intent = hudControlToIntent(control.id);
+      if (intent === null) {
+        return null;
+      }
+      return { ...control, intent };
+    })
+    .filter((control): control is DemoHudControlDescriptor => control !== null);
+}
+
+function requireHealthBar(gameHud: GameHudProjection, id: string) {
+  const healthBar = gameHud.healthBars.find((candidate) => candidate.id === id);
+  if (healthBar === undefined) {
+    throw new Error(`ASHA game HUD projection missing health bar ${id}`);
+  }
+  return healthBar;
 }
 
 function projectPauseMenuStatus(menuMode: DemoMenuMode): string {

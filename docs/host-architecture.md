@@ -1,6 +1,6 @@
 # ASHA Demo Host Architecture
 
-Status: current host boundary for #4486.
+Status: current host boundary for #4486 and standalone follow-through #4841.
 
 `asha-demo` has one game content path and two host shapes:
 
@@ -8,9 +8,9 @@ Status: current host boundary for #4486.
   local dev-server/broker path. It loads `project/project-bundle.json` and
   expects a public native RuntimeBridge provider at `globalThis.ashaRuntimeBridge`
   or the compatibility alias `globalThis.ashaDemoRuntimeBridge`.
-- **Standalone compiled mode** must use the same ProjectBundle/content and the
-  same public provider contract, but packaged by a host rather than by a manual
-  browser/dev-server shortcut.
+- **Standalone compiled mode** uses the same built UI/content and the same
+  public provider contract, packaged through the host bootstrap in
+  `host/standalone-bootstrap.mjs` and checked by `npm run standalone`.
 
 Both modes keep authority upstream:
 
@@ -26,8 +26,8 @@ The host manifests live in `host/browser.host.json` and
 at the same ProjectBundle and use native provider injection without reference
 fallback.
 
-The standalone command is intentionally marked planned until ASHA exposes the
-missing upstream packaged native host surface. The first valid implementation
-must be a compiled host that injects the native RuntimeBridge provider and serves
-or embeds the built UI/content. It must not be a browser shortcut to a manually
-managed localhost port.
+The standalone command is a host-side smoke for the packaged app path. It builds
+`dist/ui`, installs the public native Rust RuntimeBridge provider before app
+boot, loads the same ProjectBundle/content without a dev-server port, and writes
+`dist/standalone/status.json`. It must not grow a reference/mock fallback or a
+manual localhost-port requirement.

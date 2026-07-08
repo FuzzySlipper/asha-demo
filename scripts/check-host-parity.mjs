@@ -19,8 +19,14 @@ if (standaloneHost.launch?.portPolicy !== 'no_manual_dev_server_port') {
 if (JSON.stringify(browserHost.runtimeProvider) !== JSON.stringify(standaloneHost.runtimeProvider)) {
   errors.push('browser and standalone host configs must use the same runtime provider contract');
 }
-if (standaloneHost.status !== 'planned_pending_upstream_native_host_surface') {
-  errors.push('standalone host status must stay explicit until a real compiled host lands');
+if (standaloneHost.status !== 'native_provider_host_smoke_ready') {
+  errors.push('standalone host status must identify the native provider host smoke path');
+}
+if (standaloneHost.hostBootstrap !== 'host/standalone-bootstrap.mjs') {
+  errors.push('standalone host must name the native provider bootstrap module');
+}
+if (standaloneHost.launch?.command !== 'npm run standalone') {
+  errors.push('standalone host launch command must be npm run standalone');
 }
 
 if (errors.length > 0) {

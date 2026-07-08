@@ -17,6 +17,7 @@ const rendererHostBackendVendorRoot = join(rendererHostVendorRoot, 'vendor/asha-
 const rendererHostThreeVendorRoot = join(rendererHostVendorRoot, 'vendor/three');
 const runtimeBridgeVendorRoot = join(outputRoot, 'vendor/asha-runtime-bridge');
 const runtimeSessionVendorRoot = join(outputRoot, 'vendor/asha-runtime-session');
+const uiDomVendorRoot = join(outputRoot, 'vendor/asha-ui-dom');
 const rendererHostBackendSourceRoot = join(ashaRendererThreeRoot, 'dist');
 const rendererHostThreeSourceRoot = dirname(dirname(ashaRendererThreeRequire.resolve('three')));
 
@@ -43,6 +44,8 @@ mkdirSync(runtimeBridgeVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'runtime-bridge', 'dist'), runtimeBridgeVendorRoot, { recursive: true });
 mkdirSync(runtimeSessionVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'runtime-session', 'dist'), runtimeSessionVendorRoot, { recursive: true });
+mkdirSync(uiDomVendorRoot, { recursive: true });
+cpSync(join(repoRoot, 'node_modules', '@asha', 'ui-dom', 'dist', 'hud.js'), join(uiDomVendorRoot, 'hud.js'));
 mkdirSync(rendererHostThreeVendorRoot, { recursive: true });
 cpSync(rendererHostThreeSourceRoot, rendererHostThreeVendorRoot, { recursive: true });
 writeFileSync(join(outputRoot, 'status.json'), `${JSON.stringify(buildUiStatus(repoRoot), null, 2)}\n`);
