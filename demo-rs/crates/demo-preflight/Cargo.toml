@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
+asha-demo-primary-fire-effect = { path = "../primary-fire-effect" }
 serde_json = "1"
 toml = "0.9"
 

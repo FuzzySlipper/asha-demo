@@ -6,15 +6,43 @@ version = 4
 name = "asha-demo-preflight"
 version = "0.1.0"
 dependencies = [
+ "asha-demo-primary-fire-effect",
  "serde_json",
  "toml",
 ]
+
+[[package]]
+name = "asha-demo-primary-fire-effect"
+version = "0.1.0"
+dependencies = [
+ "asha-game-rule-extension",
+ "serde_json",
+]
+
+[[package]]
+name = "asha-game-rule-extension"
+version = "0.1.0"
+dependencies = [
+ "game-rule-extension",
+]
+
+[[package]]
+name = "core-ids"
+version = "0.1.0"
 
 [[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+
+[[package]]
+name = "game-rule-extension"
+version = "0.1.0"
+dependencies = [
+ "protocol-diagnostics",
+ "protocol-game-extension",
+]
 
 [[package]]
 name = "hashbrown"
@@ -54,6 +82,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "protocol-diagnostics"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "protocol-game-extension"
+version = "0.1.0"
+dependencies = [
+ "core-ids",
+ "protocol-diagnostics",
+ "serde",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -69,6 +113,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
 dependencies = [
  "serde_core",
+ "serde_derive",
 ]
 
 [[package]]

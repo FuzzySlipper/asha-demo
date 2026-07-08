@@ -33,6 +33,9 @@ for (const path of projectBundle.sourceFiles.entityDefinitions) {
 for (const path of Object.values(projectBundle.sourceFiles.catalogRefs)) {
   requireProjectFile(path);
 }
+for (const path of projectBundle.sourceFiles.gameRuleModules ?? []) {
+  requireProjectFile(path);
+}
 requireProjectFile(projectBundle.sourceFiles.levelPreset);
 requireProjectFile('docs/demo-surface-audit.md');
 

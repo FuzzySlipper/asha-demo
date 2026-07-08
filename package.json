@@ -24,6 +24,7 @@
     "@asha/render-projection": "file:../asha-engine/ts/packages/render-projection",
     "@asha/renderer-host": "file:../asha-engine/ts/packages/renderer-host",
     "@asha/runtime-bridge": "file:../asha-engine/ts/packages/runtime-bridge",
+    "@asha/runtime-session": "file:../asha-engine/ts/packages/runtime-session",
     "@asha/ui-dom": "file:../asha-engine/ts/packages/ui-dom"
   },
   "devDependencies": {

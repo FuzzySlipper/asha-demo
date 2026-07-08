@@ -1,0 +1,11 @@
+[package]
+name = "asha-demo-primary-fire-effect"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+asha-game-rule-extension = { path = "../../../../asha-engine/public-rust/game-rule-extension" }
+
+[dev-dependencies]
+serde_json = "1"

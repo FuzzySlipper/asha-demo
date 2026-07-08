@@ -13,6 +13,32 @@
     "gameplayCatalogId": "asha.generated_tunnel.gameplay_catalog.v0",
     "objectModelId": "asha.generated_tunnel.fps_ecrp_object_model.v0"
   },
+  "gameRuleModules": [
+    {
+      "moduleRef": {
+        "moduleId": "demo.primary_fire_effect",
+        "version": "0.1.0",
+        "contractHash": "sha256:demo-primary-fire-effect-contract-v0"
+      },
+      "declaredHooks": [
+        {
+          "hookId": "demo.primary_fire_effect.weapon",
+          "kind": "weaponEffect",
+          "inputContract": "WeaponEffectHookRequest.v0",
+          "outputContract": "GameExtensionProposal.v0",
+          "requiredCapabilities": ["health", "weaponMount"]
+        }
+      ],
+      "deterministicRequirements": [
+        "no-wall-clock",
+        "no-ambient-random",
+        "no-filesystem",
+        "no-network",
+        "no-ts-callback"
+      ],
+      "sourceHash": "sha256:demo-primary-fire-effect-source-v0"
+    }
+  ],
   "sourceFiles": {
     "entityDefinitions": [
       "catalogs/actors/demo-player.entity.json",
@@ -25,6 +51,9 @@
       "spawns": "catalogs/spawns/generated-tunnel.spawns.json",
       "weapon": "catalogs/weapons/primary-fire.weapon.json"
     },
+    "gameRuleModules": [
+      "game-rules/primary-fire-effect.manifest.json"
+    ],
     "levelPreset": "levels/presets/tiny-enclosed-tunnel.json"
   },
   "runtime": {

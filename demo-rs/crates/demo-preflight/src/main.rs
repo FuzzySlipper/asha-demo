@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use asha_demo_primary_fire_effect::primary_fire_effect_manifest;
 use serde_json::Value as JsonValue;
 
 fn main() {
@@ -58,6 +59,26 @@ fn run_preflight(repo_root: &Path) -> Result<PreflightSummary, String> {
     require_json_string(&project_bundle, &["kind"], "ProjectBundle")?;
     require_json_string(&project_bundle, &["project", "gameId"], "asha-demo")?;
     require_json_number(&project_bundle, &["runtimeRequest", "sceneId"], 4103)?;
+    let game_rule_modules = read_project_game_rule_modules(&project_bundle)?;
+    if game_rule_modules.len() != 1 {
+        return Err("ProjectBundle.gameRuleModules must declare exactly one demo rule module".to_owned());
+    }
+    let manifest = primary_fire_effect_manifest();
+    require_json_string(
+        &game_rule_modules[0],
+        &["moduleRef", "moduleId"],
+        manifest.module_ref.module_id.as_str(),
+    )?;
+    require_json_string(
+        &game_rule_modules[0],
+        &["moduleRef", "version"],
+        manifest.module_ref.version.as_str(),
+    )?;
+    require_json_string(
+        &game_rule_modules[0],
+        &["moduleRef", "contractHash"],
+        manifest.module_ref.contract_hash.as_str(),
+    )?;
 
     let mut checked_file_count = 1;
     for source_path in read_project_source_paths(&project_bundle)? {
@@ -109,7 +130,27 @@ fn read_project_source_paths(project_bundle: &JsonValue) -> Result<Vec<String>, 
                 .to_owned(),
         );
     }
+    let game_rule_modules = source_files
+        .get("gameRuleModules")
+        .and_then(JsonValue::as_array)
+        .ok_or_else(|| "ProjectBundle.sourceFiles.gameRuleModules must be an array".to_owned())?;
+    for value in game_rule_modules {
+        paths.push(
+            value
+                .as_str()
+                .ok_or_else(|| "ProjectBundle game rule module refs must be strings".to_owned())?
+                .to_owned(),
+        );
+    }
     Ok(paths)
+}
+
+fn read_project_game_rule_modules(project_bundle: &JsonValue) -> Result<Vec<JsonValue>, String> {
+    project_bundle
+        .get("gameRuleModules")
+        .and_then(JsonValue::as_array)
+        .cloned()
+        .ok_or_else(|| "ProjectBundle.gameRuleModules must declare demo Rust rule modules".to_owned())
 }
 
 fn require_source_file(

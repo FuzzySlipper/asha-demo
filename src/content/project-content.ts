@@ -20,6 +20,7 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
     spawnCatalog,
     weaponCatalog,
     levelPreset,
+    gameRuleModules,
   ] = await Promise.all([
     Promise.all((sourceFiles.entityDefinitions ?? []).map((path) => fetchJson(`/${path}`))),
     fetchJson(`/${sourceFiles.sceneDocument}`),
@@ -28,6 +29,7 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
     fetchJson(`/${catalogRefs.spawns}`),
     fetchJson(`/${catalogRefs.weapon}`),
     fetchJson(`/${sourceFiles.levelPreset}`),
+    Promise.all((sourceFiles.gameRuleModules ?? []).map((path) => fetchJson(`/${path}`))),
   ]);
 
   const playerDefinition = requireEntityDefinition(entityDefinitions, 'actor/demo-player');
@@ -44,9 +46,11 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
       entityDefinitions: sourceFiles.entityDefinitions,
       sceneDocument: sourceFiles.sceneDocument,
       catalogs: catalogRefs,
+      gameRuleModules: sourceFiles.gameRuleModules ?? [],
       levelPreset: sourceFiles.levelPreset,
     },
     projectBundle,
+    gameRuleModules,
     entityDefinitions,
     sceneDocument,
     catalogs: {
@@ -94,6 +98,7 @@ export function readDemoProjectContentStatus(demoProjectContent) {
     entityDefinitionCount: demoProjectContent.entityDefinitions.length,
     sceneId: demoProjectContent.sceneDocument.sceneId,
     sourceFiles: demoProjectContent.sourceFiles,
+    gameRuleModules: demoProjectContent.gameRuleModules.map((manifest) => manifest.moduleRef),
     gameplayPresetHash: demoProjectContent.catalogs.upstreamGameplay.defaultPreset.hashes.presetHash,
     ecrpObjectModelHash: demoProjectContent.catalogs.upstreamEcrpObjectModel.hashes.modelHash,
   };
@@ -120,6 +125,15 @@ function validateProjectBundle(demoProjectContent, diagnostics) {
   }
   if (!Array.isArray(projectBundle.sourceFiles?.entityDefinitions) || projectBundle.sourceFiles.entityDefinitions.length === 0) {
     diagnostics.push('ProjectBundle sourceFiles.entityDefinitions must name durable entity files');
+  }
+  if (!Array.isArray(projectBundle.gameRuleModules) || projectBundle.gameRuleModules.length !== 1) {
+    diagnostics.push('ProjectBundle gameRuleModules must declare the demo Rust weapon-effect module');
+  }
+  if (!Array.isArray(projectBundle.sourceFiles?.gameRuleModules) || projectBundle.sourceFiles.gameRuleModules.length !== 1) {
+    diagnostics.push('ProjectBundle sourceFiles.gameRuleModules must name the demo Rust module manifest');
+  }
+  if (!deepEqual(projectBundle.gameRuleModules ?? [], demoProjectContent.gameRuleModules)) {
+    diagnostics.push('ProjectBundle gameRuleModules must match the durable module manifest source file');
   }
 }
 

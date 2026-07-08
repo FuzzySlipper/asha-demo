@@ -1,3 +1,3 @@
 [workspace]
-members = ["crates/demo-preflight"]
+members = ["crates/demo-preflight", "crates/primary-fire-effect"]
 resolver = "2"

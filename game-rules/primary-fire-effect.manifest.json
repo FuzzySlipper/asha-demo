@@ -1,0 +1,24 @@
+{
+  "moduleRef": {
+    "moduleId": "demo.primary_fire_effect",
+    "version": "0.1.0",
+    "contractHash": "sha256:demo-primary-fire-effect-contract-v0"
+  },
+  "declaredHooks": [
+    {
+      "hookId": "demo.primary_fire_effect.weapon",
+      "kind": "weaponEffect",
+      "inputContract": "WeaponEffectHookRequest.v0",
+      "outputContract": "GameExtensionProposal.v0",
+      "requiredCapabilities": ["health", "weaponMount"]
+    }
+  ],
+  "deterministicRequirements": [
+    "no-wall-clock",
+    "no-ambient-random",
+    "no-filesystem",
+    "no-network",
+    "no-ts-callback"
+  ],
+  "sourceHash": "sha256:demo-primary-fire-effect-source-v0"
+}

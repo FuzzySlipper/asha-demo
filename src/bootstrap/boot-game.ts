@@ -59,6 +59,7 @@ const surface = mountAshaRendererSurface(canvas, {
 let animationFrame = null;
 let enemyLoopTimer = null;
 let lastEnemyPolicyReadout = null;
+let lastGameRuleEffect = null;
 let lastMovementEvent = 'Authority ready';
 let lastRuntimeEvent = 'Runtime ready';
 let reticlePulseTimer = null;
@@ -222,14 +223,29 @@ function firePrimary() {
 
   const actionReceipt = runtimeGateway.submitPrimaryFire({
     phase: 'pressed',
-    camera: runtimeCamera,
+    camera: {
+      ...runtimeCamera,
+      pose: surface.cameraPose(),
+    },
     tick: playable.counters.actionTick,
     source: 'browser_fps_pointer',
     pressed: true,
+    baseDamage: demoProjectContent.catalogs.weapon.damage,
+    rangeMillimeters: demoProjectContent.catalogs.weapon.rangeUnits * 1000,
   });
+  lastGameRuleEffect = actionReceipt.hookReceipt === undefined ? null : {
+    moduleRef: actionReceipt.hookReceipt.moduleRef,
+    hookId: actionReceipt.hookReceipt.hookId,
+    status: actionReceipt.hookReceipt.status,
+    proposalHash: actionReceipt.hookReceipt.proposalHash,
+    replayHash: actionReceipt.replayEvidence?.replayHash ?? null,
+    validationStatus: actionReceipt.replayEvidence?.validationStatus ?? null,
+  };
 
   if (actionReceipt.accepted && actionReceipt.combatReadout?.outcome.kind === 'hit') {
-    lastRuntimeEvent = 'Fire hit';
+    lastRuntimeEvent = lastGameRuleEffect === null
+      ? 'Fire hit'
+      : `Fire hit - ${lastGameRuleEffect.moduleRef.moduleId}`;
     pulseReticle('hit');
   } else {
     lastRuntimeEvent = actionReceipt.accepted ? 'Fire missed' : 'Fire rejected';
@@ -476,6 +492,7 @@ function readRuntimeInteractionState() {
     lastEvent: lastRuntimeEvent,
     lastMenuIntent,
     lifecycleOutcome: readLifecycleStatus().outcome.kind,
+    gameRuleEffect: lastGameRuleEffect,
     menuMode,
     paused,
     playerDead: playable.health.player.dead,
@@ -602,11 +619,13 @@ tickHud();
   cameraPose: () => surface.cameraPose(),
   firePrimary: () => firePrimary(),
   enemyLoopState: () => lastEnemyPolicyReadout,
+  gameRuleEffectState: () => lastGameRuleEffect,
   interactionState: () => readRuntimeInteractionState(),
   movementState: () => surface.movementState(),
   pointerLocked: () => surface.pointerLocked(),
   projectContentStatus: () => ({
     ...readDemoProjectContentStatus(demoProjectContent),
+    gameRuleModules: demoProjectContent.gameRuleModules.map((manifest) => manifest.moduleRef),
     levelRenderProjectionHash: generatedTunnelReadout.renderProjection.hash,
     levelSurfaceLabels: ['generated-tunnel-floor', demoProjectContent.runtime.enemyRenderTarget.label],
     runtimeBackend: runtimeBackend.status,

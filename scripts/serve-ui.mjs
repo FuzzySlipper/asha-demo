@@ -10,6 +10,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'dist/ui');
 const authoredContentRoots = new Map([
   ['/catalogs/', join(appRoot, 'catalogs')],
+  ['/game-rules/', join(appRoot, 'game-rules')],
   ['/levels/', join(appRoot, 'levels')],
   ['/project/', join(appRoot, 'project')],
 ]);
@@ -20,6 +21,7 @@ const renderProjectionBrowserRoot = join(vendorRoot, 'asha-render-projection');
 const rendererHostBrowserRoot = join(vendorRoot, 'asha-renderer-host');
 const rendererHostBackendBrowserRoot = join(rendererHostBrowserRoot, 'vendor/asha-renderer-three');
 const runtimeBridgeBrowserRoot = join(vendorRoot, 'asha-runtime-bridge');
+const runtimeSessionBrowserRoot = join(vendorRoot, 'asha-runtime-session');
 const rendererHostThreeBrowserRoot = join(rendererHostBrowserRoot, 'vendor/three');
 const args = parseArgs(process.argv.slice(2));
 const host = args.host ?? process.env.HOST ?? process.env.npm_config_host ?? '127.0.0.1';
@@ -45,6 +47,11 @@ const server = createServer(async (request, response) => {
   if (request.url?.startsWith('/vendor/asha-runtime-bridge/')) {
     const vendorPath = request.url.replace('/vendor/asha-runtime-bridge/', '') || 'browser.js';
     await sendStaticAssetFromRoot(response, runtimeBridgeBrowserRoot, vendorPath);
+    return;
+  }
+  if (request.url?.startsWith('/vendor/asha-runtime-session/')) {
+    const vendorPath = request.url.replace('/vendor/asha-runtime-session/', '') || 'index.js';
+    await sendStaticAssetFromRoot(response, runtimeSessionBrowserRoot, vendorPath);
     return;
   }
   if (request.url?.startsWith('/vendor/asha-renderer-host/vendor/asha-renderer-three/')) {

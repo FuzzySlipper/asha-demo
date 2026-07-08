@@ -29,6 +29,9 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   );
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().valid ?? null)).toBe(true);
   expect(
+    await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().gameRuleModules?.[0]?.moduleId ?? null),
+  ).toBe('demo.primary_fire_effect');
+  expect(
     await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().sourceFiles ?? null),
   ).toMatchObject({
     projectBundle: '/project/project-bundle.json',
@@ -195,6 +198,12 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(fireResult?.interaction?.remainingTargets).toBe(0);
   expect(fireResult?.runtime?.accepted).toBe(true);
   expect(fireResult?.runtime?.combatReadout?.outcome.kind).toBe('hit');
+  expect(fireResult?.runtime?.hookReceipt?.moduleRef.moduleId).toBe('demo.primary_fire_effect');
+  expect(fireResult?.runtime?.replayEvidence?.replayHash).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
+  expect(await page.locator('#event-state').textContent()).toContain('demo.primary_fire_effect');
+  expect(
+    await page.evaluate(() => globalThis.ashaRendererSurface?.gameRuleEffectState?.().moduleRef.moduleId ?? null),
+  ).toBe('demo.primary_fire_effect');
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().shotsFired ?? null)).toBe(1);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().remainingTargets ?? null)).toBe(0);
   expect(
@@ -208,7 +217,7 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(
     await page.evaluate(() =>
       globalThis.ashaRendererSurface?.runtimeTelemetry?.().replayRecords.some(
-        (record) => record.kind === 'submitRuntimeActionIntent',
+        (record) => record.kind === 'submitGameExtensionWeaponEffect',
       ) ?? null,
     ),
   ).toBe(true);
