@@ -109,6 +109,7 @@ button:disabled {
   left: 1rem;
   min-width: 13rem;
   padding: 0.8rem;
+  pointer-events: none;
   position: fixed;
   top: 1rem;
 }
