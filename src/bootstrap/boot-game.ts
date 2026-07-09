@@ -6,7 +6,7 @@ import {
   TINY_GENERATED_TUNNEL_READOUT,
 } from '@asha/runtime-bridge';
 import { hudControlToIntent } from '../input/hud-controls.js';
-import { type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
+import { type DemoHudEventSource, type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
 import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
 import { readDemoHudElements } from '../shell/hud-elements.js';
 import { renderHudElements } from '../shell/hud-renderer.js';
@@ -60,6 +60,7 @@ let animationFrame = null;
 let enemyLoopTimer = null;
 let lastEnemyPolicyReadout = null;
 let lastGameRuleEffect = null;
+let lastEventSource: DemoHudEventSource = 'runtime';
 let lastMovementEvent = 'Authority ready';
 let lastRuntimeEvent = 'Runtime ready';
 let reticlePulseTimer = null;
@@ -84,6 +85,7 @@ function createRuntimeCamera() {
 function constrainCameraMovement(input) {
   if (!runtimeGateway.available()) {
     lastMovementEvent = runtimeBackend.diagnostics[0]?.message ?? 'Movement blocked: Rust runtime backend missing';
+    lastEventSource = 'movement';
     return {
       blockedAxes: ['x', 'y', 'z'],
       collided: true,
@@ -131,6 +133,7 @@ function constrainCameraMovement(input) {
       : receipt.collided
         ? `Blocked ${receipt.blockedAxes.join(', ')}`
         : 'Moved';
+  lastEventSource = 'movement';
   return {
     blockedAxes: receipt.blockedAxes,
     collided: receipt.collided,
@@ -215,6 +218,7 @@ function firePrimary() {
   const playable = readPlayableLoopState();
   if (!runtimeGateway.available() || !playable.commands.canFire) {
     lastRuntimeEvent = readFireBlockedEvent(playable.commands.blockedReasons);
+    lastEventSource = 'runtime';
     pulseReticle('miss');
     renderHud();
     return {
@@ -248,9 +252,11 @@ function firePrimary() {
     lastRuntimeEvent = lastGameRuleEffect === null
       ? 'Fire hit'
       : `Fire hit - ${lastGameRuleEffect.moduleRef.moduleId}`;
+    lastEventSource = 'runtime';
     pulseReticle('hit');
   } else {
     lastRuntimeEvent = actionReceipt.accepted ? 'Fire missed' : 'Fire rejected';
+    lastEventSource = 'runtime';
     pulseReticle('miss');
   }
   projectRuntimeTargetState();
@@ -286,6 +292,7 @@ function resetLoop() {
     menuMode = 'closed';
     lastMovementEvent = 'Reset unavailable: Rust runtime backend missing';
     lastRuntimeEvent = lastMovementEvent;
+    lastEventSource = 'runtime';
     surface.reset();
     projectRuntimeTargetState();
     pulseReticle('miss');
@@ -307,6 +314,7 @@ function resetLoop() {
   menuMode = 'closed';
   lastMovementEvent = 'Reset';
   lastRuntimeEvent = restartReceipt.accepted ? 'Runtime reset' : 'Reset rejected';
+  lastEventSource = 'runtime';
   surface.reset();
   projectRuntimeTargetState();
   pulseReticle('reset');
@@ -318,6 +326,7 @@ function openPauseMenu(mode: DemoMenuMode) {
   menuMode = mode;
   document.exitPointerLock?.();
   lastRuntimeEvent = mode === 'exit' ? 'Exited to menu' : 'Paused';
+  lastEventSource = 'runtime';
   renderHud();
   return readRuntimeInteractionState();
 }
@@ -326,6 +335,7 @@ function closePauseMenu() {
   paused = false;
   menuMode = 'closed';
   lastRuntimeEvent = 'Resumed';
+  lastEventSource = 'runtime';
   renderHud();
   return readRuntimeInteractionState();
 }
@@ -371,6 +381,7 @@ function renderHud() {
     interaction,
     lastMovementEvent,
     lastRuntimeEvent,
+    lastEventSource,
     lifecycle,
     locked,
     menuMode,
@@ -426,6 +437,7 @@ function readEnemyRenderTarget(visible) {
 function tickEnemyPolicy() {
   if (!runtimeGateway.available()) {
     lastRuntimeEvent = 'Enemy loop blocked: Rust runtime backend missing';
+    lastEventSource = 'runtime';
     renderHud();
     return lastEnemyPolicyReadout;
   }
@@ -440,6 +452,7 @@ function tickEnemyPolicy() {
   });
   if (encounterTick.status === 'blocked') {
     lastRuntimeEvent = encounterTickBlockedEvent(encounterTick.blockedReason);
+    lastEventSource = 'runtime';
     renderHud();
     return lastEnemyPolicyReadout;
   }
@@ -450,11 +463,14 @@ function tickEnemyPolicy() {
 
   if (encounterTick.combatSummary?.status === 'accepted') {
     lastRuntimeEvent = 'Enemy hit';
+    lastEventSource = 'runtime';
   } else if (encounterTick.movementSummary?.status === 'accepted') {
     lastRuntimeEvent = 'Enemy moved';
+    lastEventSource = 'runtime';
   }
   if (encounterTick.lifecycleAfter?.player.dead) {
     lastRuntimeEvent = 'Player defeated';
+    lastEventSource = 'runtime';
   }
   projectRuntimeTargetState();
   renderHud();

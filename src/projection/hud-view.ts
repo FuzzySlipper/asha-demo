@@ -8,6 +8,7 @@ import {
 } from '@asha/ui-dom';
 
 export type DemoMenuMode = 'closed' | 'paused' | 'options' | 'exit';
+export type DemoHudEventSource = 'movement' | 'runtime';
 
 interface DemoHudViewInput {
   readonly backendMissingLabel: string;
@@ -23,6 +24,7 @@ interface DemoHudViewInput {
   readonly lifecycle: any;
   readonly locked: boolean;
   readonly menuMode: DemoMenuMode;
+  readonly lastEventSource: DemoHudEventSource;
   readonly movement: any;
   readonly paused: boolean;
   readonly playerHealth: {
@@ -68,6 +70,7 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     interaction,
     lastMovementEvent,
     lastRuntimeEvent,
+    lastEventSource,
     lifecycle,
     locked,
     menuMode,
@@ -82,7 +85,7 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     ? backendMissingLabel
     : lifecycle.player.dead
       ? `${lifecycle.outcome.label} - restart available`
-      : movement.collided
+      : lastEventSource === 'movement' && movement.collided
         ? lastMovementEvent
         : lastRuntimeEvent || interaction.lastEvent;
   const gameHud = buildGameHudProjection(buildGameHudInput({
