@@ -10,7 +10,7 @@
     {
       "kind": "transform",
       "initial": {
-        "position": [0, 1.62, 1.25],
+        "position": [0, 1.62, 1.5],
         "yawDegrees": 0,
         "pitchDegrees": 0
       }

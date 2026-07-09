@@ -22,7 +22,7 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(surface).toBe('asha_renderer_surface.v0');
 
   const pose = await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null);
-  expect(pose?.position).toEqual([0, 1.62, 1.25]);
+  expect(pose?.position).toEqual([0, 1.62, 1.5]);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.pointerLocked?.() ?? null)).toBe(false);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().authority ?? null)).toBe(
     'external_collision',
