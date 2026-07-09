@@ -15,6 +15,7 @@ const errors = [];
 
 requireText(indexHtml, 'asha-renderer-browser-surface');
 requireText(indexHtml, '@asha/renderer-host');
+requireText(indexHtml, '"three/": "/vendor/asha-renderer-host/vendor/three/"');
 requireText(entrypointTs, 'bootGame');
 requireText(appTs, 'mountAshaRendererSurface');
 requireText(appTs, 'createAshaRendererGeneratedTunnelRoomSurfaceFrame');
