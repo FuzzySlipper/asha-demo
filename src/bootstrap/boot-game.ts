@@ -40,6 +40,11 @@ let enemyPolicyTick = 0;
 let paused = false;
 let menuMode: DemoMenuMode = 'closed';
 let lastMenuIntent = null;
+let inputSettings = {
+  invertY: false,
+  lookSensitivityDegreesPerPixel: 0.1,
+  moveSpeedUnitsPerSecond: 3,
+};
 const generatedTunnelReadout = TINY_GENERATED_TUNNEL_READOUT;
 const levelFrame = createAshaRendererGeneratedTunnelRoomSurfaceFrame({
   tunnel: generatedTunnelReadout,
@@ -52,6 +57,8 @@ const surface = mountAshaRendererSurface(canvas, {
   frame: levelFrame,
   controls: {
     initialPosition: demoProjectContent.runtime.initialCameraPose.position,
+    mouseSensitivity: (inputSettings.lookSensitivityDegreesPerPixel * Math.PI) / 180,
+    moveSpeed: inputSettings.moveSpeedUnitsPerSecond,
     movementAuthority: constrainCameraMovement,
   },
 });
@@ -107,8 +114,11 @@ function constrainCameraMovement(input) {
         moveRight: input.moveRight,
         moveUp: input.moveUp,
       };
-  const yawDeltaDegrees = paused ? 0 : input.yawDeltaDegrees;
-  const pitchDeltaDegrees = paused ? 0 : input.pitchDeltaDegrees;
+  const lookScale = inputSettings.lookSensitivityDegreesPerPixel / 0.1;
+  const yawDeltaDegrees = paused ? 0 : input.yawDeltaDegrees * lookScale;
+  const pitchDeltaDegrees = paused
+    ? 0
+    : input.pitchDeltaDegrees * (inputSettings.invertY ? -1 : 1) * lookScale;
   const receipt = runtimeGateway.applyCollisionConstrainedCameraInput({
     camera: readRuntimeCameraHandle(),
     grid: 1,
@@ -119,7 +129,7 @@ function constrainCameraMovement(input) {
       yawDeltaDegrees,
       pitchDeltaDegrees,
       dtSeconds: input.dtSeconds,
-      moveSpeedUnitsPerSecond: input.moveSpeedUnitsPerSecond,
+      moveSpeedUnitsPerSecond: input.moveSpeedUnitsPerSecond * (inputSettings.moveSpeedUnitsPerSecond / 3),
     },
     tick: input.tick,
     shape: demoProjectContent.runtime.collisionShape,
@@ -191,6 +201,18 @@ elements.optionsButton?.addEventListener('click', () => {
 
 elements.exitButton?.addEventListener('click', () => {
   handleHudControl('hud-exit');
+});
+
+elements.moveSpeedInput?.addEventListener('input', () => {
+  updateInputSettings({ moveSpeedUnitsPerSecond: Number(elements.moveSpeedInput.value) });
+});
+
+elements.lookSensitivityInput?.addEventListener('input', () => {
+  updateInputSettings({ lookSensitivityDegreesPerPixel: Number(elements.lookSensitivityInput.value) });
+});
+
+elements.invertYInput?.addEventListener('change', () => {
+  updateInputSettings({ invertY: Boolean(elements.invertYInput.checked) });
 });
 
 document.addEventListener('pointerdown', (event) => {
@@ -325,7 +347,7 @@ function openPauseMenu(mode: DemoMenuMode) {
   paused = true;
   menuMode = mode;
   document.exitPointerLock?.();
-  lastRuntimeEvent = mode === 'exit' ? 'Exited to menu' : 'Paused';
+  lastRuntimeEvent = mode === 'title' ? 'Returned to title' : 'Paused';
   lastEventSource = 'runtime';
   renderHud();
   return readRuntimeInteractionState();
@@ -347,6 +369,9 @@ function handleHudControl(controlId) {
   }
   lastMenuIntent = intent;
   if (intent.kind === 'ui.resume_intent') {
+    if (menuMode === 'title') {
+      return readRuntimeInteractionState();
+    }
     return closePauseMenu();
   }
   if (intent.kind === 'runtime.restart_session_intent') {
@@ -357,9 +382,30 @@ function handleHudControl(controlId) {
     return openPauseMenu('options');
   }
   if (intent.kind === 'ui.exit_to_menu_intent') {
-    return openPauseMenu('exit');
+    return openPauseMenu('title');
   }
   return null;
+}
+
+function updateInputSettings(update) {
+  inputSettings = {
+    ...inputSettings,
+    ...(Number.isFinite(update.moveSpeedUnitsPerSecond)
+      ? { moveSpeedUnitsPerSecond: clampInputSetting(update.moveSpeedUnitsPerSecond, 2, 6, 0.5) }
+      : {}),
+    ...(Number.isFinite(update.lookSensitivityDegreesPerPixel)
+      ? { lookSensitivityDegreesPerPixel: clampInputSetting(update.lookSensitivityDegreesPerPixel, 0.05, 0.2, 0.01) }
+      : {}),
+    ...(typeof update.invertY === 'boolean' ? { invertY: update.invertY } : {}),
+  };
+  lastRuntimeEvent = 'Input settings updated';
+  lastEventSource = 'runtime';
+  renderHud();
+}
+
+function clampInputSetting(value, minimum, maximum, step) {
+  const bounded = Math.min(maximum, Math.max(minimum, value));
+  return Number((Math.round(bounded / step) * step).toFixed(2));
 }
 
 function pulseReticle(kind) {
@@ -379,6 +425,7 @@ function renderHud() {
     backendMissingLabel: runtimeBackend.diagnostics[0]?.message ?? 'Rust runtime backend missing',
     enemyHealth,
     interaction,
+    inputSettings,
     lastMovementEvent,
     lastRuntimeEvent,
     lastEventSource,
@@ -514,6 +561,7 @@ function readRuntimeInteractionState() {
     lastMenuIntent,
     lifecycleOutcome: readLifecycleStatus().outcome.kind,
     gameRuleEffect: lastGameRuleEffect,
+    inputSettings: { ...inputSettings },
     menuMode,
     paused,
     playerDead: playable.health.player.dead,

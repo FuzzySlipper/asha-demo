@@ -6,10 +6,12 @@
   "description": "Human-facing ASHA playable-loop demo built on public ASHA surfaces.",
   "scripts": {
     "build": "node scripts/build-ui.mjs",
+    "capture:replay": "node scripts/capture-replay-evidence.mjs",
     "check:architecture": "node scripts/check-source-architecture.mjs",
     "check:demo-rs": "cargo run -q --manifest-path demo-rs/Cargo.toml --bin asha-demo-preflight -- .",
     "check:dependencies": "node scripts/check-dependency-boundary.mjs",
     "check:host": "node scripts/check-host-parity.mjs",
+    "check:replay": "node scripts/capture-replay-evidence.mjs",
     "check:standalone": "node scripts/standalone-host.mjs",
     "check:ui": "node scripts/check-ui-assets.mjs",
     "dev": "node scripts/serve-ui.mjs",
@@ -17,7 +19,7 @@
     "skeleton:status": "node scripts/print-skeleton-status.mjs",
     "standalone": "node scripts/standalone-host.mjs",
     "test:live-ui": "playwright test -c playwright.config.mjs",
-    "typecheck": "npm run check:dependencies && npm run check:architecture && npm run check:demo-rs && npm run check:host && npm run check:ui && npm run check:standalone",
+    "typecheck": "npm run check:dependencies && npm run check:architecture && npm run check:demo-rs && npm run check:host && npm run check:ui && npm run check:standalone && npm run check:replay",
     "test": "npm run typecheck"
   },
   "dependencies": {

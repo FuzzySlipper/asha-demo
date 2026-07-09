@@ -44,12 +44,31 @@ export function renderHudElements(elements: any, view: any): void {
   }
   if (elements.resumeButton instanceof HTMLButtonElement) {
     const resumeControl = view.pauseMenuControls.find((control) => control.id === 'hud-resume');
-    elements.resumeButton.disabled = Boolean(resumeControl?.disabled);
+    elements.resumeButton.disabled = Boolean(resumeControl?.disabled) || view.menuMode === 'title';
+    elements.resumeButton.textContent = view.resumeLabel;
+  }
+  if (elements.menuResetButton instanceof HTMLButtonElement) {
+    elements.menuResetButton.textContent = view.restartLabel;
+  }
+  if (elements.menuTitle instanceof HTMLElement) {
+    elements.menuTitle.textContent = view.menuTitle;
   }
   if (elements.optionsPane instanceof HTMLElement) {
     elements.optionsPane.hidden = view.menuMode !== 'options';
   }
-  if (elements.exitState instanceof HTMLElement) {
-    elements.exitState.hidden = view.menuMode !== 'exit';
+  if (elements.moveSpeedInput instanceof HTMLInputElement) {
+    elements.moveSpeedInput.value = String(view.inputSettings.moveSpeedUnitsPerSecond);
+  }
+  if (elements.moveSpeedValue instanceof HTMLOutputElement) {
+    elements.moveSpeedValue.value = view.inputSettings.moveSpeedUnitsPerSecond.toFixed(1);
+  }
+  if (elements.lookSensitivityInput instanceof HTMLInputElement) {
+    elements.lookSensitivityInput.value = String(view.inputSettings.lookSensitivityDegreesPerPixel);
+  }
+  if (elements.lookSensitivityValue instanceof HTMLOutputElement) {
+    elements.lookSensitivityValue.value = view.inputSettings.lookSensitivityDegreesPerPixel.toFixed(2);
+  }
+  if (elements.invertYInput instanceof HTMLInputElement) {
+    elements.invertYInput.checked = view.inputSettings.invertY;
   }
 }

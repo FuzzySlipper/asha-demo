@@ -73,6 +73,11 @@ same UI/content bundle, installs the public native RuntimeBridge provider from
 host bootstrap, loads RuntimeSession content without a manually selected
 dev-server port, and writes `dist/standalone/status.json`.
 
+Run `npm run capture:replay` after a build to refresh the committed
+generated-tunnel replay evidence under `replays/`. It consumes public
+RuntimeSession telemetry/replay readouts for movement, player death/restart,
+and primary-fire enemy defeat; it does not implement replay authority locally.
+
 Run `npm run test:live-ui` only with `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` set by the Den Playwright broker or an equivalent local dev-server wrapper. The live UI smoke checks objective text/readout values and writes screenshots under `PLAYWRIGHT_BROKER_ARTIFACT_ROOT` when provided.
 
 ## Source Layout

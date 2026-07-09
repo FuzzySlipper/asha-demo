@@ -11,7 +11,7 @@ quiet load-bearing structure.
 | Retired broad-claims document references | No live references found in repo search. | none |
 | Static target dummy content | Removed from `catalogs/actors`; the demo now loads `demo-player.entity.json` and `generated-tunnel-enemy.entity.json`. | #4217 |
 | Flat-room scene naming | Replaced with `levels/scenes/generated-tunnel-room.scene.json`. | #4217 |
-| Pause/options/exit controls | Present as typed HUD menu intents and DOM projection descriptors. Options/exit are intentionally read-only/paused demo states. | #4485 |
+| Pause/options/exit controls | Typed HUD menu intents drive pause/resume/restart, real browser-input tuning, and a title state that starts a fresh RuntimeSession. | #4897 |
 | Local Three.js/rendering implementation risk | Demo imports `@asha/renderer-host`; the Three.js backend remains transitive ASHA host plumbing rather than a demo dependency or app import. | #4386 |
 | Local health/combat/lifecycle authority risk | Fire, health, death, and restart use `RuntimeSession` readouts/intents; demo UI projects state. | #4224/#4217 |
 | Proof-page artifacts appearing as product UI | No proof dashboard is mounted. Live smoke and screenshots stay in `tests/` and `artifacts/`. | none |
@@ -19,3 +19,4 @@ quiet load-bearing structure.
 | Polished pause/options/menu flow | Basic typed pause/options/exit flow is present and projected through public `@asha/ui-dom` game HUD/menu primitives. | #4522/#4842 |
 | Studio open/attach/control product path | Not implemented in `asha-demo`; belongs to Studio workflow. | #4221 |
 | Compiled standalone host | Demo-owned host bootstrap and `npm run standalone` native provider smoke exist. The smoke uses the built UI/content and no manually selected dev-server port. | #4521/#4841 |
+| Replay/telemetry evidence | `replays/generated-tunnel-playable-loop.json` is regenerated from public RuntimeSession telemetry/readouts and covers movement, player death, restart, and enemy defeat. | #4898 |

@@ -110,19 +110,22 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().lastMenuIntent?.kind ?? null)).toBe(
     'ui.open_options_intent',
   );
+  await page.locator('#move-speed-input').fill('4.5');
+  await page.locator('#look-sensitivity-input').fill('0.15');
+  await page.locator('#invert-y-input').check();
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().inputSettings ?? null)).toEqual({
+    moveSpeedUnitsPerSecond: 4.5,
+    lookSensitivityDegreesPerPixel: 0.15,
+    invertY: true,
+  });
   await page.locator('#exit-button').click();
-  await expect(page.locator('#exit-state')).toBeVisible();
-  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().menuMode ?? null)).toBe('exit');
+  await expect(page.locator('#pause-menu-title')).toHaveText('ASHA Demo');
+  await expect(page.locator('#menu-reset-button')).toHaveText('Start');
+  await expect(page.locator('#resume-button')).toBeDisabled();
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().menuMode ?? null)).toBe('title');
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().lastMenuIntent?.kind ?? null)).toBe(
     'ui.exit_to_menu_intent',
   );
-  await page.locator('#resume-button').click();
-  await expect(page.locator('#pause-menu')).toBeHidden();
-  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().paused ?? null)).toBe(false);
-  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().lastMenuIntent?.kind ?? null)).toBe(
-    'ui.resume_intent',
-  );
-  await page.locator('#pause-button').click();
   await page.locator('#menu-reset-button').click();
   await expect(page.locator('#pause-menu')).toBeHidden();
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(1);

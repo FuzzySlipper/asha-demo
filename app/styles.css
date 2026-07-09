@@ -270,6 +270,23 @@ button:disabled {
   font-size: 0.82rem;
 }
 
+.menu-pane label {
+  color: rgba(245, 247, 242, 0.9);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.menu-pane input[type="range"] {
+  accent-color: #8adccd;
+  inline-size: 100%;
+}
+
+.checkbox-control {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
 @media (max-width: 620px) {
   .hud-panel {
     left: 0.75rem;

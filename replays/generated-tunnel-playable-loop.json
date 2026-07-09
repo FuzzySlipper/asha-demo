@@ -1,0 +1,60 @@
+{
+  "kind": "asha_demo.runtime_replay_evidence.v1",
+  "classification": {
+    "demoOwnedEvidence": true,
+    "runtimeAuthority": "public_runtime_session_telemetry",
+    "nonAuthority": [
+      "not_demo_local_replay_authority",
+      "not_save_load_persistence"
+    ]
+  },
+  "projectBundle": {
+    "gameId": "asha-demo",
+    "sceneId": 4103,
+    "seed": 4103
+  },
+  "runtime": {
+    "backendStatus": "rust_authority",
+    "providerContract": "asha.runtime_bridge.native_rust_provider.v1",
+    "referenceFallback": false
+  },
+  "keyEvents": [
+    {
+      "kind": "movement",
+      "collisionConstrained": true,
+      "collided": true,
+      "blockedAxes": [
+        "z"
+      ],
+      "movementHash": "fnv1a64:28023d42c5b696bd"
+    },
+    {
+      "kind": "enemy_attack_and_player_death",
+      "tick": 20,
+      "combatStatus": "accepted",
+      "playerDead": true,
+      "lifecycleHash": "fnv1a64:bde4caae6628f0a4"
+    },
+    {
+      "kind": "restart",
+      "accepted": true,
+      "sessionHashAfter": "fnv1a64:a5883555975f2555"
+    },
+    {
+      "kind": "primary_fire_and_enemy_death",
+      "accepted": true,
+      "outcome": "hit",
+      "replayHash": "fnv1a64:f29d7ec78ea880c7",
+      "enemyDead": true
+    }
+  ],
+  "replay": {
+    "telemetryRecordCount": 64,
+    "telemetryHashes": {
+      "first": "fnv1a64:a6a5f6315ccc0b4d",
+      "last": "fnv1a64:f29d7ec78ea880c7",
+      "uniqueCount": 63
+    },
+    "primaryFireReplayHash": "fnv1a64:f29d7ec78ea880c7"
+  }
+}

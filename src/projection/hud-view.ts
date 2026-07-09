@@ -7,7 +7,7 @@ import {
   type HudMenuIntent,
 } from '@asha/ui-dom';
 
-export type DemoMenuMode = 'closed' | 'paused' | 'options' | 'exit';
+export type DemoMenuMode = 'closed' | 'paused' | 'options' | 'title';
 export type DemoHudEventSource = 'movement' | 'runtime';
 
 interface DemoHudViewInput {
@@ -19,6 +19,11 @@ interface DemoHudViewInput {
     readonly dead: boolean;
   };
   readonly interaction: any;
+  readonly inputSettings: {
+    readonly invertY: boolean;
+    readonly lookSensitivityDegreesPerPixel: number;
+    readonly moveSpeedUnitsPerSecond: number;
+  };
   readonly lastMovementEvent: string;
   readonly lastRuntimeEvent: string;
   readonly lifecycle: any;
@@ -49,8 +54,10 @@ export interface DemoHudView {
   readonly gameHud: GameHudProjection;
   readonly enemyHealthPercent: number;
   readonly eventLabel: string;
+  readonly inputSettings: DemoHudViewInput['inputSettings'];
   readonly locked: boolean;
   readonly lockLabel: string;
+  readonly menuTitle: string;
   readonly menuMode: DemoMenuMode;
   readonly pauseLabel: string;
   readonly pauseMenuControls: readonly DemoHudControlDescriptor[];
@@ -59,6 +66,8 @@ export interface DemoHudView {
   readonly playerHealthLabel: string;
   readonly playerHealthPercent: number;
   readonly poseLabel: string;
+  readonly restartLabel: string;
+  readonly resumeLabel: string;
   readonly shotLabel: string;
   readonly targetLabel: string;
 }
@@ -68,6 +77,7 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     backendMissingLabel,
     enemyHealth,
     interaction,
+    inputSettings,
     lastMovementEvent,
     lastRuntimeEvent,
     lastEventSource,
@@ -107,8 +117,10 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     gameHud,
     enemyHealthPercent: enemyHealthBar.ratio * 100,
     eventLabel,
+    inputSettings,
     locked,
     lockLabel: locked ? 'LOCKED' : 'UNLOCKED',
+    menuTitle: projectMenuTitle(menuMode),
     menuMode,
     pauseLabel: paused ? 'Resume' : 'Pause',
     pauseMenuControls: projectPauseMenuControls(gameHud),
@@ -117,6 +129,8 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     playerHealthLabel: `${playerHealthBar.current}/${playerHealthBar.max}`,
     playerHealthPercent: playerHealthBar.ratio * 100,
     poseLabel: `${pose.position[0].toFixed(1)}, ${pose.position[2].toFixed(1)} | ${Math.round(pose.yawDegrees)}`,
+    restartLabel: menuMode === 'title' ? 'Start' : 'Restart',
+    resumeLabel: menuMode === 'title' ? 'Resume' : 'Resume',
     shotLabel: `${gameHud.combat.hits}/${gameHud.combat.shotsFired}`,
     targetLabel: `${interaction.remainingTargets}/${interaction.totalTargets}`,
   };
@@ -213,11 +227,15 @@ function requireHealthBar(gameHud: GameHudProjection, id: string) {
 }
 
 function projectPauseMenuStatus(menuMode: DemoMenuMode): string {
-  if (menuMode === 'exit') {
-    return 'Exited to menu. Resume or restart when ready.';
+  if (menuMode === 'title') {
+    return 'Runtime paused. Start a fresh session when ready.';
   }
   if (menuMode === 'options') {
-    return 'Options are read-only for this demo build.';
+    return 'Input settings apply before browser input is submitted to ASHA authority.';
   }
   return 'Runtime paused. Resume or restart through typed HUD intents.';
+}
+
+function projectMenuTitle(menuMode: DemoMenuMode): string {
+  return menuMode === 'title' ? 'ASHA Demo' : 'Paused';
 }

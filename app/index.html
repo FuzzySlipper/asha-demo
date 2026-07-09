@@ -89,13 +89,15 @@
         </div>
         <div id="options-pane" class="menu-pane" hidden>
           <strong>Options</strong>
-          <span>Move 3.0 units/s</span>
-          <span>Look 0.1 deg/px</span>
-          <span>Runtime collision and combat authority enabled</span>
-        </div>
-        <div id="exit-state" class="menu-pane" hidden>
-          <strong>Exited to menu</strong>
-          <span>The demo is paused and pointer lock is released.</span>
+          <label for="move-speed-input">Move speed <output id="move-speed-value">3.0</output> units/s</label>
+          <input id="move-speed-input" type="range" min="2" max="6" step="0.5" value="3">
+          <label for="look-sensitivity-input">Look sensitivity <output id="look-sensitivity-value">0.1</output> deg/px</label>
+          <input id="look-sensitivity-input" type="range" min="0.05" max="0.2" step="0.01" value="0.1">
+          <label class="checkbox-control" for="invert-y-input">
+            <input id="invert-y-input" type="checkbox">
+            Invert Y look
+          </label>
+          <span>Runtime collision and combat authority remain enabled.</span>
         </div>
       </div>
     </section>
