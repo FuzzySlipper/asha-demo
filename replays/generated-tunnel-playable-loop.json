@@ -61,7 +61,7 @@
       "tick": 15,
       "combatStatus": "accepted",
       "playerDead": true,
-      "lifecycleHash": "fnv1a64:6ad02c0995166c31"
+      "lifecycleHash": "fnv1a64:c35e523842053d3c"
     },
     {
       "kind": "restart",
