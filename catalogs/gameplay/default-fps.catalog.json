@@ -2,9 +2,9 @@
   "kind": "asha_demo.gameplay_catalog_ref.v1",
   "catalogId": "asha.generated_tunnel.gameplay_catalog.v0",
   "defaultPresetId": "asha.generated_tunnel.default_fps.v0",
-  "defaultPresetHash": "fnv1a64:450137ad940ba1fb",
-  "tuningHash": "fnv1a64:09e0d75a647d6617",
-  "referenceHash": "fnv1a64:16fe3b71072981e3",
+  "defaultPresetHash": "fnv1a64:b39b8794318889a7",
+  "tuningHash": "fnv1a64:acbf1766f55dcba9",
+  "referenceHash": "fnv1a64:aff976e05786ce21",
   "refs": {
     "levelPreset": "levels/presets/tiny-enclosed-tunnel.json",
     "weapon": "catalogs/weapons/primary-fire.weapon.json",

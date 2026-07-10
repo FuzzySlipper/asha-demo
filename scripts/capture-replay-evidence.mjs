@@ -60,7 +60,7 @@ if (!restart?.accepted) {
   throw new Error('Replay capture expected RuntimeSession restart to be accepted.');
 }
 
-camera = createCamera(runtimeGateway, content);
+camera = createCamera(runtimeGateway, content, { pitchDegrees: -9 });
 const primaryFire = runtimeGateway.submitPrimaryFire({
   phase: 'pressed',
   camera,
@@ -103,6 +103,7 @@ const artifact = {
       outputHash: runtimeBackend.generatedTunnelOperation.outputHash,
       collisionSourceHash: runtimeBackend.generatedTunnelOperation.collisionSourceHash,
       collisionProjectionHash: runtimeBackend.generatedTunnelOperation.collisionProjectionHash,
+      runtimeFrame: runtimeBackend.generatedTunnelOperation.runtimeFrame,
     },
   },
   keyEvents: [
@@ -131,6 +132,7 @@ const artifact = {
     },
     {
       kind: 'primary_fire_and_enemy_death',
+      cameraPose: camera.pose,
       accepted: primaryFire.accepted,
       outcome: primaryFire.combatReadout.outcome.kind,
       replayHash: primaryFire.replayEvidence?.replayHash ?? null,
@@ -169,9 +171,9 @@ function driveEnemyToPlayerDeath(runtimeGateway, camera) {
   throw new Error('Replay capture exhausted enemy-loop ticks before player death.');
 }
 
-function createCamera(runtimeGateway, content) {
+function createCamera(runtimeGateway, content, poseOverrides = {}) {
   const receipt = runtimeGateway.createCamera({
-    initialPose: content.runtime.initialCameraPose,
+    initialPose: { ...content.runtime.initialCameraPose, ...poseOverrides },
     projection: content.runtime.cameraProjection,
     viewport: { width: 1280, height: 720 },
   });

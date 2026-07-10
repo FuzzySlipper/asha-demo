@@ -225,7 +225,7 @@ function directionFromPose(pose: any): readonly [number, number, number] {
   const pitch = (Number(pose.pitchDegrees ?? 0) * Math.PI) / 180;
   const x = Math.sin(yaw) * Math.cos(pitch);
   const y = Math.sin(pitch);
-  const z = Math.cos(yaw) * Math.cos(pitch);
+  const z = -Math.cos(yaw) * Math.cos(pitch);
   return [roundUnit(x), roundUnit(y), roundUnit(z)];
 }
 

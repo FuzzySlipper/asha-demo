@@ -16,45 +16,82 @@
   "runtime": {
     "backendStatus": "rust_authority",
     "providerContract": "asha.runtime_bridge.native_rust_provider.v1",
-    "referenceFallback": false
+    "referenceFallback": false,
+    "generatedTunnelOperation": {
+      "status": "applied",
+      "presetId": "tiny-enclosed",
+      "seed": 17,
+      "grid": 0,
+      "outputHash": "1471496d88d70647",
+      "collisionSourceHash": "205242bd77238525",
+      "collisionProjectionHash": "fnv1a64:627389be013a3154",
+      "runtimeFrame": {
+        "worldOffset": [
+          -3.5,
+          -1,
+          -5.5
+        ],
+        "playableMin": [
+          -2.5,
+          0,
+          -4.5
+        ],
+        "playableMax": [
+          2.5,
+          4,
+          4.5
+        ]
+      }
+    }
   },
   "keyEvents": [
     {
       "kind": "movement",
       "collisionConstrained": true,
-      "collided": true,
-      "blockedAxes": [
-        "z"
-      ],
-      "movementHash": "fnv1a64:28023d42c5b696bd"
+      "collided": false,
+      "blockedAxes": [],
+      "grid": 0,
+      "movementMode": "grounded",
+      "collisionSourceHash": "205242bd77238525",
+      "collisionProjectionHash": "fnv1a64:627389be013a3154",
+      "movementHash": "fnv1a64:e22a52ff8211674a"
     },
     {
       "kind": "enemy_attack_and_player_death",
-      "tick": 20,
+      "tick": 15,
       "combatStatus": "accepted",
       "playerDead": true,
-      "lifecycleHash": "fnv1a64:bde4caae6628f0a4"
+      "lifecycleHash": "fnv1a64:6ad02c0995166c31"
     },
     {
       "kind": "restart",
       "accepted": true,
-      "sessionHashAfter": "fnv1a64:a5883555975f2555"
+      "sessionHashAfter": "fnv1a64:7b4e615f2f4f3ff5"
     },
     {
       "kind": "primary_fire_and_enemy_death",
+      "cameraPose": {
+        "position": [
+          0,
+          1.6200000047683716,
+          1.5
+        ],
+        "yawDegrees": 0,
+        "pitchDegrees": -9
+      },
       "accepted": true,
       "outcome": "hit",
-      "replayHash": "fnv1a64:f29d7ec78ea880c7",
+      "replayHash": "fnv1a64:9895165efa16c759",
       "enemyDead": true
     }
   ],
   "replay": {
-    "telemetryRecordCount": 64,
+    "telemetryRecordCount": 50,
     "telemetryHashes": {
       "first": "fnv1a64:a6a5f6315ccc0b4d",
-      "last": "fnv1a64:f29d7ec78ea880c7",
-      "uniqueCount": 63
+      "last": "fnv1a64:9895165efa16c759",
+      "uniqueCount": 49
     },
-    "primaryFireReplayHash": "fnv1a64:f29d7ec78ea880c7"
+    "primaryFireReplayHash": "fnv1a64:9895165efa16c759"
   }
 }

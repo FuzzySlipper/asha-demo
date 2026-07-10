@@ -110,7 +110,12 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
     presetId: 'tiny-enclosed',
     seed: 17,
     grid: 0,
-    outputHash: 'a9b504096397f5b4',
+    outputHash: '1471496d88d70647',
+    runtimeFrame: {
+      worldOffset: [-3.5, -1, -5.5],
+      playableMin: [-2.5, 0, -4.5],
+      playableMax: [2.5, 4, 4.5],
+    },
   });
   expect(backendStatus?.generatedTunnelOperation?.collisionSourceHash).toMatch(/^[0-9a-f]{16}$/);
   expect(backendStatus?.generatedTunnelOperation?.collisionProjectionHash).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
@@ -241,6 +246,20 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(collisionEvidence?.collisionSourceHash).toBe(backendStatus.generatedTunnelOperation.collisionSourceHash);
   expect(collisionEvidence?.collisionProjectionHash).toBe(backendStatus.generatedTunnelOperation.collisionProjectionHash);
 
+  await page.evaluate(() => globalThis.ashaRendererSurface?.reset?.());
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null)).toEqual({
+    position: [0, 1.62, 1.5],
+    pitchDegrees: 0,
+    yawDegrees: 0,
+  });
+  await page.evaluate((movement) => {
+    document.dispatchEvent(new MouseEvent('mousemove', {
+      bubbles: true,
+      movementX: movement.movementX,
+      movementY: movement.movementY,
+    }));
+  }, { movementX: 0, movementY: -60 });
+  await page.waitForTimeout(100);
   const fireResult = await page.evaluate(() => globalThis.ashaRendererSurface?.firePrimary?.() ?? null);
   expect(fireResult?.interaction?.shotsFired).toBe(1);
   expect(fireResult?.interaction?.remainingTargets).toBe(0);
@@ -274,7 +293,7 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().shotsFired ?? null)).toBe(0);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().actionTick ?? null)).toBe(0);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().remainingTargets ?? null)).toBe(1);
-  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(3);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.().restartCount ?? null)).toBe(4);
   expect(
     await page.evaluate(() => {
       const enemy = globalThis.ashaRendererSurface?.runtimeEcrpReadout?.().entities.find(
