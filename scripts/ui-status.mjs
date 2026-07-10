@@ -19,6 +19,8 @@ export function buildUiStatus() {
         contentValidation: '@asha/catalog-core',
         hudProjection: '@asha/ui-dom',
         rendering: '@asha/renderer-host',
+        animationIntent: '@asha/runtime-session',
+        animationPlayback: '@asha/renderer-host',
       },
       runtimeBackend: {
         defaultMode: 'native',
@@ -32,6 +34,6 @@ export function buildUiStatus() {
       },
     },
     currentSurface:
-      'Generated-tunnel room demo with durable ProjectBundle/ECRP content, public ASHA renderer surface, Rust-backed RuntimeSession authority when a public bridge provider is attached, and fail-closed HUD diagnostics otherwise.',
+      'Generated-tunnel room demo with durable ProjectBundle/ECRP content, a hash-pinned animated mesh driven by RuntimeSession animation intent and public renderer-host playback readback, Rust-backed RuntimeSession authority when a public bridge provider is attached, and fail-closed HUD diagnostics otherwise.',
   };
 }

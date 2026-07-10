@@ -54,7 +54,8 @@
     "gameRuleModules": [
       "game-rules/primary-fire-effect.manifest.json"
     ],
-    "levelPreset": "levels/presets/tiny-enclosed-tunnel.json"
+    "levelPreset": "levels/presets/tiny-enclosed-tunnel.json",
+    "animatedMeshManifest": "assets/mesh-animation/kenney-retro-character-medium.manifest.json"
   },
   "runtime": {
     "sessionId": "asha-demo.playable.ecrp",

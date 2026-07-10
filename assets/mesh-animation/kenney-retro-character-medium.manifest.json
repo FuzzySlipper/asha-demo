@@ -1,0 +1,12 @@
+{
+  "kind": "asha_renderer_animated_mesh_resources.v0",
+  "resources": [
+    {
+      "asset": "mesh-animation/kenney-retro-character-medium",
+      "resourceUrl": "/assets/mesh-animation/kenney-retro-character-medium.glb",
+      "contentHash": "sha256:c71255a41c0373f0d2ef52593369d5fd9d2f6220ae548aff8cd6bf5edb403674",
+      "clipIds": ["idle", "run", "jump"],
+      "licenseUrl": "/assets/mesh-animation/LICENSE.Kenney-Animated-Characters-Retro.txt"
+    }
+  ]
+}

@@ -20,6 +20,7 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
     spawnCatalog,
     weaponCatalog,
     levelPreset,
+    animatedMeshManifest,
     gameRuleModules,
   ] = await Promise.all([
     Promise.all((sourceFiles.entityDefinitions ?? []).map((path) => fetchJson(`/${path}`))),
@@ -29,6 +30,7 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
     fetchJson(`/${catalogRefs.spawns}`),
     fetchJson(`/${catalogRefs.weapon}`),
     fetchJson(`/${sourceFiles.levelPreset}`),
+    fetchJson(`/${sourceFiles.animatedMeshManifest}`),
     Promise.all((sourceFiles.gameRuleModules ?? []).map((path) => fetchJson(`/${path}`))),
   ]);
 
@@ -48,6 +50,7 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
       catalogs: catalogRefs,
       gameRuleModules: sourceFiles.gameRuleModules ?? [],
       levelPreset: sourceFiles.levelPreset,
+      animatedMeshManifest: sourceFiles.animatedMeshManifest,
     },
     projectBundle,
     gameRuleModules,
@@ -59,6 +62,7 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
       spawns: spawnCatalog,
       weapon: weaponCatalog,
       levelPreset,
+      animatedMeshManifest,
       upstreamGameplay: readFpsGameplayPresetCatalog(),
       upstreamEcrpObjectModel: readFpsEcrpObjectModel(),
     },
@@ -125,6 +129,9 @@ function validateProjectBundle(demoProjectContent, diagnostics) {
   }
   if (!Array.isArray(projectBundle.sourceFiles?.entityDefinitions) || projectBundle.sourceFiles.entityDefinitions.length === 0) {
     diagnostics.push('ProjectBundle sourceFiles.entityDefinitions must name durable entity files');
+  }
+  if (typeof projectBundle.sourceFiles?.animatedMeshManifest !== 'string') {
+    diagnostics.push('ProjectBundle sourceFiles.animatedMeshManifest must name the public renderer-host mesh manifest');
   }
   if (!Array.isArray(projectBundle.gameRuleModules) || projectBundle.gameRuleModules.length !== 1) {
     diagnostics.push('ProjectBundle gameRuleModules must declare the demo Rust weapon-effect module');
@@ -208,6 +215,12 @@ function validateAuthoredRefs(demoProjectContent, diagnostics) {
   }
   if (!Array.isArray(catalogs.materials.materials) || catalogs.materials.materials.length === 0) {
     diagnostics.push('material catalog must contain at least one material role');
+  }
+  if (
+    catalogs.animatedMeshManifest?.kind !== 'asha_renderer_animated_mesh_resources.v0'
+    || catalogs.animatedMeshManifest.resources?.length !== 1
+  ) {
+    diagnostics.push('animated mesh manifest must declare exactly one public renderer-host resource');
   }
 }
 

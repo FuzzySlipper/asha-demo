@@ -129,6 +129,9 @@ export function createDemoRuntimeGateway(runtimeBackend: any): any {
     readEcrpRuntimeReadout() {
       return session?.readEcrpRuntimeReadout() ?? null;
     },
+    readAnimationIntent() {
+      return session?.readAnimationIntent() ?? null;
+    },
     readLifecycleStatus() {
       return session?.readLifecycleStatus() ?? null;
     },

@@ -17,7 +17,7 @@ requireText(indexHtml, 'asha-renderer-browser-surface');
 requireText(indexHtml, '@asha/renderer-host');
 requireText(indexHtml, '"three/": "/vendor/asha-renderer-host/vendor/three/"');
 requireText(entrypointTs, 'bootGame');
-requireText(appTs, 'mountAshaRendererSurface');
+requireText(appTs, 'mountAshaRendererAnimatedMeshSurface');
 requireText(appTs, 'createAshaRendererGeneratedTunnelRoomSurfaceFrame');
 requireText(appTs, 'hudControlToIntent');
 requireText(appTs, 'loadDemoProjectContent');
@@ -25,6 +25,7 @@ requireText(appTs, 'TINY_GENERATED_TUNNEL_READOUT');
 requireText(appTs, 'generated-tunnel-enemy');
 requireText(runtimeGatewayTs, 'createRuntimeSessionFacade');
 requireText(runtimeGatewayTs, 'createDemoRuntimeGateway');
+requireText(runtimeGatewayTs, 'readAnimationIntent');
 requireText(styles, '#asha-render-surface');
 requireProjectFile('project/project-bundle.json');
 requireProjectFile(projectBundle.sourceFiles.sceneDocument);
@@ -38,6 +39,7 @@ for (const path of projectBundle.sourceFiles.gameRuleModules ?? []) {
   requireProjectFile(path);
 }
 requireProjectFile(projectBundle.sourceFiles.levelPreset);
+requireProjectFile(projectBundle.sourceFiles.animatedMeshManifest);
 requireProjectFile('docs/demo-surface-audit.md');
 
 if (appTs.includes("from 'three'") || appTs.includes('from "three"')) {

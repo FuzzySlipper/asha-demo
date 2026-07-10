@@ -57,7 +57,8 @@ The smoke test in `tests/live-ui.spec.mjs` reads `BASE_URL` or
 UI/readout content only: the ASHA renderer canvas, generated-tunnel room labels,
 durable ProjectBundle/ECRP content refs, RuntimeSession ECRP load, movement
 authority, collision response, primary-fire combat/death readouts, HUD counters,
-and typed restart/reset state.
+and typed restart/reset state, including the selected animated mesh clip and
+renderer playback readback.
 
 ## Evidence Expectations
 

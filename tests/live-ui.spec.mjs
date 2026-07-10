@@ -27,6 +27,25 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().authority ?? null)).toBe(
     'external_collision',
   );
+  await expect(page.locator('#animation-state')).toHaveText(/RUN PLAYING/);
+  await expect.poll(async () => page.evaluate(
+    () => globalThis.ashaRendererSurface?.animationPlayback?.().selectedClip ?? null,
+  )).toBe('run');
+  await expect.poll(async () => page.evaluate(
+    () => globalThis.ashaRendererSurface?.animationPlayback?.().status ?? null,
+  )).toBe('playing');
+  const animationBefore = await page.evaluate(() => globalThis.ashaRendererSurface?.animationPlayback?.() ?? null);
+  await page.waitForTimeout(250);
+  const animationAfter = await page.evaluate(() => globalThis.ashaRendererSurface?.animationPlayback?.() ?? null);
+  expect(animationBefore).toMatchObject({
+    asset: 'mesh-animation/kenney-retro-character-medium',
+    commandSelected: true,
+    projectionOnly: true,
+    selectedClip: 'run',
+    status: 'playing',
+  });
+  expect(animationAfter?.mixerTimeSeconds).toBeGreaterThan(animationBefore?.mixerTimeSeconds ?? 0);
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.animationFrameReceipt?.().applied ?? null)).toBe(true);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().valid ?? null)).toBe(true);
   expect(
     await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().gameRuleModules?.[0]?.moduleId ?? null),

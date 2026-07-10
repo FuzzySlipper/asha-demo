@@ -12,6 +12,7 @@ export type DemoHudEventSource = 'movement' | 'runtime';
 
 interface DemoHudViewInput {
   readonly backendMissingLabel: string;
+  readonly animationPlayback: any;
   readonly enemyHealth: {
     readonly current: number;
     readonly max: number;
@@ -54,6 +55,7 @@ export interface DemoHudView {
   readonly gameHud: GameHudProjection;
   readonly enemyHealthPercent: number;
   readonly eventLabel: string;
+  readonly animationLabel: string;
   readonly inputSettings: DemoHudViewInput['inputSettings'];
   readonly locked: boolean;
   readonly lockLabel: string;
@@ -75,6 +77,7 @@ export interface DemoHudView {
 export function projectHudView(input: DemoHudViewInput): DemoHudView {
   const {
     backendMissingLabel,
+    animationPlayback,
     enemyHealth,
     interaction,
     inputSettings,
@@ -117,6 +120,7 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     gameHud,
     enemyHealthPercent: enemyHealthBar.ratio * 100,
     eventLabel,
+    animationLabel: projectAnimationLabel(animationPlayback),
     inputSettings,
     locked,
     lockLabel: locked ? 'LOCKED' : 'UNLOCKED',
@@ -134,6 +138,14 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     shotLabel: `${gameHud.combat.hits}/${gameHud.combat.shotsFired}`,
     targetLabel: `${interaction.remainingTargets}/${interaction.totalTargets}`,
   };
+}
+
+function projectAnimationLabel(playback: any): string {
+  if (playback === null || playback === undefined || playback.status === 'unavailable') {
+    return 'UNAVAILABLE';
+  }
+  const clip = playback.selectedClip ?? 'NONE';
+  return `${clip.toUpperCase()} ${playback.status.toUpperCase()}`;
 }
 
 function buildGameHudInput(input: {

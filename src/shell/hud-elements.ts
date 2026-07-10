@@ -1,6 +1,7 @@
 export function readDemoHudElements(): any {
   return {
     canvas: document.querySelector('#asha-render-surface'),
+    animationState: document.querySelector('#animation-state'),
     deathState: document.querySelector('#death-state'),
     eventState: document.querySelector('#event-state'),
     exitButton: document.querySelector('#exit-button'),

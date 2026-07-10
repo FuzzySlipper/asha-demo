@@ -16,6 +16,9 @@ export function renderHudElements(elements: any, view: any): void {
   if (elements.poseState instanceof HTMLElement) {
     elements.poseState.textContent = view.poseLabel;
   }
+  if (elements.animationState instanceof HTMLElement) {
+    elements.animationState.textContent = view.animationLabel;
+  }
   if (elements.eventState instanceof HTMLElement) {
     elements.eventState.textContent = view.eventLabel;
   }

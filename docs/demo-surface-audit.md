@@ -1,6 +1,6 @@
 # Demo Surface Audit
 
-Status: current as of ASHA tasks #4487, #4841, and #4842.
+Status: current as of ASHA tasks #4487, #4841, #4842, and #5293.
 
 This is a lightweight audit of product-surface stubs and half implementations.
 It is not a broad claims framework; it exists so unfinished pieces do not become
@@ -20,3 +20,9 @@ quiet load-bearing structure.
 | Studio open/attach/control product path | Not implemented in `asha-demo`; belongs to Studio workflow. | #4221 |
 | Compiled standalone host | Demo-owned host bootstrap and `npm run standalone` native provider smoke exist. The smoke uses the built UI/content and no manually selected dev-server port. | #4521/#4841 |
 | Replay/telemetry evidence | `replays/generated-tunnel-playable-loop.json` is regenerated from public RuntimeSession telemetry/readouts and covers movement, player death, restart, and enemy defeat. | #4898 |
+| Animated mesh playback proof | The demo loads a committed, hash-pinned Kenney GLB through the public renderer-host manifest, applies the public RuntimeSession animation intent, and displays renderer playback readback for the selected `run` clip. | #5293 |
+
+The animated mesh row proves asset loading, named clip selection, and renderer
+playback projection. It does not claim that the renderer owns gameplay outcome,
+mixer authority, collision, or replay history; those remain explicit upstream
+non-claims.

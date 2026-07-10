@@ -1,6 +1,6 @@
 import {
   createAshaRendererGeneratedTunnelRoomSurfaceFrame,
-  mountAshaRendererSurface,
+  mountAshaRendererAnimatedMeshSurface,
 } from '@asha/renderer-host';
 import { TINY_GENERATED_TUNNEL_READOUT } from '@asha/runtime-session';
 import { hudControlToIntent } from '../input/hud-controls.js';
@@ -49,7 +49,8 @@ const levelFrame = createAshaRendererGeneratedTunnelRoomSurfaceFrame({
   enemy: readEnemyRenderFrameTarget(),
 });
 
-const surface = mountAshaRendererSurface(canvas, {
+const surface = await mountAshaRendererAnimatedMeshSurface(canvas, {
+  animatedMeshManifest: demoProjectContent.catalogs.animatedMeshManifest,
   autoStart: true,
   clearColor: 0x101820,
   frame: levelFrame,
@@ -60,6 +61,14 @@ const surface = mountAshaRendererSurface(canvas, {
     movementAuthority: constrainCameraMovement,
   },
 });
+
+const animationIntent = runtimeGateway.readAnimationIntent();
+const animationFrameReceipt = animationIntent === null ? null : surface.applyFrame(animationIntent.frame);
+if (animationIntent !== null && animationFrameReceipt?.applied !== true) {
+  throw new Error(
+    `ASHA animated mesh frame was rejected: ${animationFrameReceipt?.diagnostics?.map((diagnostic) => diagnostic.message).join('; ') ?? 'unknown renderer-host error'}`,
+  );
+}
 
 let animationFrame = null;
 let enemyLoopTimer = null;
@@ -453,7 +462,15 @@ function renderHud() {
     playerHealth,
     pose,
     runtimeAvailable: runtimeGateway.available(),
+    animationPlayback: readAnimationPlayback(),
   }));
+}
+
+function readAnimationPlayback() {
+  if (animationIntent === null) {
+    return null;
+  }
+  return surface.animatedMeshPlayback(animationIntent.instanceHandle);
 }
 
 function projectRuntimeTargetState() {
@@ -725,6 +742,9 @@ tickHud();
   runtimeCollisionEvidence: () => lastCollisionReceipt,
   runtimeEcrpReadout: () => readEcrpRuntimeReadout(),
   runtimeTelemetry: () => readRuntimeTelemetry(),
+  animationIntent: () => animationIntent,
+  animationFrameReceipt: () => animationFrameReceipt,
+  animationPlayback: () => readAnimationPlayback(),
   snapshot: () => surface.snapshot(),
   tickEnemyPolicy: () => tickEnemyPolicy(),
 };
