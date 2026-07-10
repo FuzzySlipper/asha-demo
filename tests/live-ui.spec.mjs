@@ -188,7 +188,13 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(await page.evaluate(() => document.querySelector('#death-state')?.hidden ?? null)).toBe(true);
 
   const poseBeforeMove = await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null);
-  await canvas.evaluate((node) => node.focus());
+  await canvas.click({ position: { x: 300, y: 240 } });
+  await expect.poll(async () => page.evaluate(() => document.pointerLockElement?.id ?? null)).toBe('asha-render-surface');
+  await page.mouse.move(640, 360);
+  await page.mouse.move(700, 320);
+  const poseAfterLook = await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null);
+  expect(poseAfterLook?.yawDegrees).not.toBe(poseBeforeMove?.yawDegrees);
+  expect(poseAfterLook?.pitchDegrees).not.toBe(poseBeforeMove?.pitchDegrees);
   await page.keyboard.down('KeyW');
   await page.waitForTimeout(600);
   await page.keyboard.up('KeyW');

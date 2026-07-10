@@ -2,9 +2,7 @@ import {
   createAshaRendererGeneratedTunnelRoomSurfaceFrame,
   mountAshaRendererSurface,
 } from '@asha/renderer-host';
-import {
-  TINY_GENERATED_TUNNEL_READOUT,
-} from '@asha/runtime-bridge';
+import { TINY_GENERATED_TUNNEL_READOUT } from '@asha/runtime-session';
 import { hudControlToIntent } from '../input/hud-controls.js';
 import { type DemoHudEventSource, type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
 import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
