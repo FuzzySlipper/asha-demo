@@ -20,12 +20,16 @@ if (!runtimeBackend.available || runtimeBackend.status !== 'rust_authority') {
   const diagnostic = runtimeBackend.diagnostics?.[0]?.message ?? runtimeBackend.status;
   throw new Error(`Replay capture requires native RuntimeSession authority: ${diagnostic}`);
 }
+if (runtimeBackend.generatedTunnelOperation?.status !== 'applied') {
+  throw new Error('Replay capture requires an applied generated-tunnel collision operation.');
+}
 
 const runtimeGateway = await createRuntimeGateway(runtimeBackend);
 let camera = createCamera(runtimeGateway, content);
 const movement = runtimeGateway.applyCollisionConstrainedCameraInput({
   camera: camera.handle ?? camera.camera,
-  grid: 1,
+  grid: runtimeBackend.generatedTunnelOperation.grid,
+  movementMode: 'grounded',
   input: {
     moveForward: 1,
     moveRight: 0,
@@ -91,6 +95,15 @@ const artifact = {
     backendStatus: runtimeBackend.status,
     providerContract: installation.profile.providerContract,
     referenceFallback: installation.profile.referenceFallback,
+    generatedTunnelOperation: {
+      status: runtimeBackend.generatedTunnelOperation.status,
+      presetId: runtimeBackend.generatedTunnelOperation.presetId,
+      seed: runtimeBackend.generatedTunnelOperation.seed,
+      grid: runtimeBackend.generatedTunnelOperation.grid,
+      outputHash: runtimeBackend.generatedTunnelOperation.outputHash,
+      collisionSourceHash: runtimeBackend.generatedTunnelOperation.collisionSourceHash,
+      collisionProjectionHash: runtimeBackend.generatedTunnelOperation.collisionProjectionHash,
+    },
   },
   keyEvents: [
     {
@@ -98,6 +111,10 @@ const artifact = {
       collisionConstrained: true,
       collided: movement.collided,
       blockedAxes: movement.blockedAxes,
+      grid: movement.envelope.grid,
+      movementMode: movement.envelope.movementMode,
+      collisionSourceHash: movement.collisionSourceHash,
+      collisionProjectionHash: movement.collisionProjectionHash,
       movementHash: movement.movementHash,
     },
     {

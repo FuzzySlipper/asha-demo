@@ -49,6 +49,33 @@ export async function createDemoRuntimeBackend(content: any): Promise<any> {
         'rust_backend_failed',
       );
     }
+    const generatedTunnelOperation = session.requestGeneratedTunnelOperation({
+      operation: 'apply_to_runtime_world',
+      presetId: content.catalogs.levelPreset.presetId,
+      seed: content.catalogs.levelPreset.seed,
+    });
+    if (generatedTunnelOperation.status !== 'applied') {
+      return unavailableRuntimeBackend(
+        profile,
+        'generated_tunnel_collision_unavailable',
+        `Rust RuntimeSession did not apply the generated tunnel collision projection: ${generatedTunnelOperation.detail}`,
+        loadReceipt,
+        'rust_backend_failed',
+      );
+    }
+    if (
+      generatedTunnelOperation.presetId !== content.catalogs.levelPreset.presetId
+      || generatedTunnelOperation.seed !== content.catalogs.levelPreset.seed
+      || generatedTunnelOperation.outputHash !== content.catalogs.levelPreset.outputHash
+    ) {
+      return unavailableRuntimeBackend(
+        profile,
+        'generated_tunnel_collision_mismatch',
+        'Rust RuntimeSession applied a generated tunnel that does not match the durable demo level preset.',
+        loadReceipt,
+        'rust_backend_failed',
+      );
+    }
     const readout = session.readEcrpRuntimeReadout();
     const snapshot = bridge.readFpsRuntimeSession();
     assertNativeRustRuntimeBridgeAuthority({
@@ -61,6 +88,7 @@ export async function createDemoRuntimeBackend(content: any): Promise<any> {
       status: 'rust_authority',
       session,
       loadReceipt,
+      generatedTunnelOperation,
       diagnostics: [],
       profile,
       backendHash: loadReceipt.bootstrapHash ?? 'rust-authority:loaded',
@@ -251,6 +279,7 @@ function unavailableRuntimeBackend(
       sessionHashAfter: 'missing-rust-backend',
     },
     diagnostics: [{ code, severity: 'error', message }],
+    generatedTunnelOperation: null,
     profile,
     backendHash: `missing-rust-backend:${code}`,
   };

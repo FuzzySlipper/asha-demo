@@ -86,6 +86,15 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   }
 
   expect(backendStatus?.status).toBe('rust_authority');
+  expect(backendStatus?.generatedTunnelOperation).toMatchObject({
+    status: 'applied',
+    presetId: 'tiny-enclosed',
+    seed: 17,
+    grid: 0,
+    outputHash: 'a9b504096397f5b4',
+  });
+  expect(backendStatus?.generatedTunnelOperation?.collisionSourceHash).toMatch(/^[0-9a-f]{16}$/);
+  expect(backendStatus?.generatedTunnelOperation?.collisionProjectionHash).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeLoaded ?? null)).toBe(true);
   expect(
     await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeBootstrapHash ?? null),
@@ -200,10 +209,18 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   await page.keyboard.up('KeyW');
   const poseAfterMove = await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null);
   expect(poseAfterMove?.position).not.toEqual(poseBeforeMove?.position);
+  expect(Math.abs((poseAfterMove?.position?.[1] ?? Number.NaN) - (poseBeforeMove?.position?.[1] ?? Number.NaN))).toBeLessThan(
+    0.00001,
+  );
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().authority ?? null)).toBe(
     'external_collision',
   );
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().collided ?? null)).toBe(true);
+  const collisionEvidence = await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeCollisionEvidence?.() ?? null);
+  expect(collisionEvidence?.envelope?.movementMode).toBe('grounded');
+  expect(collisionEvidence?.envelope?.grid).toBe(0);
+  expect(collisionEvidence?.collisionSourceHash).toBe(backendStatus.generatedTunnelOperation.collisionSourceHash);
+  expect(collisionEvidence?.collisionProjectionHash).toBe(backendStatus.generatedTunnelOperation.collisionProjectionHash);
 
   const fireResult = await page.evaluate(() => globalThis.ashaRendererSurface?.firePrimary?.() ?? null);
   expect(fireResult?.interaction?.shotsFired).toBe(1);

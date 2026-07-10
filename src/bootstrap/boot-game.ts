@@ -69,6 +69,7 @@ let lastEventSource: DemoHudEventSource = 'runtime';
 let lastMovementEvent = 'Authority ready';
 let lastRuntimeEvent = 'Runtime ready';
 let reticlePulseTimer = null;
+let lastCollisionReceipt = null;
 
 function createRuntimeCamera() {
   const fallbackCamera = {
@@ -80,6 +81,7 @@ function createRuntimeCamera() {
   if (!runtimeGateway.available()) {
     return fallbackCamera;
   }
+
   return runtimeGateway.createCamera({
     initialPose: demoProjectContent.runtime.initialCameraPose,
     projection: demoProjectContent.runtime.cameraProjection,
@@ -90,6 +92,18 @@ function createRuntimeCamera() {
 function constrainCameraMovement(input) {
   if (!runtimeGateway.available()) {
     lastMovementEvent = runtimeBackend.diagnostics[0]?.message ?? 'Movement blocked: Rust runtime backend missing';
+    lastEventSource = 'movement';
+    return {
+      blockedAxes: ['x', 'y', 'z'],
+      collided: true,
+      movementHash: runtimeBackend.backendHash,
+      pose: runtimeCamera.pose,
+    };
+  }
+
+  const generatedTunnelOperation = runtimeBackend.generatedTunnelOperation;
+  if (generatedTunnelOperation?.status !== 'applied') {
+    lastMovementEvent = 'Movement blocked: generated tunnel collision unavailable';
     lastEventSource = 'movement';
     return {
       blockedAxes: ['x', 'y', 'z'],
@@ -119,7 +133,8 @@ function constrainCameraMovement(input) {
     : input.pitchDeltaDegrees * (inputSettings.invertY ? -1 : 1) * lookScale;
   const receipt = runtimeGateway.applyCollisionConstrainedCameraInput({
     camera: readRuntimeCameraHandle(),
-    grid: 1,
+    grid: generatedTunnelOperation.grid,
+    movementMode: 'grounded',
     input: {
       moveForward: inputForAuthority.moveForward,
       moveRight: inputForAuthority.moveRight,
@@ -133,6 +148,7 @@ function constrainCameraMovement(input) {
     shape: demoProjectContent.runtime.collisionShape,
     policy: demoProjectContent.runtime.collisionPolicy,
   });
+  lastCollisionReceipt = receipt;
   runtimeCamera = receipt.snapshot.after;
   lastMovementEvent = paused
     ? 'Movement paused'
@@ -308,6 +324,7 @@ function resetLoop() {
     runtimeCamera = createRuntimeCamera();
     enemyPolicyTick = 0;
     lastEnemyPolicyReadout = null;
+    lastCollisionReceipt = null;
     paused = false;
     menuMode = 'closed';
     lastMovementEvent = 'Reset unavailable: Rust runtime backend missing';
@@ -330,6 +347,7 @@ function resetLoop() {
   runtimeCamera = createRuntimeCamera();
   enemyPolicyTick = 0;
   lastEnemyPolicyReadout = null;
+  lastCollisionReceipt = null;
   paused = false;
   menuMode = 'closed';
   lastMovementEvent = 'Reset';
@@ -697,12 +715,14 @@ tickHud();
     levelSurfaceLabels: ['generated-tunnel-floor', demoProjectContent.runtime.enemyRenderTarget.label],
     runtimeBackend: runtimeBackend.status,
     runtimeBackendDiagnostics: runtimeBackend.diagnostics,
+    generatedTunnelOperation: runtimeBackend.generatedTunnelOperation,
     runtimeBackendProfile: runtimeBackend.profile,
     runtimeLoaded: runtimeBackend.available && ecrpProjectLoadReceipt.accepted,
     runtimeBootstrapHash: ecrpProjectLoadReceipt.bootstrapHash,
   }),
   reset: () => resetLoop(),
   runtimeBackendStatus: () => runtimeBackend,
+  runtimeCollisionEvidence: () => lastCollisionReceipt,
   runtimeEcrpReadout: () => readEcrpRuntimeReadout(),
   runtimeTelemetry: () => readRuntimeTelemetry(),
   snapshot: () => surface.snapshot(),
