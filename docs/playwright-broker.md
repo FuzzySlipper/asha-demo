@@ -48,7 +48,7 @@ The repo root has `.den-playwright.json` with:
 - project identity `asha-demo`;
 - `serve.command` using broker-owned `{host}` and `{port}` placeholders;
 - `healthUrl` set to `/health`;
-- `readyText` for `asha-demo` and the `X-ASHA-Browser-Host` identity header;
+- `readyText` for `asha-demo`, plus `X-ASHA-Browser-Host: browser-host.v0` via `identityHeaderValue`;
 - `tests.command` invoking Playwright;
 - `tests.artifactPolicy` set to `live-ui`.
 

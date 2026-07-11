@@ -6,6 +6,7 @@
     "healthUrl": "/health",
     "readyText": "\"project\": \"asha-demo\"",
     "identityHeader": "X-ASHA-Browser-Host",
+    "identityHeaderValue": "browser-host.v0",
     "reusePolicy": "broker_owned",
     "startupTimeout": "45s"
   },
