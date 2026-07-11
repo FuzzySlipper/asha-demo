@@ -312,6 +312,49 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   ).toMatchObject({ kind: 'health', current: 100, max: 100, dead: false });
 });
 
+test('@live-agent asha-demo restores a defeated session through every player restart control', async ({ page }) => {
+  test.setTimeout(60_000);
+
+  const baseUrl = brokerBaseUrl();
+  expect(baseUrl, 'live UI smoke must use broker-provided BASE_URL').not.toBeNull();
+  await page.goto('/');
+  await page.waitForFunction(() => globalThis.ashaRendererSurface?.runtimeBackendStatus?.()?.status !== undefined);
+
+  const backendStatus = await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeBackendStatus?.() ?? null);
+  test.skip(backendStatus?.status === 'missing_rust_backend', 'native browser-host authority is unavailable');
+  expect(backendStatus?.status).toBe('rust_authority');
+
+  const defeatPlayer = async () => page.evaluate(() => {
+    for (let index = 0; index < 36; index += 1) {
+      globalThis.ashaRendererSurface?.tickEnemyPolicy?.();
+      if (globalThis.ashaRendererSurface?.interactionState?.().playerDead) {
+        break;
+      }
+    }
+    return globalThis.ashaRendererSurface?.interactionState?.() ?? null;
+  });
+  const expectRestart = async (restart) => {
+    const defeated = await defeatPlayer();
+    expect(defeated?.playerDead).toBe(true);
+    const restartCount = defeated?.restartCount;
+
+    await restart();
+    await expect.poll(async () => page.evaluate(() => globalThis.ashaRendererSurface?.interactionState?.() ?? null)).toMatchObject({
+      playerDead: false,
+      playerHealth: 100,
+      remainingTargets: 1,
+      restartCount: restartCount + 1,
+    });
+  };
+
+  await expectRestart(() => page.keyboard.press('KeyR'));
+  await expectRestart(() => page.locator('#reset-button').click());
+  await expectRestart(async () => {
+    await page.keyboard.press('Escape');
+    await page.locator('#menu-reset-button').click();
+  });
+});
+
 test('@live-agent asha-demo rejects spoofed native RuntimeBridge providers', async ({ page }) => {
   const baseUrl = brokerBaseUrl();
   expect(baseUrl, 'live UI smoke must use broker-provided BASE_URL').not.toBeNull();
