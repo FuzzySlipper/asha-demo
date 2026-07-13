@@ -1,11 +1,13 @@
 import {
   RuntimeBridgeError,
   assertNativeRustRuntimeBridgeAuthority,
+  createDefaultBrowserInputCatalog,
   createRuntimeSessionFacade,
   readRuntimeSessionPlayableEncounterTick,
   readRuntimeSessionPlayableLoopState,
   resolveNativeRustRuntimeBridgeProvider,
 } from '@asha/runtime-bridge';
+import type { GameplayRuntimeHostTransport } from '@asha/runtime-session';
 
 export async function createDemoRuntimeBackend(content: any): Promise<any> {
   try {
@@ -25,7 +27,15 @@ export async function createDemoRuntimeBackend(content: any): Promise<any> {
 
     const bridge = providerResolution.bridge;
 
-    const session = createRuntimeSessionFacade({ bridge, mode: 'rust' });
+    const gameplayHost = providerResolution.provider.gameplayHost as GameplayRuntimeHostTransport | undefined;
+    if (gameplayHost === undefined) {
+      return unavailableRuntimeBackend(
+        profile,
+        'missing_gameplay_runtime_host',
+        'ASHA demo requires its statically linked Rust gameplay host; the native provider did not expose one.',
+      );
+    }
+    const session = createRuntimeSessionFacade({ bridge, gameplayHost, mode: 'rust' });
     session.initialize({
       sessionId: content.runtime.sessionId,
       seed: content.runtime.seed,
@@ -76,6 +86,55 @@ export async function createDemoRuntimeBackend(content: any): Promise<any> {
         'rust_backend_failed',
       );
     }
+    const gameplayLoadInput = {
+      kind: 'gameplay_runtime_host.load.v1' as const,
+      projectId: content.projectBundle.project.gameId,
+      compositionHash: content.projectBundle.gameplayRuntime.compositionHash,
+      declaredReadPlanHash: content.projectBundle.gameplayRuntime.declaredReadPlanHash,
+      bindings: content.projectBundle.gameplayModuleBindings,
+      triggers: content.projectBundle.gameplayTriggers,
+      scheduler: content.projectBundle.gameplayRuntime.scheduler,
+      prefabs: content.prefabAuthoring.runtimeBootstrap,
+    };
+    const gameplayLoadReceipt = session.loadGameplayRuntime(gameplayLoadInput);
+    if (!gameplayLoadReceipt.accepted) {
+      return unavailableRuntimeBackend(
+        profile,
+        'gameplay_runtime_rejected_project',
+        `Rust gameplay host rejected demo ProjectBundle composition: ${gameplayLoadReceipt.diagnostics.join('; ')}`,
+        loadReceipt,
+        'rust_backend_failed',
+      );
+    }
+    const prefabInteractionReceipt = session.advanceGameplayRuntime({
+      kind: 'prefabInteraction',
+      tick: 1,
+      instance: 701,
+      role: 'interaction/sensor',
+    });
+    if (!prefabInteractionReceipt.accepted) {
+      return unavailableRuntimeBackend(
+        profile,
+        'prefab_interaction_rejected',
+        `Rust gameplay host rejected the stable prefab-part interaction: ${prefabInteractionReceipt.diagnostics.join('; ')}`,
+        loadReceipt,
+        'rust_backend_failed',
+      );
+    }
+    const prefabRuntimeReadout = gameplayHost.read();
+    if (
+      prefabRuntimeReadout.prefabs?.instances?.length !== 2
+      || prefabRuntimeReadout.prefabs?.acceptedCommands?.length !== 2
+      || prefabRuntimeReadout.moduleStates?.length !== 3
+    ) {
+      return unavailableRuntimeBackend(
+        profile,
+        'prefab_runtime_readout_incomplete',
+        'Rust gameplay host did not retain both prefab instances, placement commands, and three resolved module-state scopes.',
+        loadReceipt,
+        'rust_backend_failed',
+      );
+    }
     const readout = session.readEcrpRuntimeReadout();
     const snapshot = bridge.readFpsRuntimeSession();
     assertNativeRustRuntimeBridgeAuthority({
@@ -89,6 +148,10 @@ export async function createDemoRuntimeBackend(content: any): Promise<any> {
       session,
       loadReceipt,
       generatedTunnelOperation,
+      gameplayLoadReceipt,
+      gameplayLoadInput,
+      prefabInteractionReceipt,
+      prefabRuntimeReadout,
       diagnostics: [],
       profile,
       backendHash: loadReceipt.bootstrapHash ?? 'rust-authority:loaded',
@@ -126,6 +189,15 @@ export function createDemoRuntimeGateway(runtimeBackend: any): any {
     createCamera(input: any) {
       return session?.createCamera(input) ?? null;
     },
+    inputSession() {
+      return session;
+    },
+    readInputContextState() {
+      return session?.readInputContextState() ?? null;
+    },
+    readTimeControlState() {
+      return session?.readTimeControlState() ?? null;
+    },
     readEcrpRuntimeReadout() {
       return session?.readEcrpRuntimeReadout() ?? null;
     },
@@ -150,6 +222,24 @@ export function createDemoRuntimeGateway(runtimeBackend: any): any {
     readTelemetry() {
       return session?.readTelemetry() ?? null;
     },
+    readProjection() {
+      return session?.readProjection() ?? null;
+    },
+    readGameplayRuntime() {
+      return session?.readGameplayRuntime() ?? null;
+    },
+    advanceGameplayRuntime(moment: any) {
+      return session?.advanceGameplayRuntime(moment) ?? null;
+    },
+    saveGameplayRuntime() {
+      return session?.saveGameplayRuntime() ?? null;
+    },
+    restoreGameplayRuntime(snapshot: any) {
+      if (session === null || runtimeBackend.gameplayLoadInput === undefined) {
+        return null;
+      }
+      return session.restoreGameplayRuntime(runtimeBackend.gameplayLoadInput, snapshot);
+    },
     requestSessionRestart(input: any) {
       return session?.requestSessionRestart(input) ?? null;
     },
@@ -166,12 +256,45 @@ export function createDemoRuntimeGateway(runtimeBackend: any): any {
   };
 }
 
+export async function createDemoInputReplaySession(content: any): Promise<any> {
+  const replayContent = {
+    ...content,
+    runtime: {
+      ...content.runtime,
+      sessionId: `${content.runtime.sessionId}.input-replay`,
+    },
+  };
+  const runtimeBackend = await createDemoRuntimeBackend(replayContent);
+  if (!runtimeBackend.available || runtimeBackend.session === null) {
+    throw new RuntimeBridgeError(
+      'native_unavailable',
+      runtimeBackend.diagnostics[0]?.message
+        ?? 'ASHA input replay requires a fresh fully loaded native Rust RuntimeSession.',
+    );
+  }
+
+  const session = runtimeBackend.session;
+  session.configureInputSession({
+    catalog: createDefaultBrowserInputCatalog(),
+    initialContexts: ['gameplay'],
+  });
+  return {
+    session,
+    gateway: createDemoRuntimeGateway(runtimeBackend),
+  };
+}
+
 function submitGameRulePrimaryFire(session: any, gameRuleModule: any, input: any): any {
   const readout = session.readEcrpRuntimeReadout();
   const source = readEntityId(readout, 'actor/demo-player') ?? 10;
   const target = readEntityId(readout, 'actor/generated-tunnel-enemy');
   const baseDamage = Number(input.baseDamage ?? 40);
-  const rangeMillimeters = Number(input.rangeMillimeters ?? 1_500);
+  const rangeMillimeters = readTargetRangeMillimeters(
+    readout,
+    target,
+    input.camera?.pose?.position ?? input.camera?.position,
+  )
+    ?? Number(input.rangeMillimeters ?? 1_500);
   const hookId = gameRuleModule.declaredHooks[0]?.hookId ?? 'demo.primary_fire_effect.weapon';
   const hook = {
     moduleRef: gameRuleModule.moduleRef,
@@ -214,6 +337,34 @@ function submitGameRulePrimaryFire(session: any, gameRuleModule: any, input: any
     sessionHashBefore: extensionReceipt.sessionHashBefore,
     sessionHashAfter: extensionReceipt.sessionHashAfter,
   };
+}
+
+function readTargetRangeMillimeters(
+  readout: any,
+  target: number | null,
+  sourcePosition: readonly number[] | undefined,
+): number | null {
+  if (target === null || !Array.isArray(sourcePosition) || sourcePosition.length !== 3) {
+    return null;
+  }
+  const targetPosition = readEntityPosition(readout, target);
+  if (targetPosition === null) {
+    return null;
+  }
+  const dx = sourcePosition[0] - targetPosition[0];
+  const dy = sourcePosition[1] - targetPosition[1];
+  const dz = sourcePosition[2] - targetPosition[2];
+  return Math.round(Math.hypot(dx, dy, dz) * 1000);
+}
+
+function readEntityPosition(readout: any, entity: number): readonly [number, number, number] | null {
+  const capability = readout.entities
+    .find((candidate: any) => candidate.entity === entity)
+    ?.capabilities.find((candidate: any) => candidate.kind === 'transform');
+  const position = capability?.position ?? capability?.translation ?? capability?.initial?.position;
+  return Array.isArray(position) && position.length === 3
+    ? [Number(position[0]), Number(position[1]), Number(position[2])]
+    : null;
 }
 
 function readEntityId(readout: any, definitionStableId: string): number | null {

@@ -2,7 +2,10 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use asha_demo_primary_fire_effect::primary_fire_effect_manifest;
+use asha_demo_primary_fire_effect::{
+    gameplay_authored_binding_registry, gameplay_composition, gameplay_declared_read_plan_hash,
+    primary_fire_effect_manifest,
+};
 use serde_json::Value as JsonValue;
 
 fn main() {
@@ -61,7 +64,9 @@ fn run_preflight(repo_root: &Path) -> Result<PreflightSummary, String> {
     require_json_number(&project_bundle, &["runtimeRequest", "sceneId"], 4103)?;
     let game_rule_modules = read_project_game_rule_modules(&project_bundle)?;
     if game_rule_modules.len() != 1 {
-        return Err("ProjectBundle.gameRuleModules must declare exactly one demo rule module".to_owned());
+        return Err(
+            "ProjectBundle.gameRuleModules must declare exactly one demo rule module".to_owned(),
+        );
     }
     let manifest = primary_fire_effect_manifest();
     require_json_string(
@@ -69,6 +74,27 @@ fn run_preflight(repo_root: &Path) -> Result<PreflightSummary, String> {
         &["moduleRef", "moduleId"],
         manifest.module_ref.module_id.as_str(),
     )?;
+    let composition = gameplay_composition()
+        .map_err(|error| format!("static gameplay composition is invalid: {error}"))?;
+    require_json_string(
+        &project_bundle,
+        &["gameplayRuntime", "compositionHash"],
+        composition.registry().registry_digest(),
+    )?;
+    require_json_string(
+        &project_bundle,
+        &["gameplayRuntime", "declaredReadPlanHash"],
+        &gameplay_declared_read_plan_hash(),
+    )?;
+    let authored_bindings = serde_json::to_value(gameplay_authored_binding_registry())
+        .map_err(|error| format!("gameplay binding registry did not serialize: {error}"))?;
+    let stored_bindings = project_bundle
+        .get("gameplayModuleBindings")
+        .ok_or_else(|| "ProjectBundle.gameplayModuleBindings is required".to_owned())?;
+    if stored_bindings != &authored_bindings {
+        return Err("ProjectBundle gameplayModuleBindings drifted from the statically linked module contract".to_owned());
+    }
+    require_json_number(&project_bundle, &["gameplayTriggers", "0", "entity"], 30)?;
     require_json_string(
         &game_rule_modules[0],
         &["moduleRef", "version"],
@@ -150,7 +176,9 @@ fn read_project_game_rule_modules(project_bundle: &JsonValue) -> Result<Vec<Json
         .get("gameRuleModules")
         .and_then(JsonValue::as_array)
         .cloned()
-        .ok_or_else(|| "ProjectBundle.gameRuleModules must declare demo Rust rule modules".to_owned())
+        .ok_or_else(|| {
+            "ProjectBundle.gameRuleModules must declare demo Rust rule modules".to_owned()
+        })
 }
 
 fn require_source_file(
@@ -207,9 +235,12 @@ fn require_json_number(value: &JsonValue, path: &[&str], expected: i64) -> Resul
 fn read_json_path<'a>(value: &'a JsonValue, path: &[&str]) -> Result<&'a JsonValue, String> {
     let mut current = value;
     for key in path {
-        current = current
-            .get(*key)
-            .ok_or_else(|| format!("missing JSON key {}", path.join(".")))?;
+        current = if let Ok(index) = key.parse::<usize>() {
+            current.get(index)
+        } else {
+            current.get(*key)
+        }
+        .ok_or_else(|| format!("missing JSON key {}", path.join(".")))?;
     }
     Ok(current)
 }

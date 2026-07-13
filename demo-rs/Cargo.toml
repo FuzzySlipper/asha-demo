@@ -1,3 +1,6 @@
 [workspace]
-members = ["crates/demo-preflight", "crates/primary-fire-effect"]
+members = ["crates/demo-preflight", "crates/gameplay-conformance", "crates/gameplay-host-native", "crates/primary-fire-effect"]
 resolver = "2"
+
+[profile.release]
+lto = true

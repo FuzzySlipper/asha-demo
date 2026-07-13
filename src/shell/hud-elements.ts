@@ -1,7 +1,11 @@
 export function readDemoHudElements(): any {
   return {
     canvas: document.querySelector('#asha-render-surface'),
+    billboardLayer: document.querySelector('#asha-billboard-layer'),
+    challengeState: document.querySelector('#challenge-state'),
     animationState: document.querySelector('#animation-state'),
+    animationCueState: document.querySelector('#animation-cue-state'),
+    presentationDegradationState: document.querySelector('#presentation-degradation-state'),
     deathState: document.querySelector('#death-state'),
     eventState: document.querySelector('#event-state'),
     exitButton: document.querySelector('#exit-button'),
@@ -29,5 +33,6 @@ export function readDemoHudElements(): any {
     lookSensitivityValue: document.querySelector('#look-sensitivity-value'),
     shotState: document.querySelector('#shot-state'),
     targetState: document.querySelector('#target-state'),
+    telemetryOverlayLayer: document.querySelector('#asha-telemetry-overlay-layer'),
   };
 }

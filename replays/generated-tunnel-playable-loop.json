@@ -66,7 +66,7 @@
     {
       "kind": "restart",
       "accepted": true,
-      "sessionHashAfter": "fnv1a64:7b4e615f2f4f3ff5"
+      "sessionHashAfter": "fnv1a64:f774262dc4d72d05"
     },
     {
       "kind": "primary_fire_and_enemy_death",
@@ -81,17 +81,17 @@
       },
       "accepted": true,
       "outcome": "hit",
-      "replayHash": "fnv1a64:9895165efa16c759",
+      "replayHash": "fnv1a64:23a35086d5e6d64b",
       "enemyDead": true
     }
   ],
   "replay": {
     "telemetryRecordCount": 50,
     "telemetryHashes": {
-      "first": "fnv1a64:a6a5f6315ccc0b4d",
-      "last": "fnv1a64:9895165efa16c759",
+      "first": "fnv1a64:a325769b848c4a3f",
+      "last": "fnv1a64:23a35086d5e6d64b",
       "uniqueCount": 49
     },
-    "primaryFireReplayHash": "fnv1a64:9895165efa16c759"
+    "primaryFireReplayHash": "fnv1a64:23a35086d5e6d64b"
   }
 }

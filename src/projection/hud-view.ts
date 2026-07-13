@@ -12,7 +12,15 @@ export type DemoHudEventSource = 'movement' | 'runtime';
 
 interface DemoHudViewInput {
   readonly backendMissingLabel: string;
+  readonly gameplayChallenge: {
+    readonly status: string;
+    readonly score: number;
+    readonly objectivePoints: number;
+    readonly closeRangeHits: number;
+  };
   readonly animationPlayback: any;
+  readonly animationSampledCue: any;
+  readonly presentationDegradation: any;
   readonly enemyHealth: {
     readonly current: number;
     readonly max: number;
@@ -52,10 +60,16 @@ export interface DemoHudControlDescriptor extends EditorControl {
 
 export interface DemoHudView {
   readonly canFire: boolean;
+  readonly challengeLabel: string;
+  readonly challengeStatus: string;
   readonly gameHud: GameHudProjection;
   readonly enemyHealthPercent: number;
   readonly eventLabel: string;
   readonly animationLabel: string;
+  readonly animationCueLabel: string;
+  readonly animationCueStatus: string;
+  readonly presentationDegradationLabel: string;
+  readonly presentationDegradationStatus: string;
   readonly inputSettings: DemoHudViewInput['inputSettings'];
   readonly locked: boolean;
   readonly lockLabel: string;
@@ -78,7 +92,10 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
   const {
     backendMissingLabel,
     animationPlayback,
+    animationSampledCue,
+    presentationDegradation,
     enemyHealth,
+    gameplayChallenge,
     interaction,
     inputSettings,
     lastMovementEvent,
@@ -117,10 +134,16 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
 
   return {
     canFire: interaction.canFire,
+    challengeLabel: `${gameplayChallenge.status.toUpperCase()} ${gameplayChallenge.score}/${gameplayChallenge.objectivePoints} · ${gameplayChallenge.closeRangeHits} CLOSE`,
+    challengeStatus: gameplayChallenge.status,
     gameHud,
     enemyHealthPercent: enemyHealthBar.ratio * 100,
     eventLabel,
     animationLabel: projectAnimationLabel(animationPlayback),
+    animationCueLabel: projectAnimationCueLabel(animationSampledCue),
+    animationCueStatus: animationSampledCue?.status ?? 'waiting',
+    presentationDegradationLabel: projectPresentationDegradationLabel(presentationDegradation),
+    presentationDegradationStatus: presentationDegradation?.status ?? 'healthy',
     inputSettings,
     locked,
     lockLabel: locked ? 'LOCKED' : 'UNLOCKED',
@@ -138,6 +161,27 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     shotLabel: `${gameHud.combat.hits}/${gameHud.combat.shotsFired}`,
     targetLabel: `${interaction.remainingTargets}/${interaction.totalTargets}`,
   };
+}
+
+function projectAnimationCueLabel(evidence: any): string {
+  if (evidence?.cue === null || evidence?.cue === undefined) {
+    return 'WAITING';
+  }
+  const cue = evidence.cue;
+  return `${String(cue.clip).toUpperCase()} @ ${Number(cue.markerSeconds).toFixed(2)}S · ${String(evidence.status).toUpperCase()}`;
+}
+
+function projectPresentationDegradationLabel(evidence: any): string {
+  if (!Array.isArray(evidence?.cases) || evidence.cases.length === 0) {
+    return 'HEALTHY';
+  }
+  return evidence.cases
+    .map((value) => `${String(value.domain).toUpperCase()}:${formatDiagnosticCode(value.code)}`)
+    .join('\n');
+}
+
+function formatDiagnosticCode(value: unknown): string {
+  return String(value).replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase();
 }
 
 function projectAnimationLabel(playback: any): string {

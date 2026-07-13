@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": 70,
+      "schemaVersion": 1,
+      "displayName": "Interaction console",
+      "parts": [
+        {
+          "id": 1,
+          "namespace": "body",
+          "displayName": "Body",
+          "parent": null,
+          "transform": {
+            "translation": [0, 0, 0],
+            "rotation": [0, 0, 0, 1],
+            "scale": [1, 1, 1]
+          },
+          "source": {
+            "kind": "entityDefinition",
+            "stableId": "demo.console.body"
+          }
+        },
+        {
+          "id": 2,
+          "namespace": "sensor",
+          "displayName": "Sensor",
+          "parent": 1,
+          "transform": {
+            "translation": [0, 1, 0],
+            "rotation": [0, 0, 0, 1],
+            "scale": [1, 1, 1]
+          },
+          "source": {
+            "kind": "entityDefinition",
+            "stableId": "demo.console.sensor"
+          }
+        }
+      ],
+      "partRoles": [
+        { "role": "console/body", "part": 1 },
+        { "role": "interaction/sensor", "part": 2 }
+      ],
+      "variant": null
+    }
+  ]
+}

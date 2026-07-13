@@ -11,6 +11,7 @@ const ashaRendererThreeRequire = createRequire(join(ashaRendererThreeRoot, 'pack
 const outputRoot = join(repoRoot, 'dist/ui');
 const catalogCoreVendorRoot = join(outputRoot, 'vendor/asha-catalog-core');
 const contractsVendorRoot = join(outputRoot, 'vendor/asha-contracts');
+const gameWorkspaceVendorRoot = join(outputRoot, 'vendor/asha-game-workspace');
 const renderProjectionVendorRoot = join(outputRoot, 'vendor/asha-render-projection');
 const rendererHostVendorRoot = join(outputRoot, 'vendor/asha-renderer-host');
 const rendererHostBackendVendorRoot = join(rendererHostVendorRoot, 'vendor/asha-renderer-three');
@@ -30,11 +31,14 @@ cpSync(join(repoRoot, 'catalogs'), join(outputRoot, 'catalogs'), { recursive: tr
 cpSync(join(repoRoot, 'game-rules'), join(outputRoot, 'game-rules'), { recursive: true });
 cpSync(join(repoRoot, 'levels'), join(outputRoot, 'levels'), { recursive: true });
 cpSync(join(repoRoot, 'project'), join(outputRoot, 'project'), { recursive: true });
+cpSync(join(repoRoot, 'prefabs'), join(outputRoot, 'prefabs'), { recursive: true });
 runTypeScriptBuild();
 mkdirSync(catalogCoreVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'catalog-core', 'dist'), catalogCoreVendorRoot, { recursive: true });
 mkdirSync(contractsVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'contracts', 'dist'), contractsVendorRoot, { recursive: true });
+mkdirSync(gameWorkspaceVendorRoot, { recursive: true });
+cpSync(join(repoRoot, 'node_modules', '@asha', 'game-workspace', 'dist'), gameWorkspaceVendorRoot, { recursive: true });
 mkdirSync(renderProjectionVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'render-projection', 'dist'), renderProjectionVendorRoot, { recursive: true });
 mkdirSync(rendererHostVendorRoot, { recursive: true });

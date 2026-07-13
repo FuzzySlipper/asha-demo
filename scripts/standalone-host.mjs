@@ -45,6 +45,21 @@ const fireReceipt = runtimeGateway.submitPrimaryFire({
 if (!fireReceipt?.accepted) {
   throw new Error('Standalone host native RuntimeSession rejected primary fire smoke.');
 }
+const gameplayReadout = runtimeGateway.readGameplayRuntime();
+if (gameplayReadout?.reactionFrameCount < 2 || gameplayReadout.recentFrames?.length < 2) {
+  throw new Error('Standalone host did not retain the linked gameplay module reaction frame.');
+}
+if (
+  gameplayReadout.prefabs?.instances?.length !== 2
+  || gameplayReadout.moduleStates?.some((state) => state.scope.kind === 'entity' && state.revision === 1) !== true
+) {
+  throw new Error('Standalone host did not retain the two prefab instances and executed part-scoped module state.');
+}
+const gameplaySnapshot = runtimeGateway.saveGameplayRuntime();
+const restoredGameplay = runtimeGateway.restoreGameplayRuntime(gameplaySnapshot);
+if (!restoredGameplay?.accepted || restoredGameplay.readout?.runtimeHostHash !== gameplayReadout.runtimeHostHash) {
+  throw new Error('Standalone host gameplay snapshot restore did not reproduce the runtime host hash.');
+}
 
 const telemetry = runtimeGateway.readTelemetry();
 const summary = {
@@ -59,6 +74,13 @@ const summary = {
   gameRuleModule: content.gameRuleModules[0]?.moduleRef?.moduleId ?? null,
   runtimeStatus: runtimeBackend.status,
   primaryFireAccepted: fireReceipt.accepted,
+  gameplayRegistryDigest: gameplayReadout.gameplayRegistryDigest,
+  gameplayBindingRegistryHash: gameplayReadout.bindingRegistryHash,
+  gameplayReactionFrameCount: gameplayReadout.reactionFrameCount,
+  gameplayLastFrameHash: gameplayReadout.lastReactionFrameHash,
+  gameplayModuleStateHash: gameplayReadout.moduleStateHash,
+  gameplaySnapshotHash: gameplaySnapshot.snapshotHash,
+  gameplayRestoreMatched: restoredGameplay.readout.runtimeHostHash === gameplayReadout.runtimeHostHash,
   replayHash: fireReceipt.replayEvidence?.replayHash ?? null,
   telemetryReplayRecords: telemetry?.replayRecords?.length ?? 0,
 };

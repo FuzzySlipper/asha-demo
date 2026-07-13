@@ -10,6 +10,24 @@ devtools_protocol_version = "devtools-protocol.v0"
 publish_artifact_format_version = "publish-artifact.v0"
 engine_source = "../asha-engine"
 
+[asha.compatibility]
+pin_kind = "local-worktree-contract"
+consumer_base_commit = "1c1f397a6134185c38ca60f7d249c198c2ca95fe"
+engine_base_commit = "22383bee048af721c582130bc198e9778e0eeb81"
+contracts_compatibility = "contracts.v0"
+runtime_bridge_compatibility = "runtime-bridge.v0"
+required_task_reviews = [5613, 5641, 5642, 5643, 5705, 5706, 5707]
+required_operations = [
+  "configure_input_session",
+  "apply_input_context_command",
+  "submit_raw_input",
+  "replay_resolved_input_action",
+  "read_input_context_state",
+  "apply_time_control_command",
+  "read_time_control_state",
+]
+pin_note = "The pinned engine commit contains the public BrowserInputHost and resolved time-control composition surfaces; task review ids bind the later shared-worktree behavior under review."
+
 [workspace]
 scene_roots = ["levels/presets", "levels/scenes"]
 asset_roots = ["assets"]

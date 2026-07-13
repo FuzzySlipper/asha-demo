@@ -2,9 +2,11 @@ import {
   describeNativeBrowserHostCommand,
   launchNativeBrowserHost,
 } from '@asha/browser-host';
+import { createNativeRuntimeBridge } from '@asha/runtime-bridge';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createAshaDemoGameplayRuntime } from '../host/gameplay-runtime-host.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'dist/ui');
@@ -13,12 +15,17 @@ const host = args.host ?? process.env.HOST ?? process.env.npm_config_host;
 const port = readPort(args.port ?? process.env.PORT ?? process.env.npm_config_port);
 
 runStaticUiBuild();
+const gameplayRuntime = createAshaDemoGameplayRuntime();
 
 const nativeHost = await launchNativeBrowserHost({
   uiRoot: appRoot,
   healthProject: 'asha-demo',
   ...(host !== undefined ? { host } : {}),
   ...(port !== undefined ? { port } : {}),
+  provider: {
+    createRuntimeBridge: () => gameplayRuntime.wrapRuntimeBridge(createNativeRuntimeBridge()),
+    gameplayHost: gameplayRuntime.gameplayHost,
+  },
 });
 
 console.log(`asha-demo native browser host listening at ${nativeHost.url}`);

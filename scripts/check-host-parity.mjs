@@ -19,6 +19,9 @@ if (standaloneHost.launch?.portPolicy !== 'no_manual_dev_server_port') {
 if (JSON.stringify(browserHost.runtimeProvider) !== JSON.stringify(standaloneHost.runtimeProvider)) {
   errors.push('browser and standalone host configs must use the same runtime provider contract');
 }
+if (JSON.stringify(browserHost.gameplayHost) !== JSON.stringify(standaloneHost.gameplayHost)) {
+  errors.push('browser and standalone host configs must use the same static gameplay host');
+}
 if (standaloneHost.status !== 'native_provider_host_smoke_ready') {
   errors.push('standalone host status must identify the native provider host smoke path');
 }
@@ -54,6 +57,15 @@ function checkHost(host, label) {
   }
   if (host.runtimeProvider?.referenceFallback !== false) {
     errors.push(`${label} must fail closed instead of using reference fallback`);
+  }
+  if (host.gameplayHost?.kind !== 'static_gameplay_runtime_host') {
+    errors.push(`${label} must declare the static gameplay RuntimeSession host`);
+  }
+  if (host.gameplayHost?.moduleId !== 'demo.primary-fire-effect') {
+    errors.push(`${label} must link the authored close-range challenge module`);
+  }
+  if (host.gameplayHost?.nativeBinding !== 'dist/native/asha-demo-gameplay-host.node') {
+    errors.push(`${label} must name the product-owned native gameplay binding`);
   }
   if (host.renderSurface?.owner !== '@asha/renderer-host') {
     errors.push(`${label} must mount rendering through @asha/renderer-host`);

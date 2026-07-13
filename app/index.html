@@ -11,6 +11,7 @@
         "imports": {
           "@asha/catalog-core": "/vendor/asha-catalog-core/index.js",
           "@asha/contracts": "/vendor/asha-contracts/index.js",
+          "@asha/game-workspace": "/vendor/asha-game-workspace/index.js",
           "@asha/render-projection": "/vendor/asha-render-projection/index.js",
           "@asha/renderer-host": "/vendor/asha-renderer-host/index.js",
           "@asha/runtime-bridge": "/vendor/asha-runtime-bridge/browser.js",
@@ -37,6 +38,16 @@
       data-demo-readout="asha-renderer-browser-surface"
       aria-label="ASHA renderer browser surface"
     ></canvas>
+    <div
+      id="asha-billboard-layer"
+      data-demo-readout="asha-billboard-layer"
+      aria-label="ASHA world-space billboard projection"
+    ></div>
+    <div
+      id="asha-telemetry-overlay-layer"
+      data-demo-readout="asha-telemetry-overlay-layer"
+      aria-label="ASHA telemetry overlay projection"
+    ></div>
     <div id="reticle" class="reticle" data-state="idle" data-demo-readout="reticle"></div>
     <section class="hud-panel" aria-label="ASHA demo status">
       <div class="hud-row">
@@ -52,6 +63,10 @@
         <strong id="shot-state">0/0</strong>
       </div>
       <div class="hud-row">
+        <span>Challenge</span>
+        <strong id="challenge-state" data-status="armed">ARMED 0/6</strong>
+      </div>
+      <div class="hud-row">
         <span>Player</span>
         <strong id="player-health-state">100/100</strong>
       </div>
@@ -62,6 +77,14 @@
       <div class="hud-row">
         <span>Animation</span>
         <strong id="animation-state">UNAVAILABLE</strong>
+      </div>
+      <div class="hud-row hud-row-wide">
+        <span>Anim cue</span>
+        <strong id="animation-cue-state" data-status="waiting">WAITING</strong>
+      </div>
+      <div class="hud-row hud-row-wide">
+        <span>Feedback</span>
+        <strong id="presentation-degradation-state" data-status="healthy">HEALTHY</strong>
       </div>
       <div class="health-meter" aria-label="Enemy health">
         <span id="health-fill"></span>

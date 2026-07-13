@@ -1,0 +1,20 @@
+[package]
+name = "asha-demo-gameplay-host-native"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+asha-demo-primary-fire-effect = { path = "../primary-fire-effect" }
+asha-gameplay-module-sdk = { path = "../../../../asha-engine/public-rust/gameplay-module-sdk" }
+asha-gameplay-runtime-host = { path = "../../../../asha-engine/public-rust/gameplay-runtime-host" }
+napi = { version = "2", default-features = false, features = ["napi8"] }
+napi-derive = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[build-dependencies]
+napi-build = "2"

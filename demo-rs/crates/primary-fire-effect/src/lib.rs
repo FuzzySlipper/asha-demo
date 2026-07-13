@@ -4,6 +4,13 @@ use asha_game_rule_extension::{
     GameRuleModuleRef, WeaponEffectHookRequest,
 };
 
+mod gameplay;
+
+pub use gameplay::{
+    gameplay_authored_binding_registry, gameplay_composition, gameplay_declared_read_plan_hash,
+    gameplay_module_ref, gameplay_session_conformance_binding_registry,
+};
+
 const MODULE_ID: &str = "demo.primary_fire_effect";
 const MODULE_VERSION: &str = "0.1.0";
 const CONTRACT_HASH: &str = "sha256:demo-primary-fire-effect-contract-v0";
@@ -50,7 +57,11 @@ impl GameRuleModule for PrimaryFireEffectModule {
             }
         };
 
-        let close_range_bonus = if request.range_millimeters <= 2_500 { 5 } else { 0 };
+        let close_range_bonus = if request.range_millimeters <= 2_500 {
+            5
+        } else {
+            0
+        };
         Ok(GameExtensionProposal::DamageModifier {
             proposal_id: format!("{}.close_range_bonus", request.request_id),
             target,
@@ -136,7 +147,10 @@ mod tests {
     fn manifest_declares_demo_weapon_effect_hook() {
         let manifest = primary_fire_effect_manifest();
         assert_eq!(manifest.module_ref.module_id, "demo.primary_fire_effect");
-        assert_eq!(manifest.declared_hooks[0].hook_id, "demo.primary_fire_effect.weapon");
+        assert_eq!(
+            manifest.declared_hooks[0].hook_id,
+            "demo.primary_fire_effect.weapon"
+        );
         assert!(manifest
             .deterministic_requirements
             .contains(&"no-ts-callback".to_string()));

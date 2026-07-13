@@ -1,4 +1,8 @@
 export function renderHudElements(elements: any, view: any): void {
+  if (elements.challengeState instanceof HTMLElement) {
+    elements.challengeState.textContent = view.challengeLabel;
+    elements.challengeState.dataset.status = view.challengeStatus;
+  }
   if (elements.lockState instanceof HTMLElement) {
     elements.lockState.textContent = view.lockLabel;
     elements.lockState.dataset.locked = String(view.locked);
@@ -18,6 +22,14 @@ export function renderHudElements(elements: any, view: any): void {
   }
   if (elements.animationState instanceof HTMLElement) {
     elements.animationState.textContent = view.animationLabel;
+  }
+  if (elements.animationCueState instanceof HTMLElement) {
+    elements.animationCueState.textContent = view.animationCueLabel;
+    elements.animationCueState.dataset.status = view.animationCueStatus;
+  }
+  if (elements.presentationDegradationState instanceof HTMLElement) {
+    elements.presentationDegradationState.textContent = view.presentationDegradationLabel;
+    elements.presentationDegradationState.dataset.status = view.presentationDegradationStatus;
   }
   if (elements.eventState instanceof HTMLElement) {
     elements.eventState.textContent = view.eventLabel;

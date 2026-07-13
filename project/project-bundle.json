@@ -39,6 +39,172 @@
       "sourceHash": "sha256:demo-primary-fire-effect-source-v0"
     }
   ],
+  "gameplayRuntime": {
+    "compositionHash": "fnv1a64:e84dbcc6ce4b440c",
+    "declaredReadPlanHash": "fnv1a64:d735bbb6bbb8ba73",
+    "scheduler": {
+      "owner": {
+        "ownerId": "authority.asha-demo.scheduler",
+        "providerId": "provider.asha-demo.gameplay-host"
+      },
+      "declaredEvents": [
+        {
+          "namespace": "asha.combat",
+          "name": "fire-hit",
+          "version": 1,
+          "schemaHash": "fnv1a64:e2f8a2f1bab06948"
+        }
+      ],
+      "declaredProposals": [
+        {
+          "namespace": "asha.entity",
+          "name": "set-capability-activation",
+          "version": 1,
+          "schemaHash": "fnv1a64:dd60efc4b5133917"
+        }
+      ]
+    }
+  },
+  "gameplayModuleBindings": {
+    "schemaVersion": 1,
+    "configurations": [
+      {
+        "configurationId": "demo.primary-fire-effect.console-blue",
+        "module": {
+          "moduleId": "demo.primary-fire-effect",
+          "namespace": "demo.primary-fire-effect",
+          "version": "1.0.0",
+          "sdkHash": "sha256:gameplay-sdk-v1",
+          "contractHash": "sha256:demo-primary-fire-gameplay-contract-v1",
+          "artifactHash": "sha256:demo-primary-fire-gameplay-artifact-v1",
+          "providerId": "provider.demo.primary-fire-effect"
+        },
+        "configuration": {
+          "namespace": "demo.primary-fire-effect",
+          "name": "configuration",
+          "version": 1,
+          "schemaHash": "sha256:demo.primary-fire-effect.configuration.v1"
+        },
+        "codecId": "codec.demo.primary-fire-effect.configuration",
+        "canonicalConfig": [123, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 77, 105, 108, 108, 105, 109, 101, 116, 101, 114, 115, 34, 58, 50, 48, 48, 48, 44, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 66, 111, 110, 117, 115, 34, 58, 50, 44, 34, 111, 98, 106, 101, 99, 116, 105, 118, 101, 80, 111, 105, 110, 116, 115, 34, 58, 51, 125],
+        "configHash": "fnv1a64:4689a812b4a68081"
+      },
+      {
+        "configurationId": "demo.primary-fire-effect.console-red",
+        "module": {
+          "moduleId": "demo.primary-fire-effect",
+          "namespace": "demo.primary-fire-effect",
+          "version": "1.0.0",
+          "sdkHash": "sha256:gameplay-sdk-v1",
+          "contractHash": "sha256:demo-primary-fire-gameplay-contract-v1",
+          "artifactHash": "sha256:demo-primary-fire-gameplay-artifact-v1",
+          "providerId": "provider.demo.primary-fire-effect"
+        },
+        "configuration": {
+          "namespace": "demo.primary-fire-effect",
+          "name": "configuration",
+          "version": 1,
+          "schemaHash": "sha256:demo.primary-fire-effect.configuration.v1"
+        },
+        "codecId": "codec.demo.primary-fire-effect.configuration",
+        "canonicalConfig": [123, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 77, 105, 108, 108, 105, 109, 101, 116, 101, 114, 115, 34, 58, 51, 48, 48, 48, 44, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 66, 111, 110, 117, 115, 34, 58, 55, 44, 34, 111, 98, 106, 101, 99, 116, 105, 118, 101, 80, 111, 105, 110, 116, 115, 34, 58, 57, 125],
+        "configHash": "fnv1a64:f493f3900bf95563"
+      },
+      {
+        "configurationId": "demo.primary-fire-effect.default",
+        "module": {
+          "moduleId": "demo.primary-fire-effect",
+          "namespace": "demo.primary-fire-effect",
+          "version": "1.0.0",
+          "sdkHash": "sha256:gameplay-sdk-v1",
+          "contractHash": "sha256:demo-primary-fire-gameplay-contract-v1",
+          "artifactHash": "sha256:demo-primary-fire-gameplay-artifact-v1",
+          "providerId": "provider.demo.primary-fire-effect"
+        },
+        "configuration": {
+          "namespace": "demo.primary-fire-effect",
+          "name": "configuration",
+          "version": 1,
+          "schemaHash": "sha256:demo.primary-fire-effect.configuration.v1"
+        },
+        "codecId": "codec.demo.primary-fire-effect.configuration",
+        "canonicalConfig": [123, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 77, 105, 108, 108, 105, 109, 101, 116, 101, 114, 115, 34, 58, 50, 53, 48, 48, 44, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 66, 111, 110, 117, 115, 34, 58, 53, 44, 34, 111, 98, 106, 101, 99, 116, 105, 118, 101, 80, 111, 105, 110, 116, 115, 34, 58, 54, 125],
+        "configHash": "fnv1a64:ebaea1ce8b0b3d2c"
+      }
+    ],
+    "bindings": [
+      {
+        "bindingId": "demo.primary-fire-effect.console-sensor",
+        "moduleId": "demo.primary-fire-effect",
+        "configurationId": "demo.primary-fire-effect.default",
+        "stateSchema": {
+          "namespace": "demo.primary-fire-effect",
+          "name": "challenge-state",
+          "version": 1,
+          "schemaHash": "sha256:demo.primary-fire-effect.challenge-state.v1"
+        },
+        "target": {
+          "kind": "prefabPart",
+          "part": { "prefab": 70, "role": "interaction/sensor" }
+        },
+        "requiredReads": [],
+        "outputContracts": [
+          {
+            "namespace": "demo.primary-fire-effect",
+            "name": "challenge-progressed",
+            "version": 1,
+            "schemaHash": "sha256:demo.primary-fire-effect.challenge-progressed.v1"
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "bindingId": "demo.primary-fire-effect.session",
+        "moduleId": "demo.primary-fire-effect",
+        "configurationId": "demo.primary-fire-effect.default",
+        "stateSchema": {
+          "namespace": "demo.primary-fire-effect",
+          "name": "challenge-state",
+          "version": 1,
+          "schemaHash": "sha256:demo.primary-fire-effect.challenge-state.v1"
+        },
+        "target": { "kind": "session" },
+        "requiredReads": [],
+        "outputContracts": [
+          {
+            "namespace": "demo.primary-fire-effect",
+            "name": "challenge-progressed",
+            "version": 1,
+            "schemaHash": "sha256:demo.primary-fire-effect.challenge-progressed.v1"
+          }
+        ],
+        "enabled": true
+      }
+    ],
+    "overrides": [
+      {
+        "bindingId": "demo.primary-fire-effect.console-sensor",
+        "prefabInstance": 700,
+        "configurationId": "demo.primary-fire-effect.console-blue",
+        "enabled": null
+      },
+      {
+        "bindingId": "demo.primary-fire-effect.console-sensor",
+        "prefabInstance": 701,
+        "configurationId": "demo.primary-fire-effect.console-red",
+        "enabled": null
+      }
+    ],
+    "registryHash": "fnv1a64:57e695629fd31d9d"
+  },
+  "gameplayTriggers": [
+    {
+      "schemaVersion": 1,
+      "entity": 30,
+      "scope": "encounter.close-range",
+      "tags": ["challenge", "close-range", "generated-tunnel"]
+    }
+  ],
   "sourceFiles": {
     "entityDefinitions": [
       "catalogs/actors/demo-player.entity.json",
@@ -54,6 +220,7 @@
     "gameRuleModules": [
       "game-rules/primary-fire-effect.manifest.json"
     ],
+    "prefabRegistry": "prefabs/registry.json",
     "levelPreset": "levels/presets/tiny-enclosed-tunnel.json",
     "animatedMeshManifest": "assets/mesh-animation/kenney-retro-character-medium.manifest.json"
   },

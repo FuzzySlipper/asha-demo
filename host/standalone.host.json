@@ -13,6 +13,12 @@
     "required": true,
     "referenceFallback": false
   },
+  "gameplayHost": {
+    "kind": "static_gameplay_runtime_host",
+    "moduleId": "demo.primary-fire-effect",
+    "nativeBinding": "dist/native/asha-demo-gameplay-host.node",
+    "projectBindings": "project/project-bundle.json"
+  },
   "renderSurface": {
     "owner": "@asha/renderer-host",
     "backend": "host_private"

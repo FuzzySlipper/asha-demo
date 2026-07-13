@@ -31,6 +31,7 @@ scope remains `@asha/*`.
 npm run check:dependencies
 npm run check:architecture
 npm run check:demo-rs
+npm run check:gameplay-module
 npm run check:host
 npm run check:standalone
 npm test
@@ -47,11 +48,19 @@ app boot.
 This repo contains the first ASHA Game Project demo surface:
 
 - `asha.game.toml` declares the bounded workspace shape.
-- `project/project-bundle.json` declares the demo ProjectBundle, runtime request, and durable source file refs.
+- `project/project-bundle.json` declares the demo ProjectBundle, runtime request,
+  durable source file refs, generated gameplay-module bindings/configuration,
+  and the close-range trigger definition.
 - `catalogs/actors/`, `catalogs/gameplay/`, `catalogs/materials/`, `catalogs/spawns/`, and `catalogs/weapons/` hold inspectable demo content.
 - `levels/presets/`, `levels/scenes/`, `assets/`, and `replays/` are source roots for demo-owned content and evidence.
 - `policies/` is documentation-only until ASHA exposes an approved public policy-authoring surface.
 - The served UI consumes public ASHA package roots for the integrated RuntimeSession loop: first-person generated-tunnel room rendering from the public renderer projection, browser-operable movement/look controls with collision readout, deterministic generated tunnel projection, enemy placement from durable ECRP content, hash-pinned animated mesh playback from RuntimeSession animation intent, primary-fire health/HUD feedback, typed HUD/menu controls, death status, and typed restart receipt. Runtime authority requires an injected public native Rust RuntimeBridge provider (`asha.runtime_bridge.native_rust_provider.v1`, with the current `asha_demo.native_runtime_bridge_provider.v1` alias still accepted); a plain static browser session fails closed with a visible missing-backend diagnostic instead of using reference authority.
+- The same provider carries a product-owned `GameplayRuntimeHostTransport`.
+  `demo-rs/crates/gameplay-host-native` statically links the real
+  `demo.primary-fire-effect` module through approved public Rust facades. Accepted
+  camera movement drives the authored tunnel trigger, accepted weapon outcomes
+  become standard combat/lifecycle events, and the visible challenge HUD projects
+  the module's persistent state/reaction evidence.
 
 Run `npm run check:dependencies` before adding code or package dependencies. The guard reads ASHA's public-surface manifest and rejects private ASHA packages, generated contract file paths, Rust crate paths, and package-internal `src/*` imports.
 
@@ -63,6 +72,12 @@ DOM projection mutation.
 Run `npm run check:demo-rs` before changing demo-owned Rust tooling or the game
 manifest. It compiles the downstream Rust preflight crate and checks stable
 demo-owned content metadata without importing ASHA internals.
+
+Run `npm run check:gameplay-module` before changing the close-range challenge.
+It executes the public gameplay-module conformance kit against the real linked
+provider and authored binding registry, including frozen reads, state facts,
+verification replay, recorded-fact playback, and save/reload. Its machine-readable
+report is `artifacts/5636/gameplay-module-conformance.json`.
 
 Run `npm run check:host` before changing host manifests. It verifies browser and
 standalone host configs use the same ProjectBundle/content path and native
@@ -99,8 +114,9 @@ This repo follows ASHA's game-agent source organization guide:
   RuntimeSession projections plus shell state.
 - `src/shell/` owns DOM lookup, DOM mutation, reticle updates, and browser host
   rendering adapters.
-- `demo-rs/` owns demo-specific Rust tooling only. The current crate validates
-  content/manifest metadata; it does not own runtime authority.
+- `demo-rs/` owns demo-specific Rust tooling and the statically linked product
+  gameplay module/binding cell. Generic authority remains in public engine
+  facades; the demo module owns only its close-range challenge state and reactions.
 - `host/` describes browser-served and standalone host shapes.
 
 Add new game content under `catalogs/`, `levels/`, `assets/`, or `project/`.
@@ -122,9 +138,13 @@ Demo code must not own:
 - generated ASHA contract truth or private engine/package internals;
 - reference/mock RuntimeSession as product authority.
 
-Demo-owned Rust may own content/tooling preflight now. Future game-specific Rust
-authority must follow `../asha-engine/docs/game-rust-authority-extension-model.md`
-and the planned upstream extension tasks (#4516/#4517/#4518).
+Demo-owned Rust follows
+`../asha-engine/docs/gameplay-runtime-host.md`: it contributes a closed static
+module composition and typed module-local state, while engine owners retain
+collision, combat, lifecycle, capability mutation, trigger reconciliation,
+replay, scheduling, and RuntimeSession validation. The ProjectBundle declares
+the closed scheduler owner/event/proposal contracts; TypeScript forwards only
+typed scheduler moments and projects the bounded readout.
 
 ## Current Boundaries
 

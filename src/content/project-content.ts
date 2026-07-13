@@ -4,6 +4,7 @@ import {
   readFpsEcrpObjectModel,
   readFpsGameplayPresetCatalog,
 } from '@asha/catalog-core';
+import { buildDemoPrefabAuthoring } from './prefab-authoring.js';
 
 const PROJECT_BUNDLE_PATH = '/project/project-bundle.json';
 
@@ -22,6 +23,7 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
     levelPreset,
     animatedMeshManifest,
     gameRuleModules,
+    prefabRegistry,
   ] = await Promise.all([
     Promise.all((sourceFiles.entityDefinitions ?? []).map((path) => fetchJson(`/${path}`))),
     fetchJson(`/${sourceFiles.sceneDocument}`),
@@ -32,7 +34,10 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
     fetchJson(`/${sourceFiles.levelPreset}`),
     fetchJson(`/${sourceFiles.animatedMeshManifest}`),
     Promise.all((sourceFiles.gameRuleModules ?? []).map((path) => fetchJson(`/${path}`))),
+    fetchJson(`/${sourceFiles.prefabRegistry}`),
   ]);
+
+  const prefabAuthoring = buildDemoPrefabAuthoring(prefabRegistry, projectBundle.gameplayModuleBindings);
 
   const playerDefinition = requireEntityDefinition(entityDefinitions, 'actor/demo-player');
   const enemyDefinition = requireEntityDefinition(entityDefinitions, 'actor/generated-tunnel-enemy');
@@ -49,10 +54,12 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
       sceneDocument: sourceFiles.sceneDocument,
       catalogs: catalogRefs,
       gameRuleModules: sourceFiles.gameRuleModules ?? [],
+      prefabRegistry: sourceFiles.prefabRegistry,
       levelPreset: sourceFiles.levelPreset,
       animatedMeshManifest: sourceFiles.animatedMeshManifest,
     },
     projectBundle,
+    prefabAuthoring,
     gameRuleModules,
     entityDefinitions,
     sceneDocument,
@@ -141,6 +148,37 @@ function validateProjectBundle(demoProjectContent, diagnostics) {
   }
   if (!deepEqual(projectBundle.gameRuleModules ?? [], demoProjectContent.gameRuleModules)) {
     diagnostics.push('ProjectBundle gameRuleModules must match the durable module manifest source file');
+  }
+  if (typeof projectBundle.gameplayRuntime?.compositionHash !== 'string') {
+    diagnostics.push('ProjectBundle gameplayRuntime.compositionHash must bind the statically linked Rust composition');
+  }
+  if (typeof projectBundle.gameplayRuntime?.declaredReadPlanHash !== 'string') {
+    diagnostics.push('ProjectBundle gameplayRuntime.declaredReadPlanHash must bind the declared view plan');
+  }
+  if (
+    typeof projectBundle.gameplayRuntime?.scheduler?.owner?.ownerId !== 'string'
+    || !Array.isArray(projectBundle.gameplayRuntime?.scheduler?.declaredEvents)
+    || !Array.isArray(projectBundle.gameplayRuntime?.scheduler?.declaredProposals)
+  ) {
+    diagnostics.push('ProjectBundle gameplayRuntime.scheduler must declare the closed Rust scheduler owner and contracts');
+  }
+  if (typeof projectBundle.sourceFiles?.prefabRegistry !== 'string') {
+    diagnostics.push('ProjectBundle sourceFiles.prefabRegistry must name the durable public prefab registry');
+  }
+  if (demoProjectContent.prefabAuthoring.readout.instances.length !== 2) {
+    diagnostics.push('public prefab authoring must produce the authored and player placement instances');
+  }
+  if (demoProjectContent.prefabAuthoring.readout.selected?.roles?.some((role) => role.role === 'interaction/sensor') !== true) {
+    diagnostics.push('public prefab authoring must expose the stable interaction/sensor part role');
+  }
+  if (projectBundle.gameplayModuleBindings?.bindings?.length !== 2) {
+    diagnostics.push('ProjectBundle gameplayModuleBindings must declare the Session and prefab-part challenge bindings');
+  }
+  if (projectBundle.gameplayModuleBindings?.overrides?.length !== 2) {
+    diagnostics.push('ProjectBundle gameplayModuleBindings must declare two prefab-instance configuration overrides');
+  }
+  if (projectBundle.gameplayTriggers?.length !== 1) {
+    diagnostics.push('ProjectBundle gameplayTriggers must declare the generated-tunnel challenge boundary');
   }
 }
 

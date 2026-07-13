@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "consumer": {
+    "id": "asha-demo.close-range-challenge",
+    "role": "asha-demo",
+    "source": "demo-rs/crates/primary-fire-effect"
+  },
+  "requirements": [
+    {
+      "id": "asha-demo.gameplay-module-sdk",
+      "kind": "rustCrate",
+      "identity": "asha-gameplay-module-sdk",
+      "symbols": ["GameplayModuleBehavior", "GameplayModuleContext", "GameplayStaticModuleProvider"],
+      "requiredLevel": "delivery",
+      "evidence": {
+        "type": ["../asha-engine/public-rust/gameplay-module-sdk/src/lib.rs"],
+        "provider": ["demo-rs/crates/primary-fire-effect/Cargo.toml"],
+        "selector": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
+        "delivery": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"]
+      }
+    },
+    {
+      "id": "asha-demo.gameplay-conformance",
+      "kind": "rustCrate",
+      "identity": "asha-gameplay-module-conformance",
+      "symbols": ["GameplayModuleConformanceCase", "GameplayModuleConformanceReport", "run_gameplay_module_conformance"],
+      "requiredLevel": "delivery",
+      "evidence": {
+        "type": ["../asha-engine/public-rust/gameplay-module-conformance/src/lib.rs"],
+        "provider": ["demo-rs/crates/gameplay-conformance/Cargo.toml"],
+        "selector": ["demo-rs/crates/gameplay-conformance/src/main.rs"],
+        "delivery": ["artifacts/5636/gameplay-module-conformance.json"]
+      }
+    },
+    {
+      "id": "asha-demo.primary-fire-module",
+      "kind": "gameplayModule",
+      "identity": "demo.primary-fire-effect",
+      "provider": "provider.demo.primary-fire-effect",
+      "fields": ["artifactHash", "contractHash", "providerId", "sdkHash", "sourceHash"],
+      "requiredLevel": "delivery",
+      "evidence": {
+        "type": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
+        "provider": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
+        "selector": ["project/project-bundle.json"],
+        "delivery": ["artifacts/5636/gameplay-module-conformance.json"]
+      }
+    },
+    {
+      "id": "asha-demo.challenge-state-read",
+      "kind": "gameplayRead",
+      "identity": "demo.primary-fire-effect.challenge-state-view.v1",
+      "provider": "provider.demo.primary-fire-effect",
+      "fields": ["revision", "status", "score", "closeRangeHits"],
+      "selectors": ["moduleStateScope"],
+      "quota": { "maxItems": 1 },
+      "ordering": "single-session-state",
+      "requiredLevel": "delivery",
+      "evidence": {
+        "type": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
+        "provider": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
+        "selector": ["demo-rs/crates/gameplay-conformance/src/main.rs"],
+        "delivery": ["artifacts/5636/gameplay-module-conformance.json"]
+      }
+    },
+    {
+      "id": "asha-demo.challenge-configuration",
+      "kind": "gameplayBindingSchema",
+      "identity": "demo.primary-fire-effect.configuration.v1",
+      "provider": "provider.demo.primary-fire-effect",
+      "fields": ["closeRangeMillimeters", "closeRangeBonus", "objectivePoints"],
+      "target": { "scope": "session" },
+      "requiredLevel": "delivery",
+      "evidence": {
+        "type": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
+        "provider": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
+        "selector": ["project/project-bundle.json"],
+        "delivery": ["artifacts/5636/gameplay-module-conformance.json"]
+      }
+    }
+  ]
+}
