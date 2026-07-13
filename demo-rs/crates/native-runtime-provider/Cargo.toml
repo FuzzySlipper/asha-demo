@@ -1,15 +1,15 @@
 [package]
-name = "asha-demo-preflight"
+name = "asha-demo-native-runtime-provider"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+test = false
+doctest = false
+
 [dependencies]
 asha-demo-primary-fire-effect = { path = "../primary-fire-effect" }
+asha-native-runtime-provider = { path = "../../../../asha-engine/public-rust/native-runtime-provider" }
 asha-runtime-session-composition = { path = "../../../../asha-engine/public-rust/runtime-session-composition" }
-serde_json = "1"
-toml = "0.9"
-
-[[bin]]
-name = "asha-demo-preflight"
-path = "src/main.rs"

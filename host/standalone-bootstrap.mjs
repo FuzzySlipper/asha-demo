@@ -2,13 +2,15 @@ import {
   createNativeRuntimeBridge,
   installNativeRustRuntimeBridgeProvider,
 } from '@asha/runtime-bridge';
-import { createAshaDemoGameplayRuntime } from './gameplay-runtime-host.mjs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const nativeProviderPath = join(repoRoot, 'dist/native/asha-demo-runtime-provider.node');
 
 export function installAshaDemoStandaloneProvider(globalScope = globalThis) {
-  const gameplayRuntime = createAshaDemoGameplayRuntime();
   return installNativeRustRuntimeBridgeProvider({
     globalScope,
-    createRuntimeBridge: () => gameplayRuntime.wrapRuntimeBridge(createNativeRuntimeBridge()),
-    gameplayHost: gameplayRuntime.gameplayHost,
+    createRuntimeBridge: () => createNativeRuntimeBridge(nativeProviderPath),
   });
 }

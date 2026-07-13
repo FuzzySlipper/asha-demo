@@ -7,14 +7,9 @@
     "kind": "native_runtime_bridge_provider",
     "injection": "globalThis.ashaRuntimeBridge",
     "alias": "globalThis.ashaDemoRuntimeBridge",
+    "nativeBinding": "dist/native/asha-demo-runtime-provider.node",
     "required": true,
     "referenceFallback": false
-  },
-  "gameplayHost": {
-    "kind": "static_gameplay_runtime_host",
-    "moduleId": "demo.primary-fire-effect",
-    "nativeBinding": "dist/native/asha-demo-gameplay-host.node",
-    "projectBindings": "project/project-bundle.json"
   },
   "renderSurface": {
     "owner": "@asha/renderer-host",

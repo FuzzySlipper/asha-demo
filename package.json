@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Human-facing ASHA playable-loop demo built on public ASHA surfaces.",
   "scripts": {
-    "build": "node scripts/build-gameplay-host.mjs && node scripts/build-ui.mjs",
-    "build:gameplay-host": "node scripts/build-gameplay-host.mjs",
+    "build": "node scripts/build-native-provider.mjs && node scripts/build-ui.mjs",
+    "build:native-provider": "node scripts/build-native-provider.mjs",
     "capture:replay": "node scripts/capture-replay-evidence.mjs",
     "check:architecture": "node scripts/check-source-architecture.mjs",
     "check:demo-rs": "cargo run -q --manifest-path demo-rs/Cargo.toml --bin asha-demo-preflight -- .",

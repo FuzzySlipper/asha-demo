@@ -33,32 +33,37 @@ if (readout?.entityCount !== 2) {
   throw new Error(`Standalone host expected 2 ECRP entities, saw ${readout?.entityCount ?? 'none'}`);
 }
 
+const cameraReceipt = runtimeGateway.createCamera({
+  initialPose: content.runtime.initialCameraPose,
+  projection: content.runtime.cameraProjection,
+  viewport: { width: 1280, height: 720 },
+});
+if (cameraReceipt?.snapshot === undefined) {
+  throw new Error('Standalone host could not create an authoritative RuntimeSession camera.');
+}
+
 const fireReceipt = runtimeGateway.submitPrimaryFire({
   phase: 'pressed',
-  camera: { pose: content.runtime.initialCameraPose },
+  camera: cameraReceipt.snapshot,
   tick: 0,
-  source: 'standalone_native_host_smoke',
+  source: 'programmatic',
   pressed: true,
-  baseDamage: content.catalogs.weapon.damage,
-  rangeMillimeters: content.catalogs.weapon.rangeUnits * 1000,
 });
 if (!fireReceipt?.accepted) {
   throw new Error('Standalone host native RuntimeSession rejected primary fire smoke.');
 }
 const gameplayReadout = runtimeGateway.readGameplayRuntime();
-if (gameplayReadout?.reactionFrameCount < 2 || gameplayReadout.recentFrames?.length < 2) {
+const composedReadout = runtimeGateway.readComposedRuntimeSession();
+const challengeState = runtimeGateway.readGameplayChallengeState();
+if (gameplayReadout?.reactionFrameCount < 2 || gameplayReadout?.decisionReceiptCount < 1) {
   throw new Error('Standalone host did not retain the linked gameplay module reaction frame.');
 }
 if (
-  gameplayReadout.prefabs?.instances?.length !== 2
-  || gameplayReadout.moduleStates?.some((state) => state.scope.kind === 'entity' && state.revision === 1) !== true
+  runtimeBackend.prefabInteractionReceipt?.target
+    !== content.projectBundle.gameplayRuntime.prefabInteraction.expectedTarget
+  || challengeState?.revision < 1
 ) {
-  throw new Error('Standalone host did not retain the two prefab instances and executed part-scoped module state.');
-}
-const gameplaySnapshot = runtimeGateway.saveGameplayRuntime();
-const restoredGameplay = runtimeGateway.restoreGameplayRuntime(gameplaySnapshot);
-if (!restoredGameplay?.accepted || restoredGameplay.readout?.runtimeHostHash !== gameplayReadout.runtimeHostHash) {
-  throw new Error('Standalone host gameplay snapshot restore did not reproduce the runtime host hash.');
+  throw new Error('Standalone host did not retain typed prefab interaction and named challenge-view evidence.');
 }
 
 const telemetry = runtimeGateway.readTelemetry();
@@ -71,7 +76,7 @@ const summary = {
   referenceFallback: installation.profile.referenceFallback,
   projectBundle: status.sourceFiles.projectBundle,
   entityCount: readout.entityCount,
-  gameRuleModule: content.gameRuleModules[0]?.moduleRef?.moduleId ?? null,
+  gameplayModule: fireReceipt.gameplayTransform?.moduleId ?? null,
   runtimeStatus: runtimeBackend.status,
   primaryFireAccepted: fireReceipt.accepted,
   gameplayRegistryDigest: gameplayReadout.gameplayRegistryDigest,
@@ -79,9 +84,10 @@ const summary = {
   gameplayReactionFrameCount: gameplayReadout.reactionFrameCount,
   gameplayLastFrameHash: gameplayReadout.lastReactionFrameHash,
   gameplayModuleStateHash: gameplayReadout.moduleStateHash,
-  gameplaySnapshotHash: gameplaySnapshot.snapshotHash,
-  gameplayRestoreMatched: restoredGameplay.readout.runtimeHostHash === gameplayReadout.runtimeHostHash,
-  replayHash: fireReceipt.replayEvidence?.replayHash ?? null,
+  composedRuntimeSessionHash: composedReadout.runtimeSessionHash,
+  challengeViewHash: challengeState.viewHash,
+  prefabInteractionTarget: runtimeBackend.prefabInteractionReceipt.target,
+  replayHash: fireReceipt.combatReadout?.replayHash ?? null,
   telemetryReplayRecords: telemetry?.replayRecords?.length ?? 0,
 };
 

@@ -10,7 +10,12 @@ import {
   createAshaRendererGeneratedTunnelRoomSurfaceFrame,
   mountAshaRendererAnimatedMeshSurface,
 } from '@asha/renderer-host';
-import { billboardHandle, telemetryOverlayHandle } from '@asha/contracts';
+import {
+  billboardHandle,
+  telemetryOverlayHandle,
+  type PresentationOp,
+  type RuntimeProjectionFrame,
+} from '@asha/contracts';
 import {
   ResolvedPauseContextConsumer,
   buildRuntimeSessionAnimationControllerTargetFrame,
@@ -174,6 +179,9 @@ let lastAnimationSampledCueEvidence = {
   realization: null,
 };
 let lastRuntimeProjectionFrame = null;
+let lastAppliedRuntimeProjectionFingerprint: string | null = null;
+let retainedPresentationState = new Map<string, PresentationOp>();
+let retainedPresentationStateBeforeLatest = new Map<string, PresentationOp>();
 let lastPresentationDegradationEvidence = {
   status: 'healthy',
   cases: [],
@@ -196,7 +204,7 @@ if (animationIntent !== null && animationFrameReceipt?.applied !== true) {
 let animationFrame = null;
 let enemyLoopTimer = null;
 let lastEnemyPolicyReadout = null;
-let lastGameRuleEffect = null;
+let lastGameplayTransform = null;
 let lastEventSource: DemoHudEventSource = 'runtime';
 let lastMovementEvent = 'Authority ready';
 let lastRuntimeEvent = 'Runtime ready';
@@ -382,29 +390,22 @@ function firePrimary() {
 
   const actionReceipt = runtimeGateway.submitPrimaryFire({
     phase: 'pressed',
-    camera: {
-      ...runtimeCamera,
-      pose: surface.cameraPose(),
-    },
+    camera: readRuntimeCameraHandle(),
     tick: playable.counters.actionTick,
     source: 'browser_fps_pointer',
     pressed: true,
-    baseDamage: demoProjectContent.catalogs.weapon.damage,
-    rangeMillimeters: demoProjectContent.catalogs.weapon.rangeUnits * 1000,
   });
-  lastGameRuleEffect = actionReceipt.hookReceipt === undefined ? null : {
-    moduleRef: actionReceipt.hookReceipt.moduleRef,
-    hookId: actionReceipt.hookReceipt.hookId,
-    status: actionReceipt.hookReceipt.status,
-    proposalHash: actionReceipt.hookReceipt.proposalHash,
-    replayHash: actionReceipt.replayEvidence?.replayHash ?? null,
-    validationStatus: actionReceipt.replayEvidence?.validationStatus ?? null,
+  lastGameplayTransform = actionReceipt.gameplayTransform === undefined ? null : {
+    ...actionReceipt.gameplayTransform,
+    moduleRef: { moduleId: actionReceipt.gameplayTransform.moduleId },
+    proposalHash: actionReceipt.gameplayTransform.decisionReceiptHash,
+    validationStatus: actionReceipt.gameplayTransform.status,
   };
 
   if (actionReceipt.accepted && actionReceipt.combatReadout?.outcome.kind === 'hit') {
-    lastRuntimeEvent = lastGameRuleEffect === null
+    lastRuntimeEvent = lastGameplayTransform === null
       ? 'Fire hit'
-      : `Fire hit - ${lastGameRuleEffect.moduleRef.moduleId}`;
+      : `Fire hit - ${lastGameplayTransform.moduleRef.moduleId}`;
     lastEventSource = 'runtime';
     pulseReticle('hit');
   } else {
@@ -413,7 +414,6 @@ function firePrimary() {
     pulseReticle('miss');
   }
   void applyLatestRuntimeProjection();
-  projectRuntimeTargetState();
   renderHud();
   return {
     interaction: readRuntimeInteractionState(),
@@ -421,11 +421,41 @@ function firePrimary() {
   };
 }
 
-async function applyLatestRuntimeProjection() {
+let runtimeProjectionApplication: Promise<void> | null = null;
+let runtimeProjectionPending = false;
+
+function applyLatestRuntimeProjection(): Promise<void> {
+  runtimeProjectionPending = true;
+  if (runtimeProjectionApplication === null) {
+    runtimeProjectionApplication = drainRuntimeProjectionApplications();
+  }
+  return runtimeProjectionApplication;
+}
+
+async function drainRuntimeProjectionApplications(): Promise<void> {
+  try {
+    while (runtimeProjectionPending) {
+      runtimeProjectionPending = false;
+      await applyLatestRuntimeProjectionNow();
+    }
+  } finally {
+    runtimeProjectionApplication = null;
+    if (runtimeProjectionPending) {
+      void applyLatestRuntimeProjection();
+    }
+  }
+}
+
+async function applyLatestRuntimeProjectionNow() {
   const projection = runtimeGateway.readProjection();
   if (projection === null) {
     return;
   }
+  const projectionFingerprint = JSON.stringify(projection.runtimeFrame);
+  if (projectionFingerprint === lastAppliedRuntimeProjectionFingerprint) {
+    return;
+  }
+  const presentationStateBeforeFrame = new Map(retainedPresentationState);
   lastRuntimeProjectionFrame = projection.runtimeFrame;
   const origin = projection.runtimeFrame.presentation.ops[0]?.meta.origin ?? null;
   const billboardOrigins = projection.runtimeFrame.presentation.ops
@@ -499,6 +529,8 @@ async function applyLatestRuntimeProjection() {
       animationHost,
       ...(telemetryOverlayHost === null ? {} : { telemetryOverlayHost }),
     });
+    retainedPresentationStateBeforeLatest = presentationStateBeforeFrame;
+    applyRetainedPresentationOperations(retainedPresentationState, projection.runtimeFrame.presentation.ops);
     const diagnostics = [
       ...listenerDiagnostics,
       ...resumeDiagnostics,
@@ -573,6 +605,7 @@ async function applyLatestRuntimeProjection() {
       },
       diagnostics: integratedDiagnostics,
     };
+    lastAppliedRuntimeProjectionFingerprint = projectionFingerprint;
   } catch (error) {
     lastAudioProjectionEvidence = {
       status: 'failed',
@@ -672,6 +705,170 @@ function presentationOriginsEqual(left, right) {
     && left.authorityTick === right.authorityTick
     && left.causationId === right.causationId
     && left.correlationId === right.correlationId;
+}
+
+function applyRetainedPresentationOperations(
+  state: Map<string, PresentationOp>,
+  operations: readonly PresentationOp[],
+) {
+  for (const operation of operations) {
+    if (operation.domain === 'audio') {
+      if (operation.op.op === 'emit') {
+        continue;
+      }
+      const key = `audio:${operation.op.handle}`;
+      if (operation.op.op === 'destroy') {
+        state.delete(key);
+        continue;
+      }
+      if (operation.op.op === 'create') {
+        state.set(key, operation);
+        continue;
+      }
+      const retained = state.get(key);
+      if (retained?.domain !== 'audio' || retained.op.op !== 'create') {
+        continue;
+      }
+      state.set(key, {
+        ...retained,
+        meta: operation.meta,
+        op: {
+          ...retained.op,
+          descriptor: mergeRetainedDescriptorPatch(retained.op.descriptor, operation.op.patch),
+        },
+      });
+      continue;
+    }
+    if (operation.domain === 'particle') {
+      if (operation.op.op === 'emit') {
+        continue;
+      }
+      const key = `particle:${operation.op.handle}`;
+      if (operation.op.op === 'destroy') {
+        state.delete(key);
+        continue;
+      }
+      if (operation.op.op === 'create') {
+        state.set(key, operation);
+        continue;
+      }
+      const retained = state.get(key);
+      if (retained?.domain !== 'particle' || retained.op.op !== 'create') {
+        continue;
+      }
+      state.set(key, {
+        ...retained,
+        meta: operation.meta,
+        op: {
+          ...retained.op,
+          descriptor: mergeRetainedDescriptorPatch(retained.op.descriptor, operation.op.patch),
+        },
+      });
+      continue;
+    }
+    if (operation.domain === 'billboard') {
+      const key = `billboard:${operation.op.handle}`;
+      if (operation.op.op === 'destroy') {
+        state.delete(key);
+        continue;
+      }
+      if (operation.op.op === 'create') {
+        state.set(key, operation);
+        continue;
+      }
+      const retained = state.get(key);
+      if (retained?.domain !== 'billboard' || retained.op.op !== 'create') {
+        continue;
+      }
+      state.set(key, {
+        ...retained,
+        meta: operation.meta,
+        op: {
+          ...retained.op,
+          descriptor: mergeRetainedDescriptorPatch(retained.op.descriptor, operation.op.patch),
+        },
+      });
+      continue;
+    }
+    if (operation.domain === 'telemetryOverlay') {
+      const key = `telemetryOverlay:${operation.op.handle}`;
+      if (operation.op.op === 'destroy') {
+        state.delete(key);
+        continue;
+      }
+      if (operation.op.op === 'create') {
+        state.set(key, operation);
+        continue;
+      }
+      const retained = state.get(key);
+      if (retained?.domain !== 'telemetryOverlay' || retained.op.op !== 'create') {
+        continue;
+      }
+      state.set(key, {
+        ...retained,
+        meta: operation.meta,
+        op: {
+          ...retained.op,
+          descriptor: mergeRetainedDescriptorPatch(retained.op.descriptor, operation.op.patch),
+        },
+      });
+      continue;
+    }
+    const key = `animation:${operation.op.handle}`;
+    if (operation.op.op === 'destroy') {
+      state.delete(key);
+      continue;
+    }
+    if (operation.op.op === 'create') {
+      state.set(key, operation);
+      continue;
+    }
+    const retained = state.get(key);
+    if (retained?.domain !== 'animation' || retained.op.op !== 'create') {
+      continue;
+    }
+    state.set(key, {
+      ...retained,
+      meta: operation.meta,
+      op: {
+        ...retained.op,
+        descriptor: {
+          ...retained.op.descriptor,
+          controller: operation.op.controller,
+        },
+      },
+    });
+  }
+}
+
+function mergeRetainedDescriptorPatch<Descriptor extends object>(
+  descriptor: Descriptor,
+  patch: object,
+): Descriptor {
+  const merged = { ...descriptor };
+  for (const [field, value] of Object.entries(patch)) {
+    if (value !== null && value !== undefined) {
+      Object.assign(merged, { [field]: value });
+    }
+  }
+  return merged;
+}
+
+function buildRetainedPresentationRestoreFrame(
+  currentFrame: RuntimeProjectionFrame,
+  state: ReadonlyMap<string, PresentationOp>,
+): RuntimeProjectionFrame {
+  const operations = [...state.values()].map((operation, sequence) => ({
+    ...operation,
+    meta: { ...operation.meta, sequence },
+  })) as PresentationOp[];
+  return {
+    ...currentFrame,
+    presentation: {
+      replayScope: currentFrame.presentation.replayScope,
+      ops: operations,
+    },
+  };
 }
 
 async function exercisePresentationDegradation(domain) {
@@ -781,7 +978,10 @@ async function runPresentationDegradationCase(domain, runtimeFrame) {
     host.dispose();
     return degradationResult(domain, receipt, origin);
   }
-  if (sourceOperation?.domain !== 'telemetryOverlay') {
+  const retainedOverlayOperation = [...retainedPresentationState.values()].find(
+    (operation) => operation.domain === 'telemetryOverlay',
+  ) ?? null;
+  if (retainedOverlayOperation?.domain !== 'telemetryOverlay') {
     throw new Error('telemetry overlay projection operation is unavailable');
   }
   const host = new AshaTelemetryOverlayHost({
@@ -795,7 +995,7 @@ async function runPresentationDegradationCase(domain, runtimeFrame) {
   });
   const receipt = host.applyPresentation({
     replayScope: runtimeFrame.presentation.replayScope,
-    ops: [sourceOperation],
+    ops: [retainedOverlayOperation],
   });
   host.cleanup();
   return degradationResult(domain, receipt, origin);
@@ -835,6 +1035,13 @@ async function realizeAnimationSampledCue(cue: AshaAnimationSampledCue) {
     renderHud();
     return;
   }
+  const camera = surface.cameraPose();
+  const cameraForward = readAudioForward(camera);
+  const cuePosition: [number, number, number] = [
+    camera.position[0] + cameraForward[0] * 0.75,
+    camera.position[1] + cameraForward[1] * 0.75,
+    camera.position[2] + cameraForward[2] * 0.75,
+  ];
   const receipt = await particleHost.applyPresentation({
     replayScope: cue.replayScope,
     ops: [{
@@ -844,7 +1051,7 @@ async function realizeAnimationSampledCue(cue: AshaAnimationSampledCue) {
         op: 'emit',
         signalId: cue.signal.id,
         descriptor: {
-          anchor: { kind: 'world', position: [0, 1.25, -1.4] },
+          anchor: { kind: 'world', position: cuePosition },
           sprite: {
             asset: PRIMARY_FIRE_SPRITE_ASSET,
             contentHash: PRIMARY_FIRE_SPRITE_CONTENT_HASH,
@@ -852,7 +1059,7 @@ async function realizeAnimationSampledCue(cue: AshaAnimationSampledCue) {
           },
           ratePerSecond: 0,
           burstCount: 6,
-          lifetimeSeconds: [0.25, 0.55],
+          lifetimeSeconds: [6, 8],
           velocityMin: [-0.7, 0.3, -0.4],
           velocityMax: [0.7, 1.2, 0.4],
           acceleration: [0, -1.5, 0],
@@ -902,7 +1109,35 @@ async function rebuildPresentationHosts() {
   liveTelemetryCollector = createDemoLiveTelemetryCollector();
   telemetryOverlayHost = createDemoTelemetryOverlayHost();
   presentationHostGeneration += 1;
+  lastAppliedRuntimeProjectionFingerprint = null;
 
+  if (lastRuntimeProjectionFrame !== null) {
+    const restoreFrame = buildRetainedPresentationRestoreFrame(
+      lastRuntimeProjectionFrame,
+      retainedPresentationStateBeforeLatest,
+    );
+    const restoreReceipt = await applyAshaRuntimeProjectionFrame(restoreFrame, {
+      applyScene: () => {},
+      ...(audioHost === null ? {} : { audioHost }),
+      ...(billboardHost === null ? {} : { billboardHost }),
+      ...(particleHost === null ? {} : { particleHost }),
+      animationHost,
+      ...(telemetryOverlayHost === null ? {} : { telemetryOverlayHost }),
+    });
+    const restoreDiagnostics = [
+      ...restoreReceipt.audio.diagnostics,
+      ...restoreReceipt.billboard.diagnostics,
+      ...restoreReceipt.particle.diagnostics,
+      ...restoreReceipt.animation.diagnostics,
+      ...restoreReceipt.telemetryOverlay.diagnostics,
+    ];
+    if (restoreDiagnostics.length > 0) {
+      throw new Error(
+        `presentation host restore failed: ${restoreDiagnostics.map((value) => value.message).join('; ')}`,
+      );
+    }
+  }
+  retainedPresentationState = new Map(retainedPresentationStateBeforeLatest);
   await applyLatestRuntimeProjection();
   prefabPlacementProjection = await projectPrefabPlacements();
 
@@ -1017,15 +1252,11 @@ async function projectPrefabPlacements() {
   if (billboardHost === null) {
     return { applied: 0, diagnostics: ['billboard host unavailable'] };
   }
-  const prefabs = runtimeBackend.prefabRuntimeReadout?.prefabs;
-  if (prefabs?.instances?.length !== 2) {
-    return { applied: 0, diagnostics: ['prefab runtime readout unavailable'] };
+  const instances = demoProjectContent.prefabAuthoring.runtimeBootstrap.placements;
+  if (instances.length !== 2) {
+    return { applied: 0, diagnostics: ['prefab placement authoring unavailable'] };
   }
-  const operations = prefabs.instances.map((instance, index) => {
-    const sensor = instance.roles.find((role) => role.role === 'interaction/sensor');
-    if (sensor === undefined) {
-      throw new Error(`Prefab instance ${instance.instance} did not resolve interaction/sensor`);
-    }
+  const operations = instances.map((instance, index) => {
     return {
       domain: 'billboard' as const,
       meta: {
@@ -1034,15 +1265,22 @@ async function projectPrefabPlacements() {
           kind: 'ownerFact' as const,
           id: `prefab-placement:${instance.instance}`,
           authorityTick: 1,
-          causationId: runtimeBackend.prefabInteractionReceipt?.frames?.[0]?.frameHash ?? null,
-          correlationId: instance.provenanceHash,
+          causationId: runtimeBackend.prefabInteractionReceipt?.reactionFrameHash ?? null,
+          correlationId: runtimeBackend.prefabInteractionReceipt?.eventHash ?? null,
         },
       },
       op: {
         op: 'create' as const,
         handle: billboardHandle(7_000 + index),
         descriptor: {
-          anchor: { kind: 'entityAttached' as const, entity: sensor.entity, offset: [0, 0.45, 0] as const },
+          anchor: {
+            kind: 'world' as const,
+            position: [
+              instance.transform.translation[0],
+              instance.transform.translation[1] + 1.45,
+              instance.transform.translation[2],
+            ] as const,
+          },
           content: {
             kind: 'text' as const,
             localizationKey: `demo.prefab.${instance.origin}`,
@@ -1071,12 +1309,6 @@ function resolveBillboardEntityPosition(entityId) {
   const transform = entity?.capabilities.find((capability) => capability.kind === 'transform') ?? null;
   if (transform?.kind === 'transform') {
     return transform.position;
-  }
-  for (const instance of runtimeBackend.prefabRuntimeReadout?.prefabs?.instances ?? []) {
-    const part = instance.parts.find((candidate) => candidate.entity === entityId);
-    if (part !== undefined) {
-      return part.translation;
-    }
   }
   return null;
 }
@@ -1166,12 +1398,9 @@ function resetLoop() {
     lastMovementEvent = 'Reset unavailable: Rust runtime backend missing';
     lastRuntimeEvent = lastMovementEvent;
     lastEventSource = 'runtime';
-    animationHost.cleanup();
-    surface.reset();
-    billboardHost?.cleanup();
-    particleHost?.cleanup();
-    telemetryOverlayHost?.cleanup();
-    projectRuntimeTargetState();
+    resetPresentationHostsForRuntimeRestart();
+    surface.resetCamera();
+    void applyLatestRuntimeProjection();
     void projectPrefabPlacements();
     pulseReticle('miss');
     renderHud();
@@ -1196,15 +1425,36 @@ function resetLoop() {
   lastMovementEvent = 'Reset';
   lastRuntimeEvent = restartReceipt.accepted ? 'Runtime reset' : 'Reset rejected';
   lastEventSource = 'runtime';
-  animationHost.cleanup();
-  surface.reset();
-  billboardHost?.cleanup();
-  particleHost?.cleanup();
-  telemetryOverlayHost?.cleanup();
-  projectRuntimeTargetState();
+  resetPresentationHostsForRuntimeRestart();
+  surface.resetCamera();
+  void applyLatestRuntimeProjection();
   void projectPrefabPlacements();
   pulseReticle('reset');
   renderHud();
+}
+
+function resetPresentationHostsForRuntimeRestart() {
+  const previousAudioHost = audioHost;
+  const previousBillboardHost = billboardHost;
+  const previousParticleHost = particleHost;
+
+  void previousAudioHost?.dispose();
+  animationHost.cleanup();
+  void previousBillboardHost?.dispose();
+  previousParticleHost?.dispose();
+  telemetryOverlayHost?.cleanup();
+
+  audioHost = createDemoAudioHost();
+  animationHost = createDemoAnimationHost();
+  billboardHost = createDemoBillboardHost();
+  particleHost = createDemoParticleHost();
+  liveTelemetryCollector = createDemoLiveTelemetryCollector();
+  telemetryOverlayHost = createDemoTelemetryOverlayHost();
+  presentationHostGeneration += 1;
+  lastRuntimeProjectionFrame = null;
+  lastAppliedRuntimeProjectionFingerprint = null;
+  retainedPresentationState = new Map();
+  retainedPresentationStateBeforeLatest = new Map();
 }
 
 function openPauseMenu(mode: DemoMenuMode) {
@@ -1392,6 +1642,14 @@ async function replayRecordedInput() {
   const replayRuntime = await createDemoInputReplaySession(demoProjectContent);
   const replaySession = replayRuntime.session;
   const replayGateway = replayRuntime.gateway;
+  const replayCamera = replayGateway.createCamera({
+    initialPose: demoProjectContent.runtime.initialCameraPose,
+    projection: demoProjectContent.runtime.cameraProjection,
+    viewport: { width: 1280, height: 720 },
+  })?.snapshot;
+  if (replayCamera === undefined) {
+    throw new Error('Fresh input replay RuntimeSession could not create an authoritative camera.');
+  }
   const replayConsumer = new ResolvedPauseContextConsumer(replaySession);
   const replayOutcomes = [];
   const replayGameplayOutcomes = [];
@@ -1437,12 +1695,10 @@ async function replayRecordedInput() {
     const playable = replayGateway.readPlayableLoopState({ paused: false, menuMode: 'closed' });
     const gameplayReceipt = replayGateway.submitPrimaryFire({
       phase: replayReceipt.action.phase,
-      camera: { pose: demoProjectContent.runtime.initialCameraPose },
+      camera: replayCamera,
       tick: playable.counters.actionTick,
-      source: 'authority_issued_semantic_replay',
+      source: 'programmatic',
       pressed: replayReceipt.action.value.kind === 'button' && replayReceipt.action.value.pressed,
-      baseDamage: demoProjectContent.catalogs.weapon.damage,
-      rangeMillimeters: demoProjectContent.catalogs.weapon.rangeUnits * 1000,
     });
     if (!gameplayReceipt.accepted) {
       throw new Error(`Replayed action ${record.recordHash} did not reproduce an accepted gameplay outcome.`);
@@ -1579,23 +1835,6 @@ function readAnimationHudPlayback() {
   };
 }
 
-function projectRuntimeTargetState() {
-  const enemyHealth = readEnemyHealth();
-  if (typeof surface.projectRenderTargetProjection !== 'function') {
-    const renderTarget = readEnemyRenderTarget(!enemyHealth.dead);
-    surface.projectTargetProjection({
-      visible: !enemyHealth.dead,
-      position: renderTarget.position,
-      scale: renderTarget.scale ?? demoProjectContent.runtime.enemyRenderTarget.scale,
-      lastEvent: enemyHealth.dead ? 'Enemy defeated' : lastRuntimeEvent,
-    });
-    return;
-  }
-  surface.projectRenderTargetProjection(readEnemyRenderTarget(!enemyHealth.dead), {
-    lastEvent: enemyHealth.dead ? 'Enemy defeated' : lastRuntimeEvent,
-  });
-}
-
 function readEnemyRenderFrameTarget() {
   const target = readEnemyRenderTarget(true);
   return {
@@ -1638,8 +1877,8 @@ function tickEnemyPolicy() {
     },
   });
   if (encounterTick.status === 'blocked') {
-    lastRuntimeEvent = encounterTick.blockedReason === 'enemy_dead' && lastGameRuleEffect !== null
-      ? `Enemy defeated - ${lastGameRuleEffect.moduleRef.moduleId}`
+    lastRuntimeEvent = encounterTick.blockedReason === 'enemy_dead' && lastGameplayTransform !== null
+      ? `Enemy defeated - ${lastGameplayTransform.moduleRef.moduleId}`
       : encounterTickBlockedEvent(encounterTick.blockedReason);
     lastEventSource = 'runtime';
     renderHud();
@@ -1661,7 +1900,7 @@ function tickEnemyPolicy() {
     lastRuntimeEvent = 'Player defeated';
     lastEventSource = 'runtime';
   }
-  projectRuntimeTargetState();
+  void applyLatestRuntimeProjection();
   renderHud();
   return readout;
 }
@@ -1703,7 +1942,7 @@ function readRuntimeInteractionState() {
     lastEvent: lastRuntimeEvent,
     lastMenuIntent,
     lifecycleOutcome: readLifecycleStatus().outcome.kind,
-    gameRuleEffect: lastGameRuleEffect,
+    gameplayTransform: lastGameplayTransform,
     gameplayChallenge: readGameplayChallenge(),
     inputSettings: { ...inputSettings },
     menuMode,
@@ -1720,8 +1959,9 @@ function readRuntimeInteractionState() {
 
 function readGameplayChallenge() {
   const readout = runtimeGateway.readGameplayRuntime();
+  const state = runtimeGateway.readGameplayChallengeState();
   const objectivePoints = readChallengeObjectivePoints();
-  if (readout === null) {
+  if (readout === null || state === null) {
     return {
       status: 'unavailable',
       score: 0,
@@ -1730,28 +1970,16 @@ function readGameplayChallenge() {
       triggerEntries: 0,
       registryDigest: null,
       bindingRegistryHash: null,
-      recentFrameHashes: [],
-      lastAction: null,
+      lastReactionFrameHash: null,
     };
   }
-  const progress = (readout.recentFrames ?? [])
-    .flatMap((frame) => frame.deliveredEvents ?? [])
-    .filter((event) => event.event?.namespace === 'demo.primary-fire-effect'
-      && event.event?.name === 'challenge-progressed')
-    .map((event) => decodeGameplayEventPayload(event.canonicalPayload))
-    .filter((event) => event !== null && event.action !== 'console-interacted');
-  const last = progress.at(-1) ?? null;
   return {
-    status: last?.status ?? 'armed',
-    score: progress.reduce((total, event) => total + Number(event.scoreDelta ?? 0), 0),
-    objectivePoints,
-    closeRangeHits: progress.filter((event) => event.closeRangeHit === true).length,
-    triggerEntries: progress.filter((event) => event.action === 'challenge-entered').length,
+    ...state,
+    objectivePoints: state.objectivePoints ?? objectivePoints,
     registryDigest: readout.gameplayRegistryDigest,
     bindingRegistryHash: readout.bindingRegistryHash,
-    recentFrameHashes: (readout.recentFrames ?? []).map((frame) => frame.frameHash),
-    lastAction: last?.action ?? null,
-    lastRangeMillimeters: last?.rangeMillimeters ?? null,
+    reactionFrameCount: readout.reactionFrameCount,
+    lastReactionFrameHash: readout.lastReactionFrameHash,
     runtimeHostHash: readout.runtimeHostHash,
     moduleStateHash: readout.moduleStateHash,
   };
@@ -1768,17 +1996,6 @@ function readChallengeObjectivePoints() {
     return Number(JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes))).objectivePoints ?? 0);
   } catch {
     return 0;
-  }
-}
-
-function decodeGameplayEventPayload(bytes) {
-  if (!Array.isArray(bytes)) {
-    return null;
-  }
-  try {
-    return JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes)));
-  } catch {
-    return null;
   }
 }
 
@@ -1930,7 +2147,6 @@ function sampleLiveTelemetry(elapsedMs, frameTimeMs) {
 }
 
 renderHud();
-projectRuntimeTargetState();
 enemyLoopTimer = window.setInterval(() => {
   tickEnemyPolicy();
 }, 750);
@@ -1941,7 +2157,7 @@ tickHud();
   cameraPose: () => surface.cameraPose(),
   firePrimary: () => firePrimary(),
   enemyLoopState: () => lastEnemyPolicyReadout,
-  gameRuleEffectState: () => lastGameRuleEffect,
+  gameplayTransformState: () => lastGameplayTransform,
   interactionState: () => readRuntimeInteractionState(),
   inputAuthorityState: () => readInputAuthorityState(),
   replayRecordedInput: () => replayRecordedInput(),
@@ -1949,7 +2165,6 @@ tickHud();
   pointerLocked: () => surface.pointerLocked(),
   projectContentStatus: () => ({
     ...readDemoProjectContentStatus(demoProjectContent),
-    gameRuleModules: demoProjectContent.gameRuleModules.map((manifest) => manifest.moduleRef),
     levelRenderProjectionHash: generatedTunnelReadout.renderProjection.hash,
     levelSurfaceLabels: ['generated-tunnel-floor', demoProjectContent.runtime.enemyRenderTarget.label],
     runtimeBackend: runtimeBackend.status,
@@ -1982,13 +2197,11 @@ tickHud();
   rebuildPresentationHosts: () => rebuildPresentationHosts(),
   toggleTelemetryOverlay: () => telemetryOverlayHost?.toggleVisible(telemetryOverlay) ?? null,
   gameplayRuntimeReadout: () => runtimeGateway.readGameplayRuntime(),
-  advanceGameplayRuntime: (moment) => runtimeGateway.advanceGameplayRuntime(moment),
+  composedRuntimeReadout: () => runtimeGateway.readComposedRuntimeSession(),
   prefabAuthoringReadout: () => demoProjectContent.prefabAuthoring.readout,
-  prefabRuntimeReadout: () => runtimeBackend.prefabRuntimeReadout,
+  prefabInteractionReceipt: () => runtimeBackend.prefabInteractionReceipt,
   prefabPlacementProjection: () => prefabPlacementProjection,
   gameplayChallengeState: () => readGameplayChallenge(),
-  gameplaySnapshot: () => runtimeGateway.saveGameplayRuntime(),
-  restoreGameplaySnapshot: (snapshot) => runtimeGateway.restoreGameplayRuntime(snapshot),
   animationIntent: () => animationIntent,
   animationFrameReceipt: () => animationFrameReceipt,
   animationPlayback: () => readAnimationPlayback(),

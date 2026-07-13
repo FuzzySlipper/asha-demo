@@ -9,7 +9,7 @@ const result = spawnSync('cargo', [
   '--manifest-path',
   'demo-rs/Cargo.toml',
   '--package',
-  'asha-demo-gameplay-host-native',
+  'asha-demo-native-runtime-provider',
   '--release',
 ], {
   cwd: repoRoot,
@@ -19,12 +19,12 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-const source = join(repoRoot, 'demo-rs/target/release/libasha_demo_gameplay_host_native.so');
+const source = join(repoRoot, 'demo-rs/target/release/libasha_demo_native_runtime_provider.so');
 const outputRoot = join(repoRoot, 'dist/native');
-const destination = join(outputRoot, 'asha-demo-gameplay-host.node');
+const destination = join(outputRoot, 'asha-demo-runtime-provider.node');
 const temporary = `${destination}.tmp-${process.pid}`;
 mkdirSync(outputRoot, { recursive: true });
 rmSync(temporary, { force: true });
 copyFileSync(source, temporary);
 renameSync(temporary, destination);
-console.log(`Built ASHA demo gameplay host at ${destination}`);
+console.log(`Built ASHA Demo composed RuntimeSession provider at ${destination}`);

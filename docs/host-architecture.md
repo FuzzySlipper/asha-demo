@@ -1,6 +1,6 @@
 # ASHA Demo Host Architecture
 
-Status: current host boundary including gameplay-fabric vertical slice #5636.
+Status: current one-cell RuntimeSession boundary after #5734.
 
 `asha-demo` has one game content path and two host shapes:
 
@@ -21,9 +21,9 @@ Both modes keep authority upstream:
 - Rendering is mounted through `@asha/renderer-host`; concrete renderer backend
   setup remains host/private, not demo app source.
 - Demo TypeScript collects input and projects HUD/menu/readouts only.
-- Demo Rust statically links the close-range challenge module and implements the
-  fixed five-operation public gameplay-host transport. It does not replace
-  RuntimeSession or engine owners.
+- Demo Rust statically links the close-range challenge module into the same
+  native RuntimeSession provider. It does not replace RuntimeSession or engine
+  owners.
 
 ## Named input and pause authority
 
@@ -49,26 +49,27 @@ diagnostic; there is no demo-local key-state or pause fallback.
 
 ## Static gameplay composition
 
-`host/gameplay-runtime-host.mjs` loads the product-owned N-API cell built from
-`demo-rs/crates/gameplay-host-native`. The cell depends only on approved public
-Rust facades and the demo's real `primary-fire-effect` crate. It stages the
-compiled composition against `ProjectBundle.gameplayModuleBindings`, the
-declared-read-plan hash, `ProjectBundle.gameplayTriggers`, and the closed
-gameplay scheduler definition before swapping the live host.
+`demo-rs/crates/native-runtime-provider` builds the product-owned N-API provider
+from the public static RuntimeSession builder and the demo's real
+`primary-fire-effect` crate. Activation validates the compiled composition
+against `ProjectBundle.gameplayRuntime.compositionHash`, the derived read-plan
+hash, `ProjectBundle.gameplayModuleBindings`, prefab placements, trigger
+definitions, and the closed scheduler declaration before the provider is used.
 
-The host-side RuntimeBridge wrapper has two narrow adapter duties:
+The close-range rule is a typed gameplay-fabric Transform inside the ordinary
+authoritative primary-fire transaction. Rust derives range, target, and weapon
+facts from the current Session, runs Guard -> Transform -> React, revalidates the
+final Workspace, and commits through the existing combat/lifecycle owners.
+Accepted combat, trigger, and prefab-part facts then enter the same wave-frozen
+fabric and update module-owned challenge state. The browser only submits camera
+bound RuntimeSession intents and reads combat projection, composed evidence, and
+the provider-owned challenge view.
 
-- accepted collision-constrained camera deltas advance player entity 10 in the
-  same Rust EntityStore sampled by trigger authority;
-- accepted weapon-effect receipts are validated and adapted in Rust into
-  standard hit/miss/defeat/lifecycle gameplay events.
-
-The browser sees only the public RuntimeSession facade and bounded reaction-frame
-readouts. The same facade forwards typed scheduler commands/routes and projects
-the current authority hash plus bounded scheduler queue/dispatch evidence;
-complete pending and outstanding authority stays in the Rust host snapshot. It
-does not register callbacks, invent owner events, mutate module state, synthesize
-routing receipts, or apply the module's capability-activation proposal.
+There is no `gameplay-runtime-host.mjs`, gameplay-specific transport, movement or
+weapon event ferry, mirrored EntityStore, or TypeScript callback. Registry,
+module state, decision/reaction evidence, scheduler state, pending
+continuations, combat authority, and replay are checkpointed and hashed as one
+cell. Failed/stale operations reject before mutation through the public bridge.
 
 The host manifests live in `host/browser.host.json` and
 `host/standalone.host.json`. The parity check requires both manifests to point
@@ -82,5 +83,6 @@ The standalone command is a host-side smoke for the packaged app path. It builds
 `dist/ui`, installs the public native Rust RuntimeBridge provider before app
 boot, loads the same ProjectBundle/content without a dev-server port, and writes
 `dist/standalone/status.json`. That status also proves the gameplay registry,
-binding hash, reaction frame, state hash, snapshot hash, and restore equality.
+binding hash, reaction frame, state hash, composed RuntimeSession hash, named
+challenge view, prefab interaction, and combat replay evidence.
 It must not grow a reference/mock fallback or a manual localhost-port requirement.

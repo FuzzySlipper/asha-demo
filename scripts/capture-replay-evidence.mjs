@@ -43,6 +43,7 @@ const movement = runtimeGateway.applyCollisionConstrainedCameraInput({
   shape: content.runtime.collisionShape,
   policy: content.runtime.collisionPolicy,
 });
+camera = movement.snapshot.after;
 
 const enemyLoop = driveEnemyToPlayerDeath(runtimeGateway, camera);
 const lifecycleBeforeRestart = runtimeGateway.readLifecycleStatus();
@@ -65,7 +66,7 @@ const primaryFire = runtimeGateway.submitPrimaryFire({
   phase: 'pressed',
   camera,
   tick: 0,
-  source: 'replay_evidence_capture',
+  source: 'programmatic',
   pressed: true,
   baseDamage: content.catalogs.weapon.damage,
   rangeMillimeters: content.catalogs.weapon.rangeUnits * 1000,
@@ -135,7 +136,8 @@ const artifact = {
       cameraPose: camera.pose,
       accepted: primaryFire.accepted,
       outcome: primaryFire.combatReadout.outcome.kind,
-      replayHash: primaryFire.replayEvidence?.replayHash ?? null,
+      replayHash: primaryFire.combatReadout?.replayHash ?? null,
+      gameplayDecisionReceiptHash: primaryFire.gameplayTransform?.decisionReceiptHash ?? null,
       enemyDead: lifecycleAfterFire?.enemy?.dead ?? null,
     },
   ],
@@ -146,7 +148,7 @@ const artifact = {
       last: telemetryHashes.at(-1) ?? null,
       uniqueCount: new Set(telemetryHashes).size,
     },
-    primaryFireReplayHash: primaryFire.replayEvidence?.replayHash ?? null,
+    primaryFireReplayHash: primaryFire.combatReadout?.replayHash ?? null,
   },
 };
 

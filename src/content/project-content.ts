@@ -22,7 +22,6 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
     weaponCatalog,
     levelPreset,
     animatedMeshManifest,
-    gameRuleModules,
     prefabRegistry,
   ] = await Promise.all([
     Promise.all((sourceFiles.entityDefinitions ?? []).map((path) => fetchJson(`/${path}`))),
@@ -33,7 +32,6 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
     fetchJson(`/${catalogRefs.weapon}`),
     fetchJson(`/${sourceFiles.levelPreset}`),
     fetchJson(`/${sourceFiles.animatedMeshManifest}`),
-    Promise.all((sourceFiles.gameRuleModules ?? []).map((path) => fetchJson(`/${path}`))),
     fetchJson(`/${sourceFiles.prefabRegistry}`),
   ]);
 
@@ -53,14 +51,12 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
       entityDefinitions: sourceFiles.entityDefinitions,
       sceneDocument: sourceFiles.sceneDocument,
       catalogs: catalogRefs,
-      gameRuleModules: sourceFiles.gameRuleModules ?? [],
       prefabRegistry: sourceFiles.prefabRegistry,
       levelPreset: sourceFiles.levelPreset,
       animatedMeshManifest: sourceFiles.animatedMeshManifest,
     },
     projectBundle,
     prefabAuthoring,
-    gameRuleModules,
     entityDefinitions,
     sceneDocument,
     catalogs: {
@@ -109,7 +105,6 @@ export function readDemoProjectContentStatus(demoProjectContent) {
     entityDefinitionCount: demoProjectContent.entityDefinitions.length,
     sceneId: demoProjectContent.sceneDocument.sceneId,
     sourceFiles: demoProjectContent.sourceFiles,
-    gameRuleModules: demoProjectContent.gameRuleModules.map((manifest) => manifest.moduleRef),
     gameplayPresetHash: demoProjectContent.catalogs.upstreamGameplay.defaultPreset.hashes.presetHash,
     ecrpObjectModelHash: demoProjectContent.catalogs.upstreamEcrpObjectModel.hashes.modelHash,
   };
@@ -140,20 +135,20 @@ function validateProjectBundle(demoProjectContent, diagnostics) {
   if (typeof projectBundle.sourceFiles?.animatedMeshManifest !== 'string') {
     diagnostics.push('ProjectBundle sourceFiles.animatedMeshManifest must name the public renderer-host mesh manifest');
   }
-  if (!Array.isArray(projectBundle.gameRuleModules) || projectBundle.gameRuleModules.length !== 1) {
-    diagnostics.push('ProjectBundle gameRuleModules must declare the demo Rust weapon-effect module');
-  }
-  if (!Array.isArray(projectBundle.sourceFiles?.gameRuleModules) || projectBundle.sourceFiles.gameRuleModules.length !== 1) {
-    diagnostics.push('ProjectBundle sourceFiles.gameRuleModules must name the demo Rust module manifest');
-  }
-  if (!deepEqual(projectBundle.gameRuleModules ?? [], demoProjectContent.gameRuleModules)) {
-    diagnostics.push('ProjectBundle gameRuleModules must match the durable module manifest source file');
-  }
   if (typeof projectBundle.gameplayRuntime?.compositionHash !== 'string') {
     diagnostics.push('ProjectBundle gameplayRuntime.compositionHash must bind the statically linked Rust composition');
   }
   if (typeof projectBundle.gameplayRuntime?.declaredReadPlanHash !== 'string') {
     diagnostics.push('ProjectBundle gameplayRuntime.declaredReadPlanHash must bind the declared view plan');
+  }
+  if (typeof projectBundle.gameplayRuntime?.challengeView?.schemaHash !== 'string') {
+    diagnostics.push('ProjectBundle gameplayRuntime.challengeView must name the linked provider-owned view');
+  }
+  if (
+    !Number.isSafeInteger(projectBundle.gameplayRuntime?.prefabInteraction?.expectedTarget)
+    || projectBundle.gameplayRuntime?.prefabInteraction?.role !== 'interaction/sensor'
+  ) {
+    diagnostics.push('ProjectBundle gameplayRuntime.prefabInteraction must bind the resolved prefab-part target');
   }
   if (
     typeof projectBundle.gameplayRuntime?.scheduler?.owner?.ownerId !== 'string'

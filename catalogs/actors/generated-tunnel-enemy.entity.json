@@ -24,8 +24,8 @@
     },
     {
       "kind": "health",
-      "current": 40,
-      "max": 40
+      "current": 45,
+      "max": 45
     },
     {
       "kind": "renderProjection",

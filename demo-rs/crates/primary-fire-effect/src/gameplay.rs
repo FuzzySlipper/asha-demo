@@ -1,9 +1,19 @@
 use asha_gameplay_module_sdk::*;
+use asha_runtime_session_composition::{
+    BundleArtifacts, GameplayBindingEntityTargets, GameplayRuntimePrefabBootstrap,
+    GameplayRuntimePrefabCatalog, GameplayRuntimePrefabOverride, GameplayRuntimePrefabPlacement,
+    GameplayRuntimePrefabPlacementOrigin, GameplayRuntimePrefabTransform,
+    GameplayRuntimeProjectInput, GameplayRuntimeSchedulerDefinition, GameplayRuntimeSpatialEntity,
+    GameplayTriggerDefinition, LoadPlan, LoadStep, RuntimeSessionId, SceneId,
+    GAMEPLAY_TRIGGER_DEFINITION_SCHEMA_VERSION,
+};
 use serde::{Deserialize, Serialize};
 
 const MODULE_ID: &str = "demo.primary-fire-effect";
 const MODULE_NAMESPACE: &str = "demo.primary-fire-effect";
 const PROVIDER_ID: &str = "provider.demo.primary-fire-effect";
+const CHALLENGE_TRIGGER_ENTITY: u64 = 30;
+const PRIMARY_FIRE_TRANSFORM_INVOCATION: &str = "demo.primary-fire-effect.primary-fire.transform";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -51,14 +61,14 @@ struct CloseRangeChallengeEvent {
 #[serde(rename_all = "camelCase")]
 struct CombatPayload {
     distance: Option<f64>,
-    defeated: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ConsoleInteractionPayload {
+struct PrefabInteractionPayload {
     instance: u64,
     role: String,
+    target: u64,
 }
 
 struct CloseRangeChallengeBehavior;
@@ -68,13 +78,16 @@ impl GameplayModuleBehavior for CloseRangeChallengeBehavior {
         &self,
         context: &GameplayModuleContext<'_>,
     ) -> Result<GameplayModuleActions, GameplayModuleError> {
+        if context.invocation_id() == PRIMARY_FIRE_TRANSFORM_INVOCATION {
+            return transform_primary_fire(context);
+        }
         let event = context
             .event_contract()
             .ok_or_else(|| GameplayModuleError {
                 code: "missingEventContract".to_owned(),
                 message: "close-range challenge requires a typed gameplay event".to_owned(),
             })?;
-        if event == &contract("console-interacted") {
+        if event == &StandardGameplayEventKind::PrefabPartInteracted.contract() {
             return record_console_interaction(context);
         }
         let state = context.named_view::<CloseRangeChallengeState>("challenge-state")?;
@@ -115,25 +128,6 @@ impl GameplayModuleBehavior for CloseRangeChallengeBehavior {
         if event == &StandardGameplayEventKind::CombatFireMissed.contract() {
             return record_progress(context, &state, "shot-missed", 0, false, None, None);
         }
-        if event == &StandardGameplayEventKind::CombatEntityDefeated.contract() {
-            let payload: CombatPayload = context.event_payload()?;
-            return record_progress(
-                context,
-                &state,
-                if payload.defeated {
-                    "target-defeated"
-                } else {
-                    "combat-resolved"
-                },
-                0,
-                false,
-                None,
-                None,
-            );
-        }
-        if event == &StandardGameplayEventKind::EntityLifecycleChanged.contract() {
-            return record_progress(context, &state, "lifecycle-observed", 0, false, None, None);
-        }
         Err(GameplayModuleError {
             code: "unsupportedEvent".to_owned(),
             message: format!("close-range challenge does not handle {}", event.key()),
@@ -141,10 +135,45 @@ impl GameplayModuleBehavior for CloseRangeChallengeBehavior {
     }
 }
 
+fn transform_primary_fire(
+    context: &GameplayModuleContext<'_>,
+) -> Result<GameplayModuleActions, GameplayModuleError> {
+    let configuration: CloseRangeChallengeConfig = context.configuration()?;
+    let mut workspace: PrimaryFireGameplayDecisionWorkspace = context.decision_workspace()?;
+    let close_range_hit = workspace.shooter_role == "player"
+        && workspace.target.is_some()
+        && workspace
+            .range_millimeters
+            .is_some_and(|range| range <= configuration.close_range_millimeters);
+    if close_range_hit {
+        workspace.damage = workspace
+            .damage
+            .saturating_add(configuration.close_range_bonus);
+    }
+    let mut actions = context.actions();
+    actions.transform_workspace_json(
+        StandardGameplayProposalKind::ResolvePrimaryFire.contract(),
+        context
+            .decision_workspace_hash()
+            .ok_or_else(|| GameplayModuleError {
+                code: "missingPrimaryFireWorkspaceHash".to_owned(),
+                message: "primary-fire Transform requires its coordinator-issued Workspace hash"
+                    .to_owned(),
+            })?,
+        &workspace,
+    )?;
+    actions.trace(if close_range_hit {
+        "closeRangeDamageTransformed"
+    } else {
+        "baseDamagePreserved"
+    });
+    Ok(actions)
+}
+
 fn record_console_interaction(
     context: &GameplayModuleContext<'_>,
 ) -> Result<GameplayModuleActions, GameplayModuleError> {
-    let payload: ConsoleInteractionPayload = context.event_payload()?;
+    let payload: PrefabInteractionPayload = context.event_payload()?;
     if payload.role != "interaction/sensor" {
         return Err(GameplayModuleError {
             code: "unexpectedPrefabRole".to_owned(),
@@ -155,9 +184,15 @@ fn record_console_interaction(
         code: "missingPrefabPartTarget".to_owned(),
         message: "console interaction requires the resolved prefab-part entity".to_owned(),
     })?;
+    if entity != payload.target {
+        return Err(GameplayModuleError {
+            code: "prefabPartTargetMismatch".to_owned(),
+            message: "resolved prefab-part event target did not match its typed payload".to_owned(),
+        });
+    }
     let mut actions = context.actions();
-    actions.emit_json(
-        contract("challenge-progressed"),
+    actions.emit(
+        &challenge_event_codec(),
         &CloseRangeChallengeEvent {
             status: "active".to_owned(),
             action: "console-interacted".to_owned(),
@@ -173,7 +208,10 @@ fn record_console_interaction(
     actions.record_local_fact_json(
         contract("challenge-fact"),
         contract("challenge-state"),
-        GameplayModuleStateScope::Entity { entity },
+        context
+            .configuration_scope()
+            .cloned()
+            .unwrap_or(GameplayModuleStateScope::Entity { entity }),
         0,
         &CloseRangeChallengeFact {
             action: "console-interacted".to_owned(),
@@ -217,8 +255,8 @@ fn react_to_trigger_enter(
         None,
         overlap_read_hash,
     )?;
-    actions.propose_json(
-        StandardGameplayProposalKind::SetCapabilityActivation.contract(),
+    actions.propose(
+        &capability_activation_codec(),
         &CapabilityActivationGameplayProposal {
             entity: entered.trigger,
             capability: "collision".to_owned(),
@@ -239,9 +277,7 @@ fn record_progress(
     range_millimeters: Option<u32>,
     overlap_read_hash: Option<String>,
 ) -> Result<GameplayModuleActions, GameplayModuleError> {
-    let status = if action == "target-defeated"
-        || state.score.saturating_add(score_delta) >= state.objective_points
-    {
+    let status = if state.score.saturating_add(score_delta) >= state.objective_points {
         "completed"
     } else if action == "challenge-exited" {
         "outside"
@@ -249,8 +285,8 @@ fn record_progress(
         "active"
     };
     let mut actions = context.actions();
-    actions.emit_json(
-        contract("challenge-progressed"),
+    actions.emit(
+        &challenge_event_codec(),
         &CloseRangeChallengeEvent {
             status: status.to_owned(),
             action: action.to_owned(),
@@ -329,7 +365,6 @@ impl GameplayTypedModuleStateAdapter for CloseRangeChallengeStateAdapter {
         let mut next = state.clone();
         next.revision = next.revision.saturating_add(1);
         next.status = match fact.action.as_str() {
-            "target-defeated" => "completed",
             "challenge-exited" => "outside",
             _ => "active",
         }
@@ -364,21 +399,30 @@ impl GameplayTypedModuleStateAdapter for CloseRangeChallengeStateAdapter {
 }
 
 pub fn gameplay_module_ref() -> GameplayModuleRef {
+    provider().manifest.module_ref
+}
+
+fn base_module_ref() -> GameplayModuleRef {
     GameplayModuleRef {
         module_id: MODULE_ID.to_owned(),
         namespace: MODULE_NAMESPACE.to_owned(),
-        version: "1.0.0".to_owned(),
-        sdk_hash: "sha256:gameplay-sdk-v1".to_owned(),
-        contract_hash: "sha256:demo-primary-fire-gameplay-contract-v1".to_owned(),
-        artifact_hash: "sha256:demo-primary-fire-gameplay-artifact-v1".to_owned(),
+        version: env!("CARGO_PKG_VERSION").to_owned(),
+        sdk_hash: "unbuilt".to_owned(),
+        contract_hash: "unbuilt".to_owned(),
+        artifact_hash: "unbuilt".to_owned(),
         provider_id: PROVIDER_ID.to_owned(),
     }
 }
 
 pub fn gameplay_declared_read_plan_hash() -> String {
-    gameplay_module_payload_hash(
-        b"demo.primary-fire-effect|trigger-entered,trigger-exited,combat-fire-hit,combat-fire-missed,combat-defeated,lifecycle-changed,console-interacted|challenge-state:revision,status,score,closeRangeHits|current-trigger-overlaps|console-interacted:no-reads|v2",
-    )
+    let manifest = provider().manifest;
+    let canonical = serde_json::to_vec(&(manifest.invocations, manifest.read_views))
+        .expect("derived gameplay read plan serializes");
+    gameplay_module_payload_hash(&canonical)
+}
+
+pub fn gameplay_declared_reads() -> Vec<GameplayRuntimeDeclaredReadPlan> {
+    topology().declared_reads().to_vec()
 }
 
 pub fn gameplay_authored_binding_registry() -> GameplayModuleBindingRegistry {
@@ -487,7 +531,7 @@ fn authored_configuration(
         configuration_id: configuration_id.to_owned(),
         module: gameplay_module_ref(),
         configuration: contract("configuration"),
-        codec_id: "codec.demo.primary-fire-effect.configuration".to_owned(),
+        codec_id: gameplay_canonical_codec_id(&contract("configuration").schema_hash),
         config_hash: gameplay_module_payload_hash(&canonical_config),
         canonical_config,
     }
@@ -501,11 +545,51 @@ pub fn gameplay_composition() -> Result<GameplayStaticComposition, GameplayStati
 }
 
 fn provider() -> GameplayStaticModuleProvider {
-    let configuration_metadata = GameplayConfigurationSchemaMetadata {
-        module_id: MODULE_ID.to_owned(),
-        configuration: contract("configuration"),
-        codec_id: "codec.demo.primary-fire-effect.configuration".to_owned(),
-        fields: vec![
+    let topology = topology();
+    let provenance = build_provenance();
+    let mut manifest = GameplayModuleManifest {
+        module_ref: base_module_ref(),
+        published_events: vec![event_declaration(contract("challenge-progressed"))],
+        subscriptions: Vec::new(),
+        invocations: Vec::new(),
+        read_views: Vec::new(),
+        proposal_kinds: [
+            StandardGameplayProposalKind::ResolvePrimaryFire,
+            StandardGameplayProposalKind::SetCapabilityActivation,
+        ]
+        .into_iter()
+        .map(|proposal| GameplayProposalDeclaration {
+            proposal: proposal.contract(),
+            owner: proposal.owner(),
+        })
+        .collect(),
+        state_schemas: vec![GameplayOwnedSchemaDeclaration {
+            schema: contract("challenge-state"),
+            owner: owner(),
+        }],
+        fact_schemas: vec![GameplayOwnedSchemaDeclaration {
+            schema: contract("challenge-fact"),
+            owner: owner(),
+        }],
+        ordering: vec![],
+        budget: GameplayExecutionBudget {
+            max_waves: 2,
+            max_events_per_root: 16,
+            max_proposals_per_root: 1,
+            max_invocations_per_root: 12,
+            max_payload_bytes_per_root: 16_384,
+        },
+        deterministic_requirements: vec!["canonical-json".to_owned(), "no-ts-callback".to_owned()],
+        source_hash: "unbuilt".to_owned(),
+    };
+    topology
+        .apply_to_manifest(&mut manifest)
+        .expect("authored Demo topology belongs to the Demo manifest");
+    provenance.apply_to_manifest::<CloseRangeChallengeBehavior>(&mut manifest);
+    let configuration = GameplaySerdeConfiguration::<CloseRangeChallengeConfig>::new(
+        MODULE_ID,
+        contract("configuration"),
+        vec![
             GameplayConfigurationFieldMetadata {
                 name: "closeRangeMillimeters".to_owned(),
                 value_type: "u32".to_owned(),
@@ -522,8 +606,49 @@ fn provider() -> GameplayStaticModuleProvider {
                 required: true,
             },
         ],
+    );
+    GameplayStaticModuleProvider::linked_from_manifest(
+        manifest,
+        &provenance,
+        CloseRangeChallengeBehavior,
+    )
+    .event_codec(gameplay_serde_json_codec_registration::<
+        CloseRangeChallengeEvent,
+    >(
+        contract("challenge-progressed"),
+        schema_descriptor("challenge-progressed"),
+    ))
+    .derived_topology(&topology)
+    .state_owner(GameplayStateOwnerRegistration {
+        schema: contract("challenge-state"),
+        owner: owner(),
+    })
+    .state_owner(GameplayStateOwnerRegistration {
+        schema: contract("challenge-fact"),
+        owner: owner(),
+    })
+    .state_adapter(GameplayModuleStateRegistration::typed(
+        CloseRangeChallengeStateAdapter,
+    ))
+    .serde_configuration(configuration)
+}
+
+fn topology() -> GameplayDerivedModuleTopology {
+    let selector = GameplayHeaderSelector {
+        source: None,
+        target: None,
+        scope: None,
+        required_tags: Vec::new(),
     };
-    let subscriptions = [
+    let mut invocations = vec![GameplayModuleInvocationTopology::decision(
+        PRIMARY_FIRE_TRANSFORM_INVOCATION,
+        GameplayInvocationFamily::Transform,
+        StandardGameplayProposalKind::ResolvePrimaryFire.contract(),
+        StandardGameplayProposalKind::ResolvePrimaryFire.contract(),
+        1,
+        4_096,
+    )];
+    for (name, event) in [
         ("trigger-entered", StandardGameplayEventKind::TriggerEntered),
         ("trigger-exited", StandardGameplayEventKind::TriggerExited),
         ("combat-fire-hit", StandardGameplayEventKind::CombatFireHit),
@@ -531,213 +656,257 @@ fn provider() -> GameplayStaticModuleProvider {
             "combat-fire-missed",
             StandardGameplayEventKind::CombatFireMissed,
         ),
-        (
-            "combat-defeated",
-            StandardGameplayEventKind::CombatEntityDefeated,
-        ),
-        (
-            "lifecycle-changed",
-            StandardGameplayEventKind::EntityLifecycleChanged,
-        ),
-    ];
-    let manifest = GameplayModuleManifest {
-        module_ref: gameplay_module_ref(),
-        published_events: vec![
-            GameplayEventSchemaDeclaration {
-                event: contract("challenge-progressed"),
-                codec_id: "codec.demo.primary-fire-effect.challenge-progressed".to_owned(),
-            },
-            GameplayEventSchemaDeclaration {
-                event: contract("console-interacted"),
-                codec_id: "codec.demo.primary-fire-effect.console-interacted".to_owned(),
-            },
-        ],
-        subscriptions: subscriptions
-            .iter()
-            .map(|(name, event)| GameplaySubscriptionDeclaration {
-                subscription_id: format!("demo.primary-fire-effect.{name}"),
-                event: event.contract(),
-                invocation_id: format!("demo.primary-fire-effect.{name}.observe"),
-                selector: GameplayHeaderSelector {
-                    source: None,
-                    target: None,
-                    scope: None,
-                    required_tags: vec![],
-                },
-                max_deliveries_per_root: 4,
-            })
-            .chain(std::iter::once(GameplaySubscriptionDeclaration {
-                subscription_id: "demo.primary-fire-effect.console-interacted".to_owned(),
-                event: contract("console-interacted"),
-                invocation_id: "demo.primary-fire-effect.console-interacted.observe".to_owned(),
-                selector: GameplayHeaderSelector {
-                    source: None,
-                    target: None,
-                    scope: None,
-                    required_tags: vec!["prefab-part".to_owned()],
-                },
-                max_deliveries_per_root: 1,
-            }))
-            .collect(),
-        invocations: subscriptions
-            .iter()
-            .map(|(name, event)| GameplayInvocationDescriptor {
-                invocation_id: format!("demo.primary-fire-effect.{name}.observe"),
-                family: GameplayInvocationFamily::Observe,
-                input_contract: event.contract(),
-                output_contract: contract("challenge-progressed"),
-                read_requirements: invocation_read_requirements(name),
-                max_outputs: 3,
-                max_payload_bytes: 4_096,
-            })
-            .chain(std::iter::once(GameplayInvocationDescriptor {
-                invocation_id: "demo.primary-fire-effect.console-interacted.observe".to_owned(),
-                family: GameplayInvocationFamily::Observe,
-                input_contract: contract("console-interacted"),
-                output_contract: contract("challenge-progressed"),
-                read_requirements: Vec::new(),
-                max_outputs: 2,
-                max_payload_bytes: 1_024,
-            }))
-            .collect(),
-        read_views: vec![
-            GameplayReadViewRequirement {
-                view: contract("challenge-state-view"),
-                provider_id: PROVIDER_ID.to_owned(),
-                kind: GameplayReadViewKind::ModuleNamed,
-                fields: vec![
-                    "revision".to_owned(),
-                    "status".to_owned(),
-                    "score".to_owned(),
-                    "closeRangeHits".to_owned(),
-                ],
-                selector_capabilities: vec![GameplayReadSelectorCapability::ModuleStateScope],
-                max_items: 1,
-            },
-            GameplayReadViewRequirement {
-                view: contract("trigger-overlaps-view"),
-                provider_id: "provider.demo.trigger-overlaps".to_owned(),
-                kind: GameplayReadViewKind::OwnerQuery,
-                fields: vec!["trigger".to_owned(), "subjects".to_owned()],
-                selector_capabilities: vec![
-                    GameplayReadSelectorCapability::EventSource,
-                    GameplayReadSelectorCapability::OwnerQuery,
-                ],
-                max_items: 8,
-            },
-        ],
-        proposal_kinds: vec![GameplayProposalDeclaration {
-            proposal: StandardGameplayProposalKind::SetCapabilityActivation.contract(),
-            owner: StandardGameplayProposalKind::SetCapabilityActivation.owner(),
-        }],
-        state_schemas: vec![GameplayOwnedSchemaDeclaration {
-            schema: contract("challenge-state"),
-            owner: owner(),
-        }],
-        fact_schemas: vec![GameplayOwnedSchemaDeclaration {
-            schema: contract("challenge-fact"),
-            owner: owner(),
-        }],
-        ordering: vec![],
-        budget: GameplayExecutionBudget {
-            max_waves: 2,
-            max_events_per_root: 16,
-            max_proposals_per_root: 1,
-            max_invocations_per_root: 8,
-            max_payload_bytes_per_root: 16_384,
+    ] {
+        let event_selector = if name.starts_with("combat-") {
+            GameplayHeaderSelector {
+                required_tags: vec!["shooter-role:player".to_owned()],
+                ..selector.clone()
+            }
+        } else {
+            selector.clone()
+        };
+        let mut invocation = GameplayModuleInvocationTopology::observe(
+            format!("demo.primary-fire-effect.{name}"),
+            format!("demo.primary-fire-effect.{name}.observe"),
+            event.contract(),
+            contract("challenge-progressed"),
+            event_selector,
+            4,
+            3,
+            4_096,
+        )
+        .read(challenge_state_read());
+        if name == "trigger-entered" {
+            invocation = invocation.read(trigger_overlap_read());
+        }
+        invocations.push(invocation);
+    }
+    invocations.push(GameplayModuleInvocationTopology::observe(
+        "demo.primary-fire-effect.prefab-part-interacted",
+        "demo.primary-fire-effect.prefab-part-interacted.observe",
+        StandardGameplayEventKind::PrefabPartInteracted.contract(),
+        contract("challenge-progressed"),
+        GameplayHeaderSelector {
+            required_tags: vec!["prefab-part".to_owned()],
+            ..selector
         },
-        deterministic_requirements: vec!["canonical-json".to_owned(), "no-ts-callback".to_owned()],
-        source_hash: "sha256:demo-primary-fire-gameplay-source-v1".to_owned(),
-    };
-    GameplayStaticModuleProvider::linked_from_manifest(manifest, CloseRangeChallengeBehavior)
-        .event_codec(GameplayEventCodecRegistration::typed(
-            TypedGameplayEventCodec::new(
-                GameplayEventSchemaDeclaration {
-                    event: contract("challenge-progressed"),
-                    codec_id: "codec.demo.primary-fire-effect.challenge-progressed".to_owned(),
-                },
-                |payload: &CloseRangeChallengeEvent| {
-                    serde_json::to_vec(payload).map_err(|error| error.to_string())
-                },
-                |bytes| serde_json::from_slice(bytes).map_err(|error| error.to_string()),
-            ),
-        ))
-        .event_codec(GameplayEventCodecRegistration::typed(
-            TypedGameplayEventCodec::new(
-                GameplayEventSchemaDeclaration {
-                    event: contract("console-interacted"),
-                    codec_id: "codec.demo.primary-fire-effect.console-interacted".to_owned(),
-                },
-                |payload: &ConsoleInteractionPayload| {
-                    serde_json::to_vec(payload).map_err(|error| error.to_string())
-                },
-                |bytes| serde_json::from_slice(bytes).map_err(|error| error.to_string()),
-            ),
-        ))
-        .read_view_provider(GameplayReadViewProviderRegistration {
-            view: contract("challenge-state-view"),
-            provider_id: PROVIDER_ID.to_owned(),
-            kind: GameplayReadViewKind::ModuleNamed,
-            fields: vec![
-                "revision".to_owned(),
-                "status".to_owned(),
-                "score".to_owned(),
-                "closeRangeHits".to_owned(),
-            ],
-            selector_capabilities: vec![GameplayReadSelectorCapability::ModuleStateScope],
-            max_items: 1,
-            ordering: "single-session-state".to_owned(),
-        })
-        .read_view_provider(GameplayReadViewProviderRegistration {
-            view: contract("trigger-overlaps-view"),
-            provider_id: "provider.demo.trigger-overlaps".to_owned(),
-            kind: GameplayReadViewKind::OwnerQuery,
-            fields: vec!["trigger".to_owned(), "subjects".to_owned()],
-            selector_capabilities: vec![
-                GameplayReadSelectorCapability::EventSource,
-                GameplayReadSelectorCapability::OwnerQuery,
-            ],
-            max_items: 8,
-            ordering: "entity-id-ascending".to_owned(),
-        })
-        .state_owner(GameplayStateOwnerRegistration {
-            schema: contract("challenge-state"),
-            owner: owner(),
-        })
-        .state_owner(GameplayStateOwnerRegistration {
-            schema: contract("challenge-fact"),
-            owner: owner(),
-        })
-        .state_adapter(GameplayModuleStateRegistration::typed(
-            CloseRangeChallengeStateAdapter,
-        ))
-        .configuration_schema(configuration_metadata.clone())
-        .configuration_codec(GameplayConfigurationCodecRegistration::typed::<
-            CloseRangeChallengeConfig,
-        >(configuration_metadata))
+        2,
+        2,
+        2_048,
+    ));
+    GameplayDerivedModuleTopology::derive(MODULE_ID, invocations)
+        .expect("Demo gameplay topology is unambiguous")
 }
 
-fn invocation_read_requirements(name: &str) -> Vec<GameplayInvocationReadRequirement> {
-    let mut requirements = vec![GameplayInvocationReadRequirement {
-        request_id: "challenge-state".to_owned(),
-        view: contract("challenge-state-view"),
-    }];
-    if name == "trigger-entered" {
-        requirements.push(GameplayInvocationReadRequirement {
+fn challenge_state_read() -> GameplayModuleReadTopology {
+    gameplay_session_state_read(
+        "challenge-state",
+        contract("challenge-state-view"),
+        PROVIDER_ID,
+        vec![
+            "revision".to_owned(),
+            "status".to_owned(),
+            "score".to_owned(),
+            "closeRangeHits".to_owned(),
+        ],
+        "single-session-state",
+    )
+}
+
+fn trigger_overlap_read() -> GameplayModuleReadTopology {
+    GameplayModuleReadTopology {
+        request: GameplayReadRequest {
             request_id: "current-trigger-overlaps".to_owned(),
             view: contract("trigger-overlaps-view"),
-        });
+            fields: vec!["trigger".to_owned(), "subjects".to_owned()],
+            selector: GameplayReadSelector::OwnerQuery {
+                query: GameplayOwnerQuery::CurrentTriggerOverlaps {
+                    trigger: GameplayEventEntityBinding::Source,
+                    max_items: 8,
+                },
+            },
+        },
+        provider_id: "provider.demo.trigger-overlaps".to_owned(),
+        kind: GameplayReadViewKind::OwnerQuery,
+        selector_capabilities: vec![
+            GameplayReadSelectorCapability::EventSource,
+            GameplayReadSelectorCapability::OwnerQuery,
+        ],
+        max_items: 8,
+        ordering: "entity-id-ascending".to_owned(),
     }
-    requirements
+}
+
+pub fn gameplay_runtime_project_input() -> GameplayRuntimeProjectInput {
+    GameplayRuntimeProjectInput {
+        load_plan: LoadPlan {
+            steps: vec![
+                LoadStep::ValidateVersions {
+                    bundle_schema_version: 1,
+                    protocol_version: 1,
+                },
+                LoadStep::LoadAssetLock {
+                    artifact: "assets/lock.json".to_owned(),
+                    asset_count: 0,
+                },
+                LoadStep::LoadSceneDocument {
+                    artifact: "scene/scene.json".to_owned(),
+                    scene: SceneId::new(4103),
+                },
+                LoadStep::BootstrapScene {
+                    scene: SceneId::new(4103),
+                    runtime_session: RuntimeSessionId::new(4103),
+                },
+                LoadStep::ValidateFinalState,
+            ],
+        },
+        artifacts: BundleArtifacts::new()
+            .with_artifact("assets/lock.json", "{\"entries\":[]}")
+            .with_artifact("scene/scene.json", gameplay_scene_artifact()),
+        composition: gameplay_composition().expect("Demo gameplay composition is valid"),
+        bindings: gameplay_authored_binding_registry(),
+        entity_targets: GameplayBindingEntityTargets::new(),
+        spatial_entities: vec![GameplayRuntimeSpatialEntity {
+            entity: EntityId::new(CHALLENGE_TRIGGER_ENTITY),
+            translation: [0.0, 1.5, 0.0],
+            half_extents: [0.65, 0.9, 0.45],
+            static_collider: false,
+        }],
+        declared_reads: gameplay_declared_reads(),
+        triggers: vec![GameplayTriggerDefinition {
+            schema_version: GAMEPLAY_TRIGGER_DEFINITION_SCHEMA_VERSION,
+            entity: CHALLENGE_TRIGGER_ENTITY,
+            scope: "encounter.close-range".to_owned(),
+            tags: vec![
+                "challenge".to_owned(),
+                "close-range".to_owned(),
+                "generated-tunnel".to_owned(),
+            ],
+        }],
+        scheduler: GameplayRuntimeSchedulerDefinition::new(
+            GameplayOwnerRef {
+                owner_id: "authority.asha-demo.scheduler".to_owned(),
+                provider_id: "provider.asha-demo.runtime-session".to_owned(),
+            },
+            vec![StandardGameplayEventKind::CombatFireHit.contract()],
+            vec![
+                StandardGameplayProposalKind::ResolvePrimaryFire.contract(),
+                StandardGameplayProposalKind::SetCapabilityActivation.contract(),
+            ],
+        ),
+    }
+}
+
+pub fn gameplay_runtime_prefab_bootstrap() -> GameplayRuntimePrefabBootstrap {
+    GameplayRuntimePrefabBootstrap {
+        registry_json: include_str!("../../../../prefabs/registry.json").to_owned(),
+        catalog: GameplayRuntimePrefabCatalog {
+            asset_ids: Vec::new(),
+            entity_definition_ids: vec![
+                "demo.console.body".to_owned(),
+                "demo.console.body.blue".to_owned(),
+                "demo.console.body.red".to_owned(),
+                "demo.console.sensor".to_owned(),
+            ],
+        },
+        placements: vec![
+            GameplayRuntimePrefabPlacement {
+                command_id: "demo.place-prefab.700".to_owned(),
+                origin: GameplayRuntimePrefabPlacementOrigin::Authored,
+                instance: 700,
+                prefab: 70,
+                seed: 4103,
+                transform: GameplayRuntimePrefabTransform {
+                    translation: [-2.0, 0.0, -1.0],
+                    ..GameplayRuntimePrefabTransform::IDENTITY
+                },
+                overrides: vec![GameplayRuntimePrefabOverride::EntityDefinition {
+                    target_role: "console/body".to_owned(),
+                    stable_id: "demo.console.body.blue".to_owned(),
+                }],
+            },
+            GameplayRuntimePrefabPlacement {
+                command_id: "demo.place-prefab.701".to_owned(),
+                origin: GameplayRuntimePrefabPlacementOrigin::Player,
+                instance: 701,
+                prefab: 70,
+                seed: 4104,
+                transform: GameplayRuntimePrefabTransform {
+                    translation: [2.0, 0.0, -1.0],
+                    ..GameplayRuntimePrefabTransform::IDENTITY
+                },
+                overrides: vec![GameplayRuntimePrefabOverride::EntityDefinition {
+                    target_role: "console/body".to_owned(),
+                    stable_id: "demo.console.body.red".to_owned(),
+                }],
+            },
+        ],
+    }
+}
+
+pub fn gameplay_challenge_view_contract() -> GameplayContractRef {
+    contract("challenge-state-view")
+}
+
+pub fn gameplay_composition_hash() -> String {
+    gameplay_composition()
+        .expect("Demo gameplay composition is valid")
+        .registry()
+        .registry_digest()
+        .to_owned()
+}
+
+fn build_provenance() -> GameplayModuleBuildProvenance {
+    GameplayModuleBuildProvenance::from_build_inputs(
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        &[
+            include_bytes!("gameplay.rs"),
+            include_bytes!("lib.rs"),
+            include_bytes!("../../../../prefabs/registry.json"),
+        ],
+        include_bytes!("../../../Cargo.lock"),
+        &[],
+    )
+}
+
+fn event_declaration(event: GameplayContractRef) -> GameplayEventSchemaDeclaration {
+    GameplayEventSchemaDeclaration {
+        codec_id: gameplay_canonical_codec_id(&event.schema_hash),
+        event,
+    }
+}
+
+fn schema_descriptor(name: &str) -> String {
+    format!("asha-demo:{MODULE_NAMESPACE}.{name};canonical-json-v1")
+}
+
+fn challenge_event_codec() -> TypedGameplayEventCodec<CloseRangeChallengeEvent> {
+    gameplay_serde_json_codec(
+        contract("challenge-progressed"),
+        schema_descriptor("challenge-progressed"),
+    )
+}
+
+fn capability_activation_codec() -> TypedGameplayEventCodec<CapabilityActivationGameplayProposal> {
+    let proposal = StandardGameplayProposalKind::SetCapabilityActivation;
+    gameplay_serde_json_codec(proposal.contract(), proposal.schema_descriptor())
 }
 
 fn contract(name: &str) -> GameplayContractRef {
-    GameplayContractRef {
-        namespace: MODULE_NAMESPACE.to_owned(),
-        name: name.to_owned(),
-        version: 1,
-        schema_hash: format!("sha256:demo.primary-fire-effect.{name}.v1"),
-    }
+    gameplay_contract(MODULE_NAMESPACE, name, 1, &schema_descriptor(name))
+}
+
+fn gameplay_scene_artifact() -> &'static str {
+    r#"{
+      "schemaVersion": 1,
+      "id": 4103,
+      "metadata": { "name": "asha-demo-composed-runtime", "authoringFormatVersion": 1 },
+      "dependencies": [],
+      "nodes": [
+        { "id": 1, "parent": null, "childOrder": 0, "label": null, "tags": [], "transform": { "translation": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1] }, "kind": { "kind": "emptyGroup" } }
+      ]
+    }"#
 }
 
 fn owner() -> GameplayOwnerRef {

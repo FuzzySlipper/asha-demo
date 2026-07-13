@@ -55,12 +55,13 @@ This repo contains the first ASHA Game Project demo surface:
 - `levels/presets/`, `levels/scenes/`, `assets/`, and `replays/` are source roots for demo-owned content and evidence.
 - `policies/` is documentation-only until ASHA exposes an approved public policy-authoring surface.
 - The served UI consumes public ASHA package roots for the integrated RuntimeSession loop: first-person generated-tunnel room rendering from the public renderer projection, browser-operable movement/look controls with collision readout, deterministic generated tunnel projection, enemy placement from durable ECRP content, hash-pinned animated mesh playback from RuntimeSession animation intent, primary-fire health/HUD feedback, typed HUD/menu controls, death status, and typed restart receipt. Runtime authority requires an injected public native Rust RuntimeBridge provider (`asha.runtime_bridge.native_rust_provider.v1`, with the current `asha_demo.native_runtime_bridge_provider.v1` alias still accepted); a plain static browser session fails closed with a visible missing-backend diagnostic instead of using reference authority.
-- The same provider carries a product-owned `GameplayRuntimeHostTransport`.
-  `demo-rs/crates/gameplay-host-native` statically links the real
-  `demo.primary-fire-effect` module through approved public Rust facades. Accepted
-  camera movement drives the authored tunnel trigger, accepted weapon outcomes
-  become standard combat/lifecycle events, and the visible challenge HUD projects
-  the module's persistent state/reaction evidence.
+- The native provider is one consumer-composed RuntimeSession cell.
+  `demo-rs/crates/native-runtime-provider` statically links the real
+  `demo.primary-fire-effect` module through approved public Rust facades. The
+  close-range damage Transform runs synchronously inside authoritative primary
+  fire, accepted owner facts drive the challenge reactions, and the visible HUD
+  projects the module's provider-owned named view. There is no second gameplay
+  host, TypeScript gameplay callback, event ferry, or shadow authority session.
 
 Run `npm run check:dependencies` before adding code or package dependencies. The guard reads ASHA's public-surface manifest and rejects private ASHA packages, generated contract file paths, Rust crate paths, and package-internal `src/*` imports.
 
@@ -139,12 +140,13 @@ Demo code must not own:
 - reference/mock RuntimeSession as product authority.
 
 Demo-owned Rust follows
-`../asha-engine/docs/gameplay-runtime-host.md`: it contributes a closed static
-module composition and typed module-local state, while engine owners retain
-collision, combat, lifecycle, capability mutation, trigger reconciliation,
-replay, scheduling, and RuntimeSession validation. The ProjectBundle declares
-the closed scheduler owner/event/proposal contracts; TypeScript forwards only
-typed scheduler moments and projects the bounded readout.
+`../asha-engine/docs/runtime-session-static-composition.md`: it contributes a
+closed static module composition, typed Transform, and module-local challenge
+state to the same RuntimeSession cell, while engine owners retain collision,
+combat, lifecycle, capability mutation, trigger reconciliation, replay,
+scheduling, and RuntimeSession validation. The ProjectBundle pins the derived
+composition/read-plan/binding identities and closed scheduler contracts;
+TypeScript submits ordinary intents and projects bounded readouts.
 
 ## Current Boundaries
 

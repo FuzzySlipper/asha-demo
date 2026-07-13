@@ -2,14 +2,15 @@ use std::env;
 use std::fs;
 
 use asha_demo_primary_fire_effect::{
-    gameplay_composition, gameplay_session_conformance_binding_registry,
+    gameplay_challenge_view_contract, gameplay_composition,
+    gameplay_session_conformance_binding_registry,
 };
 use asha_gameplay_module_conformance::{
     run_gameplay_module_conformance, GameplayModuleConformanceCase,
     GameplayModuleConformanceProject, GameplayModuleConformanceReachableSurface,
 };
 use asha_gameplay_module_sdk::{
-    gameplay_module_payload_hash, EntityId, GameplayCausationRef, GameplayEmitterRef,
+    gameplay_canonical_payload_hash, EntityId, GameplayCausationRef, GameplayEmitterRef,
     GameplayEntityRef, GameplayEventEnvelope, GameplayEventPhase, StandardGameplayEventKind,
 };
 use serde::Serialize;
@@ -19,6 +20,8 @@ use serde_json::json;
 #[serde(rename_all = "camelCase")]
 struct CombatPayload {
     shooter: Option<u64>,
+    shooter_role: Option<String>,
+    weapon_id: Option<String>,
     target: Option<u64>,
     distance: Option<f64>,
     miss_reason: Option<String>,
@@ -49,7 +52,7 @@ fn main() {
             "requestId": "challenge-state",
             "moduleId": "demo.primary-fire-effect",
             "invocationId": "demo.primary-fire-effect.combat-fire-hit.observe",
-            "view": contract("challenge-state-view"),
+            "view": gameplay_challenge_view_contract(),
             "scope": { "kind": "session" },
             "fields": ["revision", "status", "score", "closeRangeHits"]
         }]
@@ -89,6 +92,8 @@ fn main() {
 fn combat_event(distance: f64) -> GameplayEventEnvelope {
     let payload = CombatPayload {
         shooter: Some(10),
+        shooter_role: Some("player".to_owned()),
+        weapon_id: Some("weapon.primary_fire.generated_tunnel.v0".to_owned()),
         target: Some(20),
         distance: Some(distance),
         miss_reason: None,
@@ -120,18 +125,14 @@ fn combat_event(distance: f64) -> GameplayEventEnvelope {
         subjects: vec![entity_ref(20)],
         targets: vec![entity_ref(20)],
         scope: Some("combat".to_owned()),
-        tags: vec!["hit".to_owned(), "close-range".to_owned()],
-        payload_hash: gameplay_module_payload_hash(&canonical_payload),
+        tags: vec![
+            "hit".to_owned(),
+            "close-range".to_owned(),
+            "shooter-role:player".to_owned(),
+            "weapon:weapon.primary_fire.generated_tunnel.v0".to_owned(),
+        ],
+        payload_hash: gameplay_canonical_payload_hash(&canonical_payload),
         canonical_payload,
-    }
-}
-
-fn contract(name: &str) -> asha_gameplay_module_sdk::GameplayContractRef {
-    asha_gameplay_module_sdk::GameplayContractRef {
-        namespace: "demo.primary-fire-effect".to_owned(),
-        name: name.to_owned(),
-        version: 1,
-        schema_hash: format!("sha256:demo.primary-fire-effect.{name}.v1"),
     }
 }
 

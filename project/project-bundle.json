@@ -13,54 +13,47 @@
     "gameplayCatalogId": "asha.generated_tunnel.gameplay_catalog.v0",
     "objectModelId": "asha.generated_tunnel.fps_ecrp_object_model.v0"
   },
-  "gameRuleModules": [
-    {
-      "moduleRef": {
-        "moduleId": "demo.primary_fire_effect",
-        "version": "0.1.0",
-        "contractHash": "sha256:demo-primary-fire-effect-contract-v0"
-      },
-      "declaredHooks": [
-        {
-          "hookId": "demo.primary_fire_effect.weapon",
-          "kind": "weaponEffect",
-          "inputContract": "WeaponEffectHookRequest.v0",
-          "outputContract": "GameExtensionProposal.v0",
-          "requiredCapabilities": ["health", "weaponMount"]
-        }
-      ],
-      "deterministicRequirements": [
-        "no-wall-clock",
-        "no-ambient-random",
-        "no-filesystem",
-        "no-network",
-        "no-ts-callback"
-      ],
-      "sourceHash": "sha256:demo-primary-fire-effect-source-v0"
-    }
-  ],
   "gameplayRuntime": {
-    "compositionHash": "fnv1a64:e84dbcc6ce4b440c",
-    "declaredReadPlanHash": "fnv1a64:d735bbb6bbb8ba73",
+    "compositionHash": "fnv1a64:5c6bb3529152f8e1",
+    "declaredReadPlanHash": "fnv1a64:6ac56aec40e8d930",
+    "challengeView": {
+      "namespace": "demo.primary-fire-effect",
+      "name": "challenge-state-view",
+      "version": 1,
+      "schemaHash": "fnv1a64:2dc6de6c7c6ee80d"
+    },
+    "prefabInteraction": {
+      "actor": 30,
+      "instance": 701,
+      "role": "interaction/sensor",
+      "expectedTarget": 1585192660180873,
+      "tick": 1
+    },
     "scheduler": {
       "owner": {
         "ownerId": "authority.asha-demo.scheduler",
-        "providerId": "provider.asha-demo.gameplay-host"
+        "providerId": "provider.asha-demo.runtime-session"
       },
       "declaredEvents": [
         {
           "namespace": "asha.combat",
           "name": "fire-hit",
           "version": 1,
-          "schemaHash": "fnv1a64:e2f8a2f1bab06948"
+          "schemaHash": "fnv1a64:40a5dcb79ae505a7"
         }
       ],
       "declaredProposals": [
         {
+          "namespace": "asha.combat",
+          "name": "resolve-primary-fire",
+          "version": 1,
+          "schemaHash": "fnv1a64:2dcb9ce9f24d22a1"
+        },
+        {
           "namespace": "asha.entity",
           "name": "set-capability-activation",
           "version": 1,
-          "schemaHash": "fnv1a64:dd60efc4b5133917"
+          "schemaHash": "fnv1a64:242abde273dbe9e0"
         }
       ]
     }
@@ -73,19 +66,19 @@
         "module": {
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
-          "version": "1.0.0",
-          "sdkHash": "sha256:gameplay-sdk-v1",
-          "contractHash": "sha256:demo-primary-fire-gameplay-contract-v1",
-          "artifactHash": "sha256:demo-primary-fire-gameplay-artifact-v1",
+          "version": "0.1.0",
+          "sdkHash": "fnv1a64:423dbcb90d661cd7",
+          "contractHash": "fnv1a64:1b614eb127c2cc3c",
+          "artifactHash": "fnv1a64:2f048518fe5613fb",
           "providerId": "provider.demo.primary-fire-effect"
         },
         "configuration": {
           "namespace": "demo.primary-fire-effect",
           "name": "configuration",
           "version": 1,
-          "schemaHash": "sha256:demo.primary-fire-effect.configuration.v1"
+          "schemaHash": "fnv1a64:659708cb2fc528cd"
         },
-        "codecId": "codec.demo.primary-fire-effect.configuration",
+        "codecId": "asha.canonical-codec.fnv1a64:659708cb2fc528cd",
         "canonicalConfig": [123, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 77, 105, 108, 108, 105, 109, 101, 116, 101, 114, 115, 34, 58, 50, 48, 48, 48, 44, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 66, 111, 110, 117, 115, 34, 58, 50, 44, 34, 111, 98, 106, 101, 99, 116, 105, 118, 101, 80, 111, 105, 110, 116, 115, 34, 58, 51, 125],
         "configHash": "fnv1a64:4689a812b4a68081"
       },
@@ -94,19 +87,19 @@
         "module": {
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
-          "version": "1.0.0",
-          "sdkHash": "sha256:gameplay-sdk-v1",
-          "contractHash": "sha256:demo-primary-fire-gameplay-contract-v1",
-          "artifactHash": "sha256:demo-primary-fire-gameplay-artifact-v1",
+          "version": "0.1.0",
+          "sdkHash": "fnv1a64:423dbcb90d661cd7",
+          "contractHash": "fnv1a64:1b614eb127c2cc3c",
+          "artifactHash": "fnv1a64:2f048518fe5613fb",
           "providerId": "provider.demo.primary-fire-effect"
         },
         "configuration": {
           "namespace": "demo.primary-fire-effect",
           "name": "configuration",
           "version": 1,
-          "schemaHash": "sha256:demo.primary-fire-effect.configuration.v1"
+          "schemaHash": "fnv1a64:659708cb2fc528cd"
         },
-        "codecId": "codec.demo.primary-fire-effect.configuration",
+        "codecId": "asha.canonical-codec.fnv1a64:659708cb2fc528cd",
         "canonicalConfig": [123, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 77, 105, 108, 108, 105, 109, 101, 116, 101, 114, 115, 34, 58, 51, 48, 48, 48, 44, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 66, 111, 110, 117, 115, 34, 58, 55, 44, 34, 111, 98, 106, 101, 99, 116, 105, 118, 101, 80, 111, 105, 110, 116, 115, 34, 58, 57, 125],
         "configHash": "fnv1a64:f493f3900bf95563"
       },
@@ -115,19 +108,19 @@
         "module": {
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
-          "version": "1.0.0",
-          "sdkHash": "sha256:gameplay-sdk-v1",
-          "contractHash": "sha256:demo-primary-fire-gameplay-contract-v1",
-          "artifactHash": "sha256:demo-primary-fire-gameplay-artifact-v1",
+          "version": "0.1.0",
+          "sdkHash": "fnv1a64:423dbcb90d661cd7",
+          "contractHash": "fnv1a64:1b614eb127c2cc3c",
+          "artifactHash": "fnv1a64:2f048518fe5613fb",
           "providerId": "provider.demo.primary-fire-effect"
         },
         "configuration": {
           "namespace": "demo.primary-fire-effect",
           "name": "configuration",
           "version": 1,
-          "schemaHash": "sha256:demo.primary-fire-effect.configuration.v1"
+          "schemaHash": "fnv1a64:659708cb2fc528cd"
         },
-        "codecId": "codec.demo.primary-fire-effect.configuration",
+        "codecId": "asha.canonical-codec.fnv1a64:659708cb2fc528cd",
         "canonicalConfig": [123, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 77, 105, 108, 108, 105, 109, 101, 116, 101, 114, 115, 34, 58, 50, 53, 48, 48, 44, 34, 99, 108, 111, 115, 101, 82, 97, 110, 103, 101, 66, 111, 110, 117, 115, 34, 58, 53, 44, 34, 111, 98, 106, 101, 99, 116, 105, 118, 101, 80, 111, 105, 110, 116, 115, 34, 58, 54, 125],
         "configHash": "fnv1a64:ebaea1ce8b0b3d2c"
       }
@@ -141,7 +134,7 @@
           "namespace": "demo.primary-fire-effect",
           "name": "challenge-state",
           "version": 1,
-          "schemaHash": "sha256:demo.primary-fire-effect.challenge-state.v1"
+          "schemaHash": "fnv1a64:b6c652e19102b5fc"
         },
         "target": {
           "kind": "prefabPart",
@@ -153,7 +146,7 @@
             "namespace": "demo.primary-fire-effect",
             "name": "challenge-progressed",
             "version": 1,
-            "schemaHash": "sha256:demo.primary-fire-effect.challenge-progressed.v1"
+            "schemaHash": "fnv1a64:4661aac85763ccbe"
           }
         ],
         "enabled": true
@@ -166,7 +159,7 @@
           "namespace": "demo.primary-fire-effect",
           "name": "challenge-state",
           "version": 1,
-          "schemaHash": "sha256:demo.primary-fire-effect.challenge-state.v1"
+          "schemaHash": "fnv1a64:b6c652e19102b5fc"
         },
         "target": { "kind": "session" },
         "requiredReads": [],
@@ -175,7 +168,7 @@
             "namespace": "demo.primary-fire-effect",
             "name": "challenge-progressed",
             "version": 1,
-            "schemaHash": "sha256:demo.primary-fire-effect.challenge-progressed.v1"
+            "schemaHash": "fnv1a64:4661aac85763ccbe"
           }
         ],
         "enabled": true
@@ -195,7 +188,7 @@
         "enabled": null
       }
     ],
-    "registryHash": "fnv1a64:57e695629fd31d9d"
+    "registryHash": "fnv1a64:0b87bf0fa1c3954e"
   },
   "gameplayTriggers": [
     {
@@ -217,9 +210,6 @@
       "spawns": "catalogs/spawns/generated-tunnel.spawns.json",
       "weapon": "catalogs/weapons/primary-fire.weapon.json"
     },
-    "gameRuleModules": [
-      "game-rules/primary-fire-effect.manifest.json"
-    ],
     "prefabRegistry": "prefabs/registry.json",
     "levelPreset": "levels/presets/tiny-enclosed-tunnel.json",
     "animatedMeshManifest": "assets/mesh-animation/kenney-retro-character-medium.manifest.json"

@@ -3,14 +3,27 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use asha_demo_primary_fire_effect::{
-    gameplay_authored_binding_registry, gameplay_composition, gameplay_declared_read_plan_hash,
-    primary_fire_effect_manifest,
+    gameplay_authored_binding_registry, gameplay_challenge_view_contract, gameplay_composition,
+    gameplay_declared_read_plan_hash, gameplay_runtime_prefab_bootstrap,
+    gameplay_runtime_project_input,
+};
+use asha_runtime_session_composition::{
+    GameplayPrefabPartInteractionRequest, StaticRuntimeSessionBuilder,
 };
 use serde_json::Value as JsonValue;
 
 fn main() {
-    let repo_root = env::args_os()
-        .nth(1)
+    let arguments = env::args_os().skip(1).collect::<Vec<_>>();
+    if arguments
+        .iter()
+        .any(|argument| argument == "--print-linked-contract")
+    {
+        print_linked_contract();
+        return;
+    }
+    let repo_root = arguments
+        .first()
+        .cloned()
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."));
 
@@ -27,6 +40,24 @@ fn main() {
             std::process::exit(1);
         }
     }
+}
+
+fn print_linked_contract() {
+    let project_input = gameplay_runtime_project_input();
+    let value = serde_json::json!({
+        "compositionHash": gameplay_composition()
+            .expect("linked gameplay composition is valid")
+            .registry()
+            .registry_digest(),
+        "declaredReadPlanHash": gameplay_declared_read_plan_hash(),
+        "challengeView": gameplay_challenge_view_contract(),
+        "scheduler": project_input.scheduler,
+        "gameplayModuleBindings": gameplay_authored_binding_registry(),
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&value).expect("linked contract serializes")
+    );
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -62,18 +93,11 @@ fn run_preflight(repo_root: &Path) -> Result<PreflightSummary, String> {
     require_json_string(&project_bundle, &["kind"], "ProjectBundle")?;
     require_json_string(&project_bundle, &["project", "gameId"], "asha-demo")?;
     require_json_number(&project_bundle, &["runtimeRequest", "sceneId"], 4103)?;
-    let game_rule_modules = read_project_game_rule_modules(&project_bundle)?;
-    if game_rule_modules.len() != 1 {
+    if project_bundle.get("gameRuleModules").is_some() {
         return Err(
-            "ProjectBundle.gameRuleModules must declare exactly one demo rule module".to_owned(),
+            "ProjectBundle must not retain the legacy gameRuleModules hook manifest".to_owned(),
         );
     }
-    let manifest = primary_fire_effect_manifest();
-    require_json_string(
-        &game_rule_modules[0],
-        &["moduleRef", "moduleId"],
-        manifest.module_ref.module_id.as_str(),
-    )?;
     let composition = gameplay_composition()
         .map_err(|error| format!("static gameplay composition is invalid: {error}"))?;
     require_json_string(
@@ -94,17 +118,26 @@ fn run_preflight(repo_root: &Path) -> Result<PreflightSummary, String> {
     if stored_bindings != &authored_bindings {
         return Err("ProjectBundle gameplayModuleBindings drifted from the statically linked module contract".to_owned());
     }
+    let authored_view = serde_json::to_value(gameplay_challenge_view_contract())
+        .map_err(|error| format!("gameplay challenge view did not serialize: {error}"))?;
+    let stored_view = read_json_path(&project_bundle, &["gameplayRuntime", "challengeView"])?;
+    if stored_view != &authored_view {
+        return Err(
+            "ProjectBundle gameplayRuntime.challengeView drifted from the linked provider view"
+                .to_owned(),
+        );
+    }
+    let authored_scheduler = serde_json::to_value(gameplay_runtime_project_input().scheduler)
+        .map_err(|error| format!("gameplay scheduler did not serialize: {error}"))?;
+    let stored_scheduler = read_json_path(&project_bundle, &["gameplayRuntime", "scheduler"])?;
+    if stored_scheduler != &authored_scheduler {
+        return Err(
+            "ProjectBundle gameplayRuntime.scheduler drifted from the linked composition"
+                .to_owned(),
+        );
+    }
     require_json_number(&project_bundle, &["gameplayTriggers", "0", "entity"], 30)?;
-    require_json_string(
-        &game_rule_modules[0],
-        &["moduleRef", "version"],
-        manifest.module_ref.version.as_str(),
-    )?;
-    require_json_string(
-        &game_rule_modules[0],
-        &["moduleRef", "contractHash"],
-        manifest.module_ref.contract_hash.as_str(),
-    )?;
+    validate_prefab_interaction(&project_bundle)?;
 
     let mut checked_file_count = 1;
     for source_path in read_project_source_paths(&project_bundle)? {
@@ -144,6 +177,8 @@ fn read_project_source_paths(project_bundle: &JsonValue) -> Result<Vec<String>, 
     }
     paths.push(require_source_file(source_files, "sceneDocument")?);
     paths.push(require_source_file(source_files, "levelPreset")?);
+    paths.push(require_source_file(source_files, "prefabRegistry")?);
+    paths.push(require_source_file(source_files, "animatedMeshManifest")?);
     let catalog_refs = source_files
         .get("catalogRefs")
         .and_then(JsonValue::as_object)
@@ -156,29 +191,54 @@ fn read_project_source_paths(project_bundle: &JsonValue) -> Result<Vec<String>, 
                 .to_owned(),
         );
     }
-    let game_rule_modules = source_files
-        .get("gameRuleModules")
-        .and_then(JsonValue::as_array)
-        .ok_or_else(|| "ProjectBundle.sourceFiles.gameRuleModules must be an array".to_owned())?;
-    for value in game_rule_modules {
-        paths.push(
-            value
-                .as_str()
-                .ok_or_else(|| "ProjectBundle game rule module refs must be strings".to_owned())?
-                .to_owned(),
+    if source_files.get("gameRuleModules").is_some() {
+        return Err(
+            "ProjectBundle.sourceFiles must not retain legacy gameRuleModules paths".to_owned(),
         );
     }
     Ok(paths)
 }
 
-fn read_project_game_rule_modules(project_bundle: &JsonValue) -> Result<Vec<JsonValue>, String> {
-    project_bundle
-        .get("gameRuleModules")
-        .and_then(JsonValue::as_array)
-        .cloned()
-        .ok_or_else(|| {
-            "ProjectBundle.gameRuleModules must declare demo Rust rule modules".to_owned()
+fn validate_prefab_interaction(project_bundle: &JsonValue) -> Result<(), String> {
+    let interaction = read_json_path(project_bundle, &["gameplayRuntime", "prefabInteraction"])?;
+    let mut bridge = StaticRuntimeSessionBuilder::activate_project_with_prefabs(
+        gameplay_runtime_project_input(),
+        gameplay_runtime_prefab_bootstrap(),
+    )
+    .and_then(StaticRuntimeSessionBuilder::build)
+    .map_err(|error| format!("linked RuntimeSession composition did not activate: {error}"))?;
+    let before = bridge
+        .read_composed_runtime_session()
+        .map_err(|error| format!("linked RuntimeSession readout failed: {error}"))?;
+    let receipt = bridge
+        .apply_gameplay_prefab_part_interaction(GameplayPrefabPartInteractionRequest {
+            actor: read_json_u64(interaction, "actor")?,
+            instance: read_json_u64(interaction, "instance")?,
+            role: interaction
+                .get("role")
+                .and_then(JsonValue::as_str)
+                .ok_or_else(|| {
+                    "gameplayRuntime.prefabInteraction.role must be a string".to_owned()
+                })?
+                .to_owned(),
+            expected_target: read_json_u64(interaction, "expectedTarget")?,
+            tick: read_json_u64(interaction, "tick")?,
+            expected_runtime_session_hash: before.runtime_session_hash,
         })
+        .map_err(|error| {
+            format!("stored prefab interaction is not valid closed-registry evidence: {error}")
+        })?;
+    if receipt.target != read_json_u64(interaction, "expectedTarget")? {
+        return Err("stored prefab interaction target drifted during linked activation".to_owned());
+    }
+    Ok(())
+}
+
+fn read_json_u64(value: &JsonValue, key: &str) -> Result<u64, String> {
+    value
+        .get(key)
+        .and_then(JsonValue::as_u64)
+        .ok_or_else(|| format!("gameplayRuntime.prefabInteraction.{key} must be a u64"))
 }
 
 fn require_source_file(

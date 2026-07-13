@@ -14,16 +14,16 @@
     "asha.owner-events",
     "demo.primary-fire-effect"
   ],
-  "registryDigest": "fnv1a64:e84dbcc6ce4b440c",
-  "registryTopology": "budget module=asha.owner-events waves=16 events=256 proposals=256 invocations=256 payloadBytes=1048576\nbudget module=demo.primary-fire-effect waves=2 events=16 proposals=1 invocations=8 payloadBytes=16384\ndeterminism module=asha.owner-events requirements=canonical-payload-codecs,semantic-origin-adaptation\ndeterminism module=demo.primary-fire-effect requirements=canonical-json,no-ts-callback\nevent asha.combat.damage-applied.v1 publisher=asha.owner-events schema=fnv1a64:4fcb38e625196ac1 codec=codec.asha.combat.damage-applied.v1\nevent asha.combat.entity-defeated.v1 publisher=asha.owner-events schema=fnv1a64:a7bc216f8017e1b5 codec=codec.asha.combat.entity-defeated.v1\nevent asha.combat.fire-hit.v1 publisher=asha.owner-events schema=fnv1a64:e2f8a2f1bab06948 codec=codec.asha.combat.fire-hit.v1\nevent asha.combat.fire-missed.v1 publisher=asha.owner-events schema=fnv1a64:c3387cbac08fbb6f codec=codec.asha.combat.fire-missed.v1\nevent asha.entity.capability-activation-changed.v1 publisher=asha.owner-events schema=fnv1a64:cb094fdd0fa813e3 codec=codec.asha.entity.capability-activation-changed.v1\nevent asha.entity.created.v1 publisher=asha.owner-events schema=fnv1a64:3844df341f948bf0 codec=codec.asha.entity.created.v1\nevent asha.entity.destroyed.v1 publisher=asha.owner-events schema=fnv1a64:0e1142f35b4652af codec=codec.asha.entity.destroyed.v1\nevent asha.entity.lifecycle-changed.v1 publisher=asha.owner-events schema=fnv1a64:228efdcd47fc277d codec=codec.asha.entity.lifecycle-changed.v1\nevent asha.game-rules.modifier-applied.v1 publisher=asha.owner-events schema=fnv1a64:7c3423386396bd47 codec=codec.asha.game-rules.modifier-applied.v1\nevent asha.game-rules.value-delta-resolved.v1 publisher=asha.owner-events schema=fnv1a64:03ced8ed178dd7df codec=codec.asha.game-rules.value-delta-resolved.v1\nevent asha.process.mode-set.v1 publisher=asha.owner-events schema=fnv1a64:1e57d2681a1ae5f2 codec=codec.asha.process.mode-set.v1\nevent asha.process.started.v1 publisher=asha.owner-events schema=fnv1a64:8ab481937d2b85c6 codec=codec.asha.process.started.v1\nevent asha.process.stopped.v1 publisher=asha.owner-events schema=fnv1a64:138ac7f2c8bfe726 codec=codec.asha.process.stopped.v1\nevent asha.scheduler.moment-due.v1 publisher=asha.owner-events schema=fnv1a64:4d68b40bbbc787e7 codec=codec.asha.scheduler.moment-due.v1\nevent asha.session.tick.v1 publisher=asha.owner-events schema=fnv1a64:6868afc0efa70e16 codec=codec.asha.session.tick.v1\nevent asha.state-machine.attached.v1 publisher=asha.owner-events schema=fnv1a64:d941127be80eaf9e codec=codec.asha.state-machine.attached.v1\nevent asha.state-machine.transitioned.v1 publisher=asha.owner-events schema=fnv1a64:0be1b7f340d3a498 codec=codec.asha.state-machine.transitioned.v1\nevent asha.trigger.entered.v1 publisher=asha.owner-events schema=fnv1a64:a84897797c756ae7 codec=codec.asha.trigger.entered.v1\nevent asha.trigger.exited.v1 publisher=asha.owner-events schema=fnv1a64:a6ebefad74c29524 codec=codec.asha.trigger.exited.v1\nevent demo.primary-fire-effect.challenge-progressed.v1 publisher=demo.primary-fire-effect schema=sha256:demo.primary-fire-effect.challenge-progressed.v1 codec=codec.demo.primary-fire-effect.challenge-progressed\nevent demo.primary-fire-effect.console-interacted.v1 publisher=demo.primary-fire-effect schema=sha256:demo.primary-fire-effect.console-interacted.v1 codec=codec.demo.primary-fire-effect.console-interacted\nfactDeclaration module=demo.primary-fire-effect schema=demo.primary-fire-effect.challenge-fact.v1 owner=authority.demo.primary-fire-effect provider=provider.demo.primary-fire-effect\ninvocation demo.primary-fire-effect.combat-defeated.observe module=demo.primary-fire-effect family=observe input=asha.combat.entity-defeated.v1 output=demo.primary-fire-effect.challenge-progressed.v1 maxOutputs=3 maxPayloadBytes=4096\ninvocation demo.primary-fire-effect.combat-fire-hit.observe module=demo.primary-fire-effect family=observe input=asha.combat.fire-hit.v1 output=demo.primary-fire-effect.challenge-progressed.v1 maxOutputs=3 maxPayloadBytes=4096\ninvocation demo.primary-fire-effect.combat-fire-missed.observe module=demo.primary-fire-effect family=observe input=asha.combat.fire-missed.v1 output=demo.primary-fire-effect.challenge-progressed.v1 maxOutputs=3 maxPayloadBytes=4096\ninvocation demo.primary-fire-effect.console-interacted.observe module=demo.primary-fire-effect family=observe input=demo.primary-fire-effect.console-interacted.v1 output=demo.primary-fire-effect.challenge-progressed.v1 maxOutputs=2 maxPayloadBytes=1024\ninvocation demo.primary-fire-effect.lifecycle-changed.observe module=demo.primary-fire-effect family=observe input=asha.entity.lifecycle-changed.v1 output=demo.primary-fire-effect.challenge-progressed.v1 maxOutputs=3 maxPayloadBytes=4096\ninvocation demo.primary-fire-effect.trigger-entered.observe module=demo.primary-fire-effect family=observe input=asha.trigger.entered.v1 output=demo.primary-fire-effect.challenge-progressed.v1 maxOutputs=3 maxPayloadBytes=4096\ninvocation demo.primary-fire-effect.trigger-exited.observe module=demo.primary-fire-effect family=observe input=asha.trigger.exited.v1 output=demo.primary-fire-effect.challenge-progressed.v1 maxOutputs=3 maxPayloadBytes=4096\nmodule asha.owner-events namespace=asha version=1.0.0 provider=provider.asha-owner-events sdk=fnv1a64:9979883176e642d4 contract=fnv1a64:af75dc73b29ec724 artifact=fnv1a64:38d987cd355993ec source=fnv1a64:dfb83ed8f3f68f52\nmodule demo.primary-fire-effect namespace=demo.primary-fire-effect version=1.0.0 provider=provider.demo.primary-fire-effect sdk=sha256:gameplay-sdk-v1 contract=sha256:demo-primary-fire-gameplay-contract-v1 artifact=sha256:demo-primary-fire-gameplay-artifact-v1 source=sha256:demo-primary-fire-gameplay-source-v1\nproposal asha.entity.set-capability-activation.v1 owner=authority.capability-activation provider=provider.asha-owner-events\nstate demo.primary-fire-effect.challenge-fact.v1 owner=authority.demo.primary-fire-effect provider=provider.demo.primary-fire-effect\nstate demo.primary-fire-effect.challenge-state.v1 owner=authority.demo.primary-fire-effect provider=provider.demo.primary-fire-effect\nstateDeclaration module=demo.primary-fire-effect schema=demo.primary-fire-effect.challenge-state.v1 owner=authority.demo.primary-fire-effect provider=provider.demo.primary-fire-effect\nsubscription demo.primary-fire-effect.combat-defeated module=demo.primary-fire-effect event=asha.combat.entity-defeated.v1 invocation=demo.primary-fire-effect.combat-defeated.observe maxDeliveries=4 source=- target=- scope=- tags=\nsubscription demo.primary-fire-effect.combat-fire-hit module=demo.primary-fire-effect event=asha.combat.fire-hit.v1 invocation=demo.primary-fire-effect.combat-fire-hit.observe maxDeliveries=4 source=- target=- scope=- tags=\nsubscription demo.primary-fire-effect.combat-fire-missed module=demo.primary-fire-effect event=asha.combat.fire-missed.v1 invocation=demo.primary-fire-effect.combat-fire-missed.observe maxDeliveries=4 source=- target=- scope=- tags=\nsubscription demo.primary-fire-effect.console-interacted module=demo.primary-fire-effect event=demo.primary-fire-effect.console-interacted.v1 invocation=demo.primary-fire-effect.console-interacted.observe maxDeliveries=1 source=- target=- scope=- tags=prefab-part\nsubscription demo.primary-fire-effect.lifecycle-changed module=demo.primary-fire-effect event=asha.entity.lifecycle-changed.v1 invocation=demo.primary-fire-effect.lifecycle-changed.observe maxDeliveries=4 source=- target=- scope=- tags=\nsubscription demo.primary-fire-effect.trigger-entered module=demo.primary-fire-effect event=asha.trigger.entered.v1 invocation=demo.primary-fire-effect.trigger-entered.observe maxDeliveries=4 source=- target=- scope=- tags=\nsubscription demo.primary-fire-effect.trigger-exited module=demo.primary-fire-effect event=asha.trigger.exited.v1 invocation=demo.primary-fire-effect.trigger-exited.observe maxDeliveries=4 source=- target=- scope=- tags=\nview demo.primary-fire-effect.challenge-state-view.v1 provider=provider.demo.primary-fire-effect kind=moduleNamed maxItems=1 ordering=single-session-state fields=closeRangeHits,revision,score,status selectors=moduleStateScope\nview demo.primary-fire-effect.trigger-overlaps-view.v1 provider=provider.demo.trigger-overlaps kind=ownerQuery maxItems=8 ordering=entity-id-ascending fields=subjects,trigger selectors=eventSource,ownerQuery\nviewRequirement module=demo.primary-fire-effect view=demo.primary-fire-effect.challenge-state-view.v1 provider=provider.demo.primary-fire-effect kind=moduleNamed maxItems=1 fields=closeRangeHits,revision,score,status selectors=moduleStateScope\nviewRequirement module=demo.primary-fire-effect view=demo.primary-fire-effect.trigger-overlaps-view.v1 provider=provider.demo.trigger-overlaps kind=ownerQuery maxItems=8 fields=subjects,trigger selectors=eventSource,ownerQuery\n",
-  "bindingRegistryHash": "fnv1a64:97b6b20ddd6ee1dd",
-  "activationReceiptHash": "fnv1a64:8a7fb77d7f7c87a6",
-  "initialStateHash": "fnv1a64:0f875eb82e913ccc",
-  "finalStateHash": "fnv1a64:ff5a3fb3c16825e1",
-  "snapshotHash": "774ffed5c5497d74",
+  "registryDigest": "fnv1a64:5c6bb3529152f8e1",
+  "registryTopology": "budget module=asha.owner-events waves=16 events=256 proposals=256 invocations=256 payloadBytes=1048576\nbudget module=demo.primary-fire-effect waves=2 events=16 proposals=1 invocations=12 payloadBytes=16384\ndeterminism module=asha.owner-events requirements=canonical-payload-codecs,semantic-origin-adaptation\ndeterminism module=demo.primary-fire-effect requirements=canonical-json,no-ts-callback\nevent asha.combat.damage-applied.v1 publisher=asha.owner-events schema=fnv1a64:40a5dcb79ae505a7 codec=asha.canonical-codec.fnv1a64:40a5dcb79ae505a7\nevent asha.combat.entity-defeated.v1 publisher=asha.owner-events schema=fnv1a64:40a5dcb79ae505a7 codec=asha.canonical-codec.fnv1a64:40a5dcb79ae505a7\nevent asha.combat.fire-hit.v1 publisher=asha.owner-events schema=fnv1a64:40a5dcb79ae505a7 codec=asha.canonical-codec.fnv1a64:40a5dcb79ae505a7\nevent asha.combat.fire-missed.v1 publisher=asha.owner-events schema=fnv1a64:40a5dcb79ae505a7 codec=asha.canonical-codec.fnv1a64:40a5dcb79ae505a7\nevent asha.entity.capability-activation-changed.v1 publisher=asha.owner-events schema=fnv1a64:acada991767a025f codec=asha.canonical-codec.fnv1a64:acada991767a025f\nevent asha.entity.created.v1 publisher=asha.owner-events schema=fnv1a64:bb2611aaaaa84f17 codec=asha.canonical-codec.fnv1a64:bb2611aaaaa84f17\nevent asha.entity.destroyed.v1 publisher=asha.owner-events schema=fnv1a64:bb2611aaaaa84f17 codec=asha.canonical-codec.fnv1a64:bb2611aaaaa84f17\nevent asha.entity.lifecycle-changed.v1 publisher=asha.owner-events schema=fnv1a64:bb2611aaaaa84f17 codec=asha.canonical-codec.fnv1a64:bb2611aaaaa84f17\nevent asha.game-rules.modifier-applied.v1 publisher=asha.owner-events schema=fnv1a64:f1b1e52a8d398aaa codec=asha.canonical-codec.fnv1a64:f1b1e52a8d398aaa\nevent asha.game-rules.value-delta-resolved.v1 publisher=asha.owner-events schema=fnv1a64:f05c2c50b4cee248 codec=asha.canonical-codec.fnv1a64:f05c2c50b4cee248\nevent asha.prefab.part-interacted.v1 publisher=asha.owner-events schema=fnv1a64:6f04dd75092d336c codec=asha.canonical-codec.fnv1a64:6f04dd75092d336c\nevent asha.process.mode-set.v1 publisher=asha.owner-events schema=fnv1a64:084c24151b0bd7f6 codec=asha.canonical-codec.fnv1a64:084c24151b0bd7f6\nevent asha.process.started.v1 publisher=asha.owner-events schema=fnv1a64:084c24151b0bd7f6 codec=asha.canonical-codec.fnv1a64:084c24151b0bd7f6\nevent asha.process.stopped.v1 publisher=asha.owner-events schema=fnv1a64:084c24151b0bd7f6 codec=asha.canonical-codec.fnv1a64:084c24151b0bd7f6\nevent asha.scheduler.moment-due.v1 publisher=asha.owner-events schema=fnv1a64:a24f30390a3578a1 codec=asha.canonical-codec.fnv1a64:a24f30390a3578a1\nevent asha.session.tick.v1 publisher=asha.owner-events schema=fnv1a64:d604902db5231c13 codec=asha.canonical-codec.fnv1a64:d604902db5231c13\nevent asha.state-machine.attached.v1 publisher=asha.owner-events schema=fnv1a64:379e8bdf01aad185 codec=asha.canonical-codec.fnv1a64:379e8bdf01aad185\nevent asha.state-machine.transitioned.v1 publisher=asha.owner-events schema=fnv1a64:379e8bdf01aad185 codec=asha.canonical-codec.fnv1a64:379e8bdf01aad185\nevent asha.trigger.entered.v1 publisher=asha.owner-events schema=fnv1a64:f774de6520d8a86f codec=asha.canonical-codec.fnv1a64:f774de6520d8a86f\nevent asha.trigger.exited.v1 publisher=asha.owner-events schema=fnv1a64:f774de6520d8a86f codec=asha.canonical-codec.fnv1a64:f774de6520d8a86f\nevent demo.primary-fire-effect.challenge-progressed.v1 publisher=demo.primary-fire-effect schema=fnv1a64:4661aac85763ccbe codec=asha.canonical-codec.fnv1a64:4661aac85763ccbe\nfactDeclaration module=demo.primary-fire-effect schema=demo.primary-fire-effect.challenge-fact.v1 owner=authority.demo.primary-fire-effect provider=provider.demo.primary-fire-effect\ninvocation demo.primary-fire-effect.combat-fire-hit.observe module=demo.primary-fire-effect family=observe input=asha.combat.fire-hit.v1@fnv1a64:40a5dcb79ae505a7 output=demo.primary-fire-effect.challenge-progressed.v1@fnv1a64:4661aac85763ccbe reads=challenge-state=demo.primary-fire-effect.challenge-state-view.v1@fnv1a64:2dc6de6c7c6ee80d maxOutputs=3 maxPayloadBytes=4096\ninvocation demo.primary-fire-effect.combat-fire-missed.observe module=demo.primary-fire-effect family=observe input=asha.combat.fire-missed.v1@fnv1a64:40a5dcb79ae505a7 output=demo.primary-fire-effect.challenge-progressed.v1@fnv1a64:4661aac85763ccbe reads=challenge-state=demo.primary-fire-effect.challenge-state-view.v1@fnv1a64:2dc6de6c7c6ee80d maxOutputs=3 maxPayloadBytes=4096\ninvocation demo.primary-fire-effect.prefab-part-interacted.observe module=demo.primary-fire-effect family=observe input=asha.prefab.part-interacted.v1@fnv1a64:6f04dd75092d336c output=demo.primary-fire-effect.challenge-progressed.v1@fnv1a64:4661aac85763ccbe reads= maxOutputs=2 maxPayloadBytes=2048\ninvocation demo.primary-fire-effect.primary-fire.transform module=demo.primary-fire-effect family=transform input=asha.combat.resolve-primary-fire.v1@fnv1a64:2dcb9ce9f24d22a1 output=asha.combat.resolve-primary-fire.v1@fnv1a64:2dcb9ce9f24d22a1 reads= maxOutputs=1 maxPayloadBytes=4096\ninvocation demo.primary-fire-effect.trigger-entered.observe module=demo.primary-fire-effect family=observe input=asha.trigger.entered.v1@fnv1a64:f774de6520d8a86f output=demo.primary-fire-effect.challenge-progressed.v1@fnv1a64:4661aac85763ccbe reads=challenge-state=demo.primary-fire-effect.challenge-state-view.v1@fnv1a64:2dc6de6c7c6ee80d,current-trigger-overlaps=demo.primary-fire-effect.trigger-overlaps-view.v1@fnv1a64:0e15d95ae7052450 maxOutputs=3 maxPayloadBytes=4096\ninvocation demo.primary-fire-effect.trigger-exited.observe module=demo.primary-fire-effect family=observe input=asha.trigger.exited.v1@fnv1a64:f774de6520d8a86f output=demo.primary-fire-effect.challenge-progressed.v1@fnv1a64:4661aac85763ccbe reads=challenge-state=demo.primary-fire-effect.challenge-state-view.v1@fnv1a64:2dc6de6c7c6ee80d maxOutputs=3 maxPayloadBytes=4096\nmodule asha.owner-events namespace=asha version=1.0.0 provider=provider.asha-owner-events sdk=fnv1a64:9979883176e642d4 contract=fnv1a64:af75dc73b29ec724 artifact=fnv1a64:38d987cd355993ec source=fnv1a64:dfb83ed8f3f68f52\nmodule demo.primary-fire-effect namespace=demo.primary-fire-effect version=0.1.0 provider=provider.demo.primary-fire-effect sdk=fnv1a64:423dbcb90d661cd7 contract=fnv1a64:1b614eb127c2cc3c artifact=fnv1a64:2f048518fe5613fb source=fnv1a64:5e71c48abafff6c5\nproposal asha.combat.resolve-primary-fire.v1 owner=rule-lifecycle.combat.primary-fire provider=provider.asha-owner-events\nproposal asha.entity.set-capability-activation.v1 owner=authority.capability-activation provider=provider.asha-owner-events\nproposalDeclaration module=asha.owner-events proposal=asha.combat.resolve-primary-fire.v1 schema=fnv1a64:2dcb9ce9f24d22a1 owner=rule-lifecycle.combat.primary-fire provider=provider.asha-owner-events\nproposalDeclaration module=asha.owner-events proposal=asha.entity.set-capability-activation.v1 schema=fnv1a64:242abde273dbe9e0 owner=authority.capability-activation provider=provider.asha-owner-events\nproposalDeclaration module=demo.primary-fire-effect proposal=asha.combat.resolve-primary-fire.v1 schema=fnv1a64:2dcb9ce9f24d22a1 owner=rule-lifecycle.combat.primary-fire provider=provider.asha-owner-events\nproposalDeclaration module=demo.primary-fire-effect proposal=asha.entity.set-capability-activation.v1 schema=fnv1a64:242abde273dbe9e0 owner=authority.capability-activation provider=provider.asha-owner-events\nstate demo.primary-fire-effect.challenge-fact.v1 owner=authority.demo.primary-fire-effect provider=provider.demo.primary-fire-effect\nstate demo.primary-fire-effect.challenge-state.v1 owner=authority.demo.primary-fire-effect provider=provider.demo.primary-fire-effect\nstateDeclaration module=demo.primary-fire-effect schema=demo.primary-fire-effect.challenge-state.v1 owner=authority.demo.primary-fire-effect provider=provider.demo.primary-fire-effect\nsubscription demo.primary-fire-effect.combat-fire-hit module=demo.primary-fire-effect event=asha.combat.fire-hit.v1 invocation=demo.primary-fire-effect.combat-fire-hit.observe maxDeliveries=4 source=- target=- scope=- tags=shooter-role:player\nsubscription demo.primary-fire-effect.combat-fire-missed module=demo.primary-fire-effect event=asha.combat.fire-missed.v1 invocation=demo.primary-fire-effect.combat-fire-missed.observe maxDeliveries=4 source=- target=- scope=- tags=shooter-role:player\nsubscription demo.primary-fire-effect.prefab-part-interacted module=demo.primary-fire-effect event=asha.prefab.part-interacted.v1 invocation=demo.primary-fire-effect.prefab-part-interacted.observe maxDeliveries=2 source=- target=- scope=- tags=prefab-part\nsubscription demo.primary-fire-effect.trigger-entered module=demo.primary-fire-effect event=asha.trigger.entered.v1 invocation=demo.primary-fire-effect.trigger-entered.observe maxDeliveries=4 source=- target=- scope=- tags=\nsubscription demo.primary-fire-effect.trigger-exited module=demo.primary-fire-effect event=asha.trigger.exited.v1 invocation=demo.primary-fire-effect.trigger-exited.observe maxDeliveries=4 source=- target=- scope=- tags=\nview demo.primary-fire-effect.challenge-state-view.v1 provider=provider.demo.primary-fire-effect kind=moduleNamed maxItems=1 ordering=single-session-state fields=closeRangeHits,revision,score,status selectors=moduleStateScope\nview demo.primary-fire-effect.trigger-overlaps-view.v1 provider=provider.demo.trigger-overlaps kind=ownerQuery maxItems=8 ordering=entity-id-ascending fields=subjects,trigger selectors=eventSource,ownerQuery\nviewRequirement module=demo.primary-fire-effect view=demo.primary-fire-effect.challenge-state-view.v1 provider=provider.demo.primary-fire-effect kind=moduleNamed maxItems=1 fields=closeRangeHits,revision,score,status selectors=moduleStateScope\nviewRequirement module=demo.primary-fire-effect view=demo.primary-fire-effect.trigger-overlaps-view.v1 provider=provider.demo.trigger-overlaps kind=ownerQuery maxItems=8 fields=subjects,trigger selectors=eventSource,ownerQuery\n",
+  "bindingRegistryHash": "fnv1a64:e4222545025d23e2",
+  "activationReceiptHash": "fnv1a64:5f3a402193ac1301",
+  "initialStateHash": "fnv1a64:081057aaf218b0a2",
+  "finalStateHash": "fnv1a64:d17b4e0d98e8526e",
+  "snapshotHash": "fbf303a74e9d2068",
   "reactionFrames": [
     {
-      "registryDigest": "fnv1a64:e84dbcc6ce4b440c",
+      "registryDigest": "fnv1a64:5c6bb3529152f8e1",
       "rootId": "asha-demo.conformance.combat",
       "moduleOrder": [
         "asha.owner-events",
@@ -31,7 +31,7 @@
       ],
       "moduleArtifacts": [
         "asha.owner-events:fnv1a64:38d987cd355993ec:fnv1a64:af75dc73b29ec724:fnv1a64:dfb83ed8f3f68f52",
-        "demo.primary-fire-effect:sha256:demo-primary-fire-gameplay-artifact-v1:sha256:demo-primary-fire-gameplay-contract-v1:sha256:demo-primary-fire-gameplay-source-v1"
+        "demo.primary-fire-effect:fnv1a64:2f048518fe5613fb:fnv1a64:1b614eb127c2cc3c:fnv1a64:5e71c48abafff6c5"
       ],
       "sourceFacts": [],
       "sourceFactHashes": [],
@@ -42,7 +42,7 @@
             "namespace": "asha.combat",
             "name": "fire-hit",
             "version": 1,
-            "schemaHash": "fnv1a64:e2f8a2f1bab06948"
+            "schemaHash": "fnv1a64:40a5dcb79ae505a7"
           },
           "tick": 7,
           "rootSequence": 7,
@@ -74,7 +74,9 @@
           "scope": "combat",
           "tags": [
             "close-range",
-            "hit"
+            "hit",
+            "shooter-role:player",
+            "weapon:weapon.primary_fire.generated_tunnel.v0"
           ],
           "canonicalPayload": [
             123,
@@ -90,6 +92,82 @@
             58,
             49,
             48,
+            44,
+            34,
+            115,
+            104,
+            111,
+            111,
+            116,
+            101,
+            114,
+            82,
+            111,
+            108,
+            101,
+            34,
+            58,
+            34,
+            112,
+            108,
+            97,
+            121,
+            101,
+            114,
+            34,
+            44,
+            34,
+            119,
+            101,
+            97,
+            112,
+            111,
+            110,
+            73,
+            100,
+            34,
+            58,
+            34,
+            119,
+            101,
+            97,
+            112,
+            111,
+            110,
+            46,
+            112,
+            114,
+            105,
+            109,
+            97,
+            114,
+            121,
+            95,
+            102,
+            105,
+            114,
+            101,
+            46,
+            103,
+            101,
+            110,
+            101,
+            114,
+            97,
+            116,
+            101,
+            100,
+            95,
+            116,
+            117,
+            110,
+            110,
+            101,
+            108,
+            46,
+            118,
+            48,
+            34,
             44,
             34,
             116,
@@ -230,7 +308,7 @@
             55,
             125
           ],
-          "payloadHash": "fnv1a64:a4bfef48bbdc6e21"
+          "payloadHash": "fnv1a64:135ea42b53110d73"
         }
       ],
       "deliveredEvents": [
@@ -240,7 +318,7 @@
             "namespace": "asha.combat",
             "name": "fire-hit",
             "version": 1,
-            "schemaHash": "fnv1a64:e2f8a2f1bab06948"
+            "schemaHash": "fnv1a64:40a5dcb79ae505a7"
           },
           "tick": 7,
           "rootSequence": 7,
@@ -272,7 +350,9 @@
           "scope": "combat",
           "tags": [
             "close-range",
-            "hit"
+            "hit",
+            "shooter-role:player",
+            "weapon:weapon.primary_fire.generated_tunnel.v0"
           ],
           "canonicalPayload": [
             123,
@@ -288,6 +368,82 @@
             58,
             49,
             48,
+            44,
+            34,
+            115,
+            104,
+            111,
+            111,
+            116,
+            101,
+            114,
+            82,
+            111,
+            108,
+            101,
+            34,
+            58,
+            34,
+            112,
+            108,
+            97,
+            121,
+            101,
+            114,
+            34,
+            44,
+            34,
+            119,
+            101,
+            97,
+            112,
+            111,
+            110,
+            73,
+            100,
+            34,
+            58,
+            34,
+            119,
+            101,
+            97,
+            112,
+            111,
+            110,
+            46,
+            112,
+            114,
+            105,
+            109,
+            97,
+            114,
+            121,
+            95,
+            102,
+            105,
+            114,
+            101,
+            46,
+            103,
+            101,
+            110,
+            101,
+            114,
+            97,
+            116,
+            101,
+            100,
+            95,
+            116,
+            117,
+            110,
+            110,
+            101,
+            108,
+            46,
+            118,
+            48,
+            34,
             44,
             34,
             116,
@@ -428,7 +584,7 @@
             55,
             125
           ],
-          "payloadHash": "fnv1a64:a4bfef48bbdc6e21"
+          "payloadHash": "fnv1a64:135ea42b53110d73"
         },
         {
           "eventId": "asha-demo.conformance.combat/event/1/0",
@@ -436,7 +592,7 @@
             "namespace": "demo.primary-fire-effect",
             "name": "challenge-progressed",
             "version": 1,
-            "schemaHash": "sha256:demo.primary-fire-effect.challenge-progressed.v1"
+            "schemaHash": "fnv1a64:4661aac85763ccbe"
           },
           "tick": 7,
           "rootSequence": 7,
@@ -597,27 +753,28 @@
             108,
             125
           ],
-          "payloadHash": "fnv1a64:2067ba5138af2fde"
+          "payloadHash": "fnv1a64:1c8c986fba8df38b"
         }
       ],
       "deliveredEventHashes": [
-        "fnv1a64:3ae6a597cf2efaf6",
-        "fnv1a64:1f12d4498c74bf1f"
+        "fnv1a64:09df0347f80ccf81",
+        "fnv1a64:de3b2029593b47f1"
       ],
       "frozenViews": [
         {
           "epoch": 0,
-          "viewHash": "fnv1a64:b443a806978a8def"
+          "viewHash": "fnv1a64:b196419b009e4736"
         },
         {
           "epoch": 1,
-          "viewHash": "fnv1a64:b443a706978a8c3c"
+          "viewHash": "fnv1a64:b196429b009e48e9"
         }
       ],
       "frozenViewHashes": [
-        "fnv1a64:b443a806978a8def",
-        "fnv1a64:b443a706978a8c3c"
+        "fnv1a64:b196419b009e4736",
+        "fnv1a64:b196429b009e48e9"
       ],
+      "waveBarriers": [],
       "invocations": [
         {
           "moduleId": "demo.primary-fire-effect",
@@ -625,10 +782,10 @@
           "invocationId": "demo.primary-fire-effect.combat-fire-hit.observe",
           "eventId": "asha-demo.conformance.combat-hit",
           "wave": 0,
-          "frozenViewHash": "fnv1a64:b443a806978a8def",
-          "declaredReadSetHash": "fnv1a64:a99d13c31242a82a",
+          "frozenViewHash": "fnv1a64:b196419b009e4736",
+          "declaredReadSetHash": "fnv1a64:4c3452e4578b4db3",
           "declaredReads": {
-            "registryDigest": "fnv1a64:e84dbcc6ce4b440c",
+            "registryDigest": "fnv1a64:5c6bb3529152f8e1",
             "moduleId": "demo.primary-fire-effect",
             "invocationId": "demo.primary-fire-effect.combat-fire-hit.observe",
             "eventId": "asha-demo.conformance.combat-hit",
@@ -640,7 +797,7 @@
                   "namespace": "demo.primary-fire-effect",
                   "name": "challenge-state-view",
                   "version": 1,
-                  "schemaHash": "sha256:demo.primary-fire-effect.challenge-state-view.v1"
+                  "schemaHash": "fnv1a64:2dc6de6c7c6ee80d"
                 },
                 "providerId": "provider.demo.primary-fire-effect",
                 "fields": [
@@ -838,7 +995,7 @@
                 "valueHash": "fnv1a64:c6043202c0a71a94"
               }
             ],
-            "readSetHash": "fnv1a64:a99d13c31242a82a"
+            "readSetHash": "fnv1a64:4c3452e4578b4db3"
           },
           "configuration": {
             "bindingId": "demo.primary-fire-effect.session",
@@ -920,12 +1077,12 @@
             ],
             "configHash": "fnv1a64:ebaea1ce8b0b3d2c"
           },
-          "deliveryHash": "fnv1a64:a49c3cf008fd8374",
-          "outputHash": "fnv1a64:c04fcba4a6988cf6"
+          "deliveryHash": "fnv1a64:9a093e3116ed9058",
+          "outputHash": "fnv1a64:4c42b447c61d451d"
         }
       ],
       "invocationOutputHashes": [
-        "fnv1a64:c04fcba4a6988cf6"
+        "fnv1a64:4c42b447c61d451d"
       ],
       "routingReceipts": [],
       "routedProposalHashes": [],
@@ -938,13 +1095,13 @@
             "namespace": "demo.primary-fire-effect",
             "name": "challenge-fact",
             "version": 1,
-            "schemaHash": "sha256:demo.primary-fire-effect.challenge-fact.v1"
+            "schemaHash": "fnv1a64:e17b8461b6102910"
           },
           "stateSchema": {
             "namespace": "demo.primary-fire-effect",
             "name": "challenge-state",
             "version": 1,
-            "schemaHash": "sha256:demo.primary-fire-effect.challenge-state.v1"
+            "schemaHash": "fnv1a64:b6c652e19102b5fc"
           },
           "scope": {
             "kind": "session"
@@ -1046,12 +1203,12 @@
       "acceptedModuleFactHashes": [
         "fnv1a64:b3987e744a62fb26"
       ],
-      "stateHashBefore": "fnv1a64:0f875eb82e913ccc",
-      "stateHashAfter": "fnv1a64:ff5a3fb3c16825e1",
+      "stateHashBefore": "fnv1a64:081057aaf218b0a2",
+      "stateHashAfter": "fnv1a64:d17b4e0d98e8526e",
       "diagnosticCodes": [],
       "diagnostics": [],
-      "finalSessionHash": "fnv1a64:a58976d46c56a15f",
-      "frameHash": "fnv1a64:fc7079bff3e507bf"
+      "finalSessionHash": "fnv1a64:2aea5cf02365fde6",
+      "frameHash": "fnv1a64:89ffe27e6224f917"
     }
   ],
   "checks": [
@@ -1059,23 +1216,23 @@
       "id": "compositionAndBootstrap",
       "passed": true,
       "evidence": [
-        "fnv1a64:e84dbcc6ce4b440c",
-        "fnv1a64:8a7fb77d7f7c87a6"
+        "fnv1a64:5c6bb3529152f8e1",
+        "fnv1a64:5f3a402193ac1301"
       ]
     },
     {
       "id": "actualInvocation",
       "passed": true,
       "evidence": [
-        "fnv1a64:c04fcba4a6988cf6"
+        "fnv1a64:4c42b447c61d451d"
       ]
     },
     {
       "id": "typedFrozenViews",
       "passed": true,
       "evidence": [
-        "fnv1a64:b443a806978a8def",
-        "fnv1a64:b443a706978a8c3c"
+        "fnv1a64:b196419b009e4736",
+        "fnv1a64:b196429b009e48e9"
       ]
     },
     {
@@ -1131,25 +1288,25 @@
       "id": "verificationReplay",
       "passed": true,
       "evidence": [
-        "fnv1a64:fc7079bff3e507bf"
+        "fnv1a64:89ffe27e6224f917"
       ]
     },
     {
       "id": "recordedFactPlayback",
       "passed": true,
       "evidence": [
-        "fnv1a64:ff5a3fb3c16825e1"
+        "fnv1a64:d17b4e0d98e8526e"
       ]
     },
     {
       "id": "saveReload",
       "passed": true,
       "evidence": [
-        "fnv1a64:ff5a3fb3c16825e1"
+        "fnv1a64:d17b4e0d98e8526e"
       ]
     }
   ],
   "gaps": [],
-  "trace": "project asha-demo.close-range-challenge\nregistry fnv1a64:e84dbcc6ce4b440c\nbindings fnv1a64:97b6b20ddd6ee1dd\ncheck compositionAndBootstrap PASS fnv1a64:e84dbcc6ce4b440c,fnv1a64:8a7fb77d7f7c87a6\ncheck actualInvocation PASS fnv1a64:c04fcba4a6988cf6\ncheck typedFrozenViews PASS fnv1a64:b443a806978a8def,fnv1a64:b443a706978a8c3c\ncheck declaredReadDelivery PASS challenge-state\ncheck moduleStateFacts PASS fnv1a64:b3987e744a62fb26\ncheck consumerNeed.asha-demo.gameplay-module-sdk PASS asha-gameplay-module-sdk\ncheck consumerNeed.asha-demo.gameplay-conformance PASS asha-gameplay-module-conformance\ncheck consumerNeed.asha-demo.primary-fire-module PASS demo.primary-fire-effect\ncheck consumerNeed.asha-demo.challenge-state-read PASS fnv1a64:2d2eef484d9c5336\ncheck consumerNeed.asha-demo.challenge-configuration PASS demo.primary-fire-effect.default\ncheck verificationReplay PASS fnv1a64:fc7079bff3e507bf\ncheck recordedFactPlayback PASS fnv1a64:ff5a3fb3c16825e1\ncheck saveReload PASS fnv1a64:ff5a3fb3c16825e1\nresult PASS\n"
+  "trace": "project asha-demo.close-range-challenge\nregistry fnv1a64:5c6bb3529152f8e1\nbindings fnv1a64:e4222545025d23e2\ncheck compositionAndBootstrap PASS fnv1a64:5c6bb3529152f8e1,fnv1a64:5f3a402193ac1301\ncheck actualInvocation PASS fnv1a64:4c42b447c61d451d\ncheck typedFrozenViews PASS fnv1a64:b196419b009e4736,fnv1a64:b196429b009e48e9\ncheck declaredReadDelivery PASS challenge-state\ncheck moduleStateFacts PASS fnv1a64:b3987e744a62fb26\ncheck consumerNeed.asha-demo.gameplay-module-sdk PASS asha-gameplay-module-sdk\ncheck consumerNeed.asha-demo.gameplay-conformance PASS asha-gameplay-module-conformance\ncheck consumerNeed.asha-demo.primary-fire-module PASS demo.primary-fire-effect\ncheck consumerNeed.asha-demo.challenge-state-read PASS fnv1a64:2d2eef484d9c5336\ncheck consumerNeed.asha-demo.challenge-configuration PASS demo.primary-fire-effect.default\ncheck verificationReplay PASS fnv1a64:89ffe27e6224f917\ncheck recordedFactPlayback PASS fnv1a64:d17b4e0d98e8526e\ncheck saveReload PASS fnv1a64:d17b4e0d98e8526e\nresult PASS\n"
 }
 

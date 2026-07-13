@@ -58,15 +58,15 @@
     },
     {
       "kind": "enemy_attack_and_player_death",
-      "tick": 15,
+      "tick": 13,
       "combatStatus": "accepted",
       "playerDead": true,
-      "lifecycleHash": "fnv1a64:c35e523842053d3c"
+      "lifecycleHash": "fnv1a64:bcf09265048027b2"
     },
     {
       "kind": "restart",
       "accepted": true,
-      "sessionHashAfter": "fnv1a64:f774262dc4d72d05"
+      "sessionHashAfter": "fnv1a64:6b40d35da516f35f"
     },
     {
       "kind": "primary_fire_and_enemy_death",
@@ -81,17 +81,18 @@
       },
       "accepted": true,
       "outcome": "hit",
-      "replayHash": "fnv1a64:23a35086d5e6d64b",
-      "enemyDead": true
+      "replayHash": "fnv1a64:92fe9a9f3e67cc1e",
+      "gameplayDecisionReceiptHash": "fnv1a64:22b46cab4a9f296a",
+      "enemyDead": false
     }
   ],
   "replay": {
-    "telemetryRecordCount": 50,
+    "telemetryRecordCount": 46,
     "telemetryHashes": {
-      "first": "fnv1a64:a325769b848c4a3f",
-      "last": "fnv1a64:23a35086d5e6d64b",
-      "uniqueCount": 49
+      "first": "fnv1a64:be5456b0bfa819eb",
+      "last": "fnv1a64:92fe9a9f3e67cc1e",
+      "uniqueCount": 45
     },
-    "primaryFireReplayHash": "fnv1a64:23a35086d5e6d64b"
+    "primaryFireReplayHash": "fnv1a64:92fe9a9f3e67cc1e"
   }
 }

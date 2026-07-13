@@ -28,7 +28,6 @@ cpSync(join(repoRoot, 'app', 'index.html'), join(outputRoot, 'index.html'));
 cpSync(join(repoRoot, 'app', 'styles.css'), join(outputRoot, 'styles.css'));
 cpSync(join(repoRoot, 'assets'), join(outputRoot, 'assets'), { recursive: true });
 cpSync(join(repoRoot, 'catalogs'), join(outputRoot, 'catalogs'), { recursive: true });
-cpSync(join(repoRoot, 'game-rules'), join(outputRoot, 'game-rules'), { recursive: true });
 cpSync(join(repoRoot, 'levels'), join(outputRoot, 'levels'), { recursive: true });
 cpSync(join(repoRoot, 'project'), join(outputRoot, 'project'), { recursive: true });
 cpSync(join(repoRoot, 'prefabs'), join(outputRoot, 'prefabs'), { recursive: true });
