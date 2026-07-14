@@ -1,0 +1,6 @@
+{
+  "kind": "asha_demo.project_bundle_negative_fixture.v1",
+  "sourceFiles": {
+    "prefabRegistry": "../asha-engine/private-prefab-registry.json"
+  }
+}

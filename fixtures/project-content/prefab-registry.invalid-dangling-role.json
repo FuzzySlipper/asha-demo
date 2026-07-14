@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": 70,
+      "schemaVersion": 1,
+      "displayName": "Broken interaction console",
+      "parts": [
+        {
+          "id": 1,
+          "namespace": "body",
+          "displayName": "Body",
+          "parent": null,
+          "transform": {
+            "translation": [0, 0, 0],
+            "rotation": [0, 0, 0, 1],
+            "scale": [1, 1, 1]
+          },
+          "source": {
+            "kind": "entityDefinition",
+            "stableId": "demo.console.body"
+          }
+        }
+      ],
+      "partRoles": [
+        { "role": "interaction/sensor", "part": 99 }
+      ],
+      "variant": null
+    }
+  ]
+}

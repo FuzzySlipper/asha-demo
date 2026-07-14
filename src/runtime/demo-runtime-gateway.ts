@@ -1,4 +1,9 @@
 import {
+  cameraHandle,
+  type GameplayContractRef,
+  type InputActionPhase,
+} from '@asha/contracts';
+import {
   RuntimeBridgeError,
   assertNativeRustRuntimeBridgeAuthority,
   createDefaultBrowserInputCatalog,
@@ -6,18 +11,161 @@ import {
   readRuntimeSessionPlayableEncounterTick,
   readRuntimeSessionPlayableLoopState,
   resolveNativeRustRuntimeBridgeProvider,
+  type NativeRustRuntimeBridgeProviderProfile,
+  type RuntimeBridge,
+  type RuntimeSessionPlayableEncounterTickReadout,
+  type RuntimeSessionPlayableEncounterTickRequest,
+  type RuntimeSessionPlayableLoopState,
+  type RuntimeSessionPlayableLoopStateRequest,
 } from '@asha/runtime-bridge';
+import type {
+  CombatRuntimeReadout,
+  ComposedGameplayReadout,
+  ComposedRuntimeSessionReadout,
+  GameplayModuleViewSnapshot,
+  GameplayPrefabPartInteractionReceipt,
+  RuntimeActionIntentPhase,
+  RuntimeActionIntentSource,
+  RuntimeSessionActionIntentReceipt,
+  RuntimeSessionEcrpProjectDiagnostic,
+  RuntimeSessionEcrpProjectLoadReceipt,
+  RuntimeSessionFacade,
+  RuntimeSessionGeneratedTunnelOperationReceipt,
+} from '@asha/runtime-session';
+import type { DemoProjectContent } from '../content/project-content.js';
 
-export async function createDemoRuntimeBackend(content: any): Promise<any> {
+export interface DemoRuntimeDiagnostic {
+  readonly code: string;
+  readonly severity: 'error';
+  readonly message: string;
+}
+
+export interface DemoGameplayChallengeState {
+  readonly revision: number;
+  readonly status: string;
+  readonly triggerEntries: number;
+  readonly closeRangeHits: number;
+  readonly score: number;
+  readonly objectivePoints: number;
+  readonly closeRangeMillimeters: number;
+  readonly closeRangeBonus: number;
+  readonly lastRangeMillimeters: number | null;
+  readonly providerId: string;
+  readonly viewRevision: number;
+  readonly viewHash: string;
+  readonly runtimeSessionHash: string;
+}
+
+export type DemoRuntimeBackend = DemoAvailableRuntimeBackend | DemoUnavailableRuntimeBackend;
+
+export interface DemoAvailableRuntimeBackend {
+  readonly available: true;
+  readonly status: 'rust_authority';
+  readonly session: RuntimeSessionFacade;
+  readonly loadReceipt: RuntimeSessionEcrpProjectLoadReceipt;
+  readonly generatedTunnelOperation: RuntimeSessionGeneratedTunnelOperationReceipt;
+  readonly bridge: RuntimeBridge;
+  readonly composedRuntimeReadout: ComposedRuntimeSessionReadout;
+  readonly prefabInteractionReceipt: GameplayPrefabPartInteractionReceipt;
+  readonly challengeView: DemoGameplayChallengeState;
+  readonly challengeViewContract: GameplayContractRef;
+  readonly diagnostics: readonly [];
+  readonly profile: NativeRustRuntimeBridgeProviderProfile;
+  readonly backendHash: string;
+}
+
+export interface DemoUnavailableRuntimeBackend {
+  readonly available: false;
+  readonly status: 'missing_rust_backend' | 'rust_backend_failed';
+  readonly session: null;
+  readonly loadReceipt: RuntimeSessionEcrpProjectLoadReceipt;
+  readonly generatedTunnelOperation: null;
+  readonly bridge: null;
+  readonly composedRuntimeReadout: null;
+  readonly prefabInteractionReceipt: null;
+  readonly challengeView: null;
+  readonly challengeViewContract: null;
+  readonly diagnostics: readonly DemoRuntimeDiagnostic[];
+  readonly profile: NativeRustRuntimeBridgeProviderProfile;
+  readonly backendHash: string;
+}
+
+export interface DemoPrimaryFireInput {
+  readonly phase: InputActionPhase;
+  readonly camera: number | {
+    readonly handle?: number;
+    readonly camera?: number;
+  };
+  readonly tick: number;
+  readonly source: RuntimeActionIntentSource;
+  readonly pressed: boolean;
+}
+
+export interface DemoGameplayTransformEvidence {
+  readonly moduleId: 'demo.primary-fire-effect';
+  readonly status: 'accepted' | 'rejected';
+  readonly damageApplied: number | null;
+  readonly workspaceTrace: readonly string[];
+  readonly replayHash: string | null;
+  readonly runtimeSessionHash: string;
+  readonly registryDigest: string;
+  readonly reactionFrameHash: string | null;
+  readonly decisionReceiptHash: string | null;
+  readonly challengeState: DemoGameplayChallengeState;
+}
+
+export type DemoPrimaryFireReceipt = RuntimeSessionActionIntentReceipt & {
+  readonly gameplayTransform: DemoGameplayTransformEvidence;
+};
+
+export interface DemoRuntimeGateway {
+  available(): boolean;
+  applyCollisionConstrainedCameraInput(
+    input: Parameters<RuntimeSessionFacade['applyCollisionConstrainedCameraInput']>[0],
+  ): ReturnType<RuntimeSessionFacade['applyCollisionConstrainedCameraInput']> | null;
+  createCamera(
+    input: Parameters<RuntimeSessionFacade['createCamera']>[0],
+  ): ReturnType<RuntimeSessionFacade['createCamera']> | null;
+  inputSession(): RuntimeSessionFacade | null;
+  readInputContextState(): ReturnType<RuntimeSessionFacade['readInputContextState']> | null;
+  readTimeControlState(): ReturnType<RuntimeSessionFacade['readTimeControlState']> | null;
+  readEcrpRuntimeReadout(): ReturnType<RuntimeSessionFacade['readEcrpRuntimeReadout']> | null;
+  readAnimationIntent(): ReturnType<RuntimeSessionFacade['readAnimationIntent']> | null;
+  readLifecycleStatus(): ReturnType<RuntimeSessionFacade['readLifecycleStatus']> | null;
+  readPlayableLoopState(
+    shell: NonNullable<RuntimeSessionPlayableLoopStateRequest['shell']>,
+  ): RuntimeSessionPlayableLoopState | null;
+  readPlayableEncounterTick(
+    input: RuntimeSessionPlayableEncounterTickRequest,
+  ): RuntimeSessionPlayableEncounterTickReadout | null;
+  readTelemetry(): ReturnType<RuntimeSessionFacade['readTelemetry']> | null;
+  readProjection(): ReturnType<RuntimeSessionFacade['readProjection']> | null;
+  readGameplayRuntime(): ComposedGameplayReadout | null;
+  readComposedRuntimeSession(): ComposedRuntimeSessionReadout | null;
+  readGameplayChallengeState(): DemoGameplayChallengeState | null;
+  requestSessionRestart(
+    input: Parameters<RuntimeSessionFacade['requestSessionRestart']>[0],
+  ): ReturnType<RuntimeSessionFacade['requestSessionRestart']> | null;
+  submitPrimaryFire(input: DemoPrimaryFireInput): DemoPrimaryFireReceipt | null;
+}
+
+export interface DemoInputReplaySession {
+  readonly session: RuntimeSessionFacade;
+  readonly gateway: DemoRuntimeGateway;
+}
+
+export async function createDemoRuntimeBackend(
+  content: DemoProjectContent,
+): Promise<DemoRuntimeBackend> {
   try {
     const providerResolution = await resolveNativeRustRuntimeBridgeProvider({
-      globalScope: globalThis as Record<string, any>,
-      providerGlobalNames: ['ashaDemoRuntimeBridge', 'ashaRuntimeBridge'],
+      providerGlobalNames: ['ashaRuntimeBridge', 'ashaDemoRuntimeBridge'],
     });
     const profile = providerResolution.profile;
     if (providerResolution.status !== 'available') {
       const diagnostic = providerResolution.diagnostics[0] ?? {
         code: 'missing_rust_runtime_backend',
+        severity: 'error',
         message:
           'ASHA demo requires a public native Rust RuntimeBridge provider; static browser mode does not fall back to reference authority.',
       };
@@ -25,7 +173,6 @@ export async function createDemoRuntimeBackend(content: any): Promise<any> {
     }
 
     const bridge = providerResolution.bridge;
-
     const session = createRuntimeSessionFacade({ bridge, mode: 'rust' });
     session.initialize({
       sessionId: content.runtime.sessionId,
@@ -139,8 +286,8 @@ export async function createDemoRuntimeBackend(content: any): Promise<any> {
         kind: 'runtime_bridge.native_rust_provider_profile.v1',
         mode: 'rust',
         transport: 'public_runtime_bridge_provider',
-        providerGlobal: 'globalThis.ashaDemoRuntimeBridge',
-        providerContract: 'asha_demo.native_runtime_bridge_provider.v1',
+        providerGlobal: 'globalThis.ashaRuntimeBridge',
+        providerContract: 'asha.runtime_bridge.native_rust_provider.v1',
         requiredBackend: 'native_rust',
         productAuthority: true,
         referenceFallback: false,
@@ -151,17 +298,17 @@ export async function createDemoRuntimeBackend(content: any): Promise<any> {
   }
 }
 
-export function createDemoRuntimeGateway(runtimeBackend: any): any {
+export function createDemoRuntimeGateway(runtimeBackend: DemoRuntimeBackend): DemoRuntimeGateway {
   const session = runtimeBackend.session;
   const bridge = runtimeBackend.bridge;
   return {
     available() {
       return session !== null;
     },
-    applyCollisionConstrainedCameraInput(input: any) {
+    applyCollisionConstrainedCameraInput(input) {
       return session?.applyCollisionConstrainedCameraInput(input) ?? null;
     },
-    createCamera(input: any) {
+    createCamera(input) {
       return session?.createCamera(input) ?? null;
     },
     inputSession() {
@@ -182,17 +329,11 @@ export function createDemoRuntimeGateway(runtimeBackend: any): any {
     readLifecycleStatus() {
       return session?.readLifecycleStatus() ?? null;
     },
-    readPlayableLoopState(shell: any) {
-      if (session === null) {
-        return null;
-      }
-      return readRuntimeSessionPlayableLoopState(session, { shell });
+    readPlayableLoopState(shell) {
+      return session === null ? null : readRuntimeSessionPlayableLoopState(session, { shell });
     },
-    readPlayableEncounterTick(input: any) {
-      if (session === null) {
-        return null;
-      }
-      return readRuntimeSessionPlayableEncounterTick(session, input);
+    readPlayableEncounterTick(input) {
+      return session === null ? null : readRuntimeSessionPlayableEncounterTick(session, input);
     },
     readTelemetry() {
       return session?.readTelemetry() ?? null;
@@ -207,7 +348,7 @@ export function createDemoRuntimeGateway(runtimeBackend: any): any {
       return bridge?.readComposedRuntimeSession() ?? null;
     },
     readGameplayChallengeState() {
-      if (bridge === undefined) {
+      if (bridge === null || runtimeBackend.challengeViewContract === null) {
         return null;
       }
       const composed = bridge.readComposedRuntimeSession();
@@ -217,17 +358,17 @@ export function createDemoRuntimeGateway(runtimeBackend: any): any {
         composed.runtimeSessionHash,
       );
     },
-    requestSessionRestart(input: any) {
+    requestSessionRestart(input) {
       return session?.requestSessionRestart(input) ?? null;
     },
-    submitPrimaryFire(input: any) {
-      if (session === null) {
+    submitPrimaryFire(input) {
+      if (session === null || bridge === null || runtimeBackend.challengeViewContract === null) {
         return null;
       }
       const actionReceipt = session.submitRuntimeActionIntent({
         kind: 'runtime_action_intent.v0',
         action: 'primary_fire',
-        phase: input.phase,
+        phase: runtimeActionPhase(input.phase),
         camera: runtimeCameraHandle(input.camera),
         tick: input.tick,
         source: input.source,
@@ -245,7 +386,7 @@ export function createDemoRuntimeGateway(runtimeBackend: any): any {
           moduleId: 'demo.primary-fire-effect',
           status: actionReceipt.accepted ? 'accepted' : 'rejected',
           damageApplied: readDamageApplied(actionReceipt.combatReadout),
-          workspaceTrace: actionReceipt.combatReadout?.authority?.workspaceTrace ?? [],
+          workspaceTrace: actionReceipt.combatReadout?.authority.workspaceTrace ?? [],
           replayHash: actionReceipt.combatReadout?.replayHash ?? null,
           runtimeSessionHash: composedRuntime.runtimeSessionHash,
           registryDigest: composedRuntime.gameplay.gameplayRegistryDigest,
@@ -258,8 +399,10 @@ export function createDemoRuntimeGateway(runtimeBackend: any): any {
   };
 }
 
-export async function createDemoInputReplaySession(content: any): Promise<any> {
-  const replayContent = {
+export async function createDemoInputReplaySession(
+  content: DemoProjectContent,
+): Promise<DemoInputReplaySession> {
+  const replayContent: DemoProjectContent = {
     ...content,
     runtime: {
       ...content.runtime,
@@ -267,7 +410,7 @@ export async function createDemoInputReplaySession(content: any): Promise<any> {
     },
   };
   const runtimeBackend = await createDemoRuntimeBackend(replayContent);
-  if (!runtimeBackend.available || runtimeBackend.session === null) {
+  if (!runtimeBackend.available) {
     throw new RuntimeBridgeError(
       'native_unavailable',
       runtimeBackend.diagnostics[0]?.message
@@ -275,58 +418,89 @@ export async function createDemoInputReplaySession(content: any): Promise<any> {
     );
   }
 
-  const session = runtimeBackend.session;
-  session.configureInputSession({
+  runtimeBackend.session.configureInputSession({
     catalog: createDefaultBrowserInputCatalog(),
     initialContexts: ['gameplay'],
   });
   return {
-    session,
+    session: runtimeBackend.session,
     gateway: createDemoRuntimeGateway(runtimeBackend),
   };
 }
 
-function runtimeCameraHandle(camera: any): number {
+function runtimeCameraHandle(camera: DemoPrimaryFireInput['camera']): ReturnType<typeof cameraHandle> {
   if (typeof camera === 'number') {
-    return camera;
+    return cameraHandle(requireCameraHandle(camera));
   }
-  const handle = camera?.handle ?? camera?.camera;
-  if (!Number.isSafeInteger(handle) || handle < 0) {
+  const handle = camera.handle ?? camera.camera;
+  return cameraHandle(requireCameraHandle(handle));
+}
+
+function requireCameraHandle(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
     throw new RuntimeBridgeError(
       'invalid_input',
       'Primary fire requires an authoritative RuntimeSession camera handle.',
     );
   }
-  return handle;
+  return value;
 }
 
-function readChallengeState(bridge: any, view: any, runtimeSessionHash: string): any {
+function readChallengeState(
+  bridge: RuntimeBridge,
+  view: GameplayContractRef,
+  runtimeSessionHash: string,
+): DemoGameplayChallengeState {
   const snapshot = bridge.readGameplayModuleView({
     view,
     scope: { kind: 'session' },
     expectedRuntimeSessionHash: runtimeSessionHash,
   });
+  const payloadText = new TextDecoder().decode(Uint8Array.from(snapshot.canonicalPayload));
+  const payload: unknown = JSON.parse(payloadText);
+  return decodeChallengeStatePayload(payload, snapshot);
+}
+
+function decodeChallengeStatePayload(
+  value: unknown,
+  snapshot: GameplayModuleViewSnapshot,
+): DemoGameplayChallengeState {
+  const payload = sourceObject(value, 'challengeState');
+  const lastRange = payload['lastRangeMillimeters'];
   return {
-    ...JSON.parse(new TextDecoder().decode(Uint8Array.from(snapshot.canonicalPayload))),
+    revision: nonNegativeInteger(payload['revision'], 'challengeState.revision'),
+    status: nonEmptyString(payload['status'], 'challengeState.status'),
+    triggerEntries: nonNegativeInteger(payload['triggerEntries'], 'challengeState.triggerEntries'),
+    closeRangeHits: nonNegativeInteger(payload['closeRangeHits'], 'challengeState.closeRangeHits'),
+    score: nonNegativeInteger(payload['score'], 'challengeState.score'),
+    objectivePoints: nonNegativeInteger(payload['objectivePoints'], 'challengeState.objectivePoints'),
+    closeRangeMillimeters: nonNegativeInteger(
+      payload['closeRangeMillimeters'],
+      'challengeState.closeRangeMillimeters',
+    ),
+    closeRangeBonus: nonNegativeInteger(payload['closeRangeBonus'], 'challengeState.closeRangeBonus'),
+    lastRangeMillimeters: lastRange === null
+      ? null
+      : nonNegativeInteger(lastRange, 'challengeState.lastRangeMillimeters'),
     providerId: snapshot.providerId,
-    revision: snapshot.revision,
+    viewRevision: snapshot.revision,
     viewHash: snapshot.viewHash,
     runtimeSessionHash: snapshot.runtimeSessionHash,
   };
 }
 
-function readDamageApplied(combatReadout: any): number | null {
-  const event = combatReadout?.events?.find((candidate: any) => candidate.kind === 'damage_applied');
-  return event === undefined ? null : Number(event.amount);
+function readDamageApplied(combatReadout: CombatRuntimeReadout | null): number | null {
+  const event = combatReadout?.events.find((candidate) => candidate.kind === 'damage_applied');
+  return event?.kind === 'damage_applied' ? event.amount : null;
 }
 
 function unavailableRuntimeBackend(
-  profile: any,
+  profile: NativeRustRuntimeBridgeProviderProfile,
   code: string,
   message: string,
-  loadReceipt: any = null,
-  status = 'missing_rust_backend',
-): any {
+  loadReceipt: RuntimeSessionEcrpProjectLoadReceipt | null = null,
+  status: DemoUnavailableRuntimeBackend['status'] = 'missing_rust_backend',
+): DemoUnavailableRuntimeBackend {
   return {
     available: false,
     status,
@@ -335,7 +509,7 @@ function unavailableRuntimeBackend(
       kind: 'runtime_session.ecrp_project_load_receipt.v0',
       sequenceId: 0,
       accepted: false,
-      diagnostics: [{ code, path: 'runtime.backend', detail: message }],
+      diagnostics: [{ code: 'missingProjectBundle', path: 'runtime.backend', detail: `${code}:${message}` }],
       entityCount: 0,
       bootstrapHash: null,
       sessionHashBefore: 'missing-rust-backend',
@@ -343,6 +517,11 @@ function unavailableRuntimeBackend(
     },
     diagnostics: [{ code, severity: 'error', message }],
     generatedTunnelOperation: null,
+    bridge: null,
+    composedRuntimeReadout: null,
+    prefabInteractionReceipt: null,
+    challengeView: null,
+    challengeViewContract: null,
     profile,
     backendHash: `missing-rust-backend:${code}`,
   };
@@ -361,8 +540,34 @@ function errorToBackendDiagnostic(error: unknown): { readonly code: string; read
   };
 }
 
-function formatLoadDiagnostics(diagnostics: readonly any[]): string {
-  return diagnostics
-    .map((diagnostic) => `${diagnostic.code}:${diagnostic.path}`)
-    .join('; ');
+function formatLoadDiagnostics(diagnostics: readonly RuntimeSessionEcrpProjectDiagnostic[]): string {
+  return diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.path}`).join('; ');
+}
+
+function sourceObject(value: unknown, path: string): Readonly<Record<string, unknown>> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new RuntimeBridgeError('invalid_input', `${path} must be an object`);
+  }
+  return value as Readonly<Record<string, unknown>>;
+}
+
+function nonEmptyString(value: unknown, path: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new RuntimeBridgeError('invalid_input', `${path} must be a non-empty string`);
+  }
+  return value;
+}
+
+function nonNegativeInteger(value: unknown, path: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    throw new RuntimeBridgeError('invalid_input', `${path} must be a non-negative safe integer`);
+  }
+  return value;
+}
+
+function runtimeActionPhase(phase: InputActionPhase): RuntimeActionIntentPhase {
+  if (phase === 'pressed' || phase === 'released') {
+    return phase;
+  }
+  throw new RuntimeBridgeError('invalid_input', 'Primary fire does not accept a held input phase.');
 }

@@ -1,30 +1,136 @@
 import {
+  type FpsEcrpObjectModelReadout,
   type FpsEcrpRuntimeRole,
+  type FpsGameplayPresetCatalogReadout,
   findFpsEcrpObjectModelEntry,
   readFpsEcrpObjectModel,
   readFpsGameplayPresetCatalog,
 } from '@asha/catalog-core';
-import { buildDemoPrefabAuthoring } from './prefab-authoring.js';
+import {
+  type CameraCollisionPolicy,
+} from '@asha/contracts';
+import {
+  decodeAndValidateAshaPrefabRegistrySourceDocument,
+} from '@asha/game-workspace';
+import type { AshaRendererAnimatedMeshResourceManifest } from '@asha/renderer-host';
+import type {
+  RuntimeSessionEcrpEntityDefinition,
+  RuntimeSessionEcrpProjectCapabilityDefinition,
+} from '@asha/runtime-session';
+import {
+  buildDemoPrefabAuthoring,
+  type DemoPrefabAuthoring,
+} from './prefab-authoring.js';
+import {
+  decodeDemoAnimatedMeshManifest,
+  decodeDemoEntityDefinition,
+  decodeDemoGameplayCatalog,
+  decodeDemoLevelPreset,
+  decodeDemoMaterialCatalog,
+  decodeDemoProjectBundle,
+  decodeDemoSceneDocument,
+  decodeDemoSpawnCatalog,
+  decodeDemoWeaponCatalog,
+  type DemoGameplayCatalog,
+  type DemoLevelPreset,
+  type DemoMaterialCatalog,
+  type DemoProjectBundle,
+  type DemoSceneDocument,
+  type DemoSpawnCatalog,
+  type DemoWeaponCatalog,
+} from './project-source.js';
 
 const PROJECT_BUNDLE_PATH = '/project/project-bundle.json';
+const DEMO_PREFAB_ENTITY_DEFINITION_IDS = [
+  'demo.console.body',
+  'demo.console.body.blue',
+  'demo.console.body.red',
+  'demo.console.sensor',
+] as const;
 
-export async function loadDemoProjectContent(fetchJson = readJson) {
-  const projectBundle = await fetchJson(PROJECT_BUNDLE_PATH);
-  const sourceFiles = projectBundle.sourceFiles ?? {};
-  const catalogRefs = sourceFiles.catalogRefs ?? {};
+type DemoJsonReader = (path: string) => Promise<unknown>;
+type TransformCapability = Extract<
+  RuntimeSessionEcrpProjectCapabilityDefinition,
+  { readonly kind: 'transform' }
+>;
+type CollisionCapability = Extract<
+  RuntimeSessionEcrpProjectCapabilityDefinition,
+  { readonly kind: 'collisionBody' }
+>;
+
+export interface DemoProjectContent {
+  readonly kind: 'asha_demo.ecrp_project_content.v1';
+  readonly sourceFiles: {
+    readonly projectBundle: typeof PROJECT_BUNDLE_PATH;
+    readonly entityDefinitions: readonly string[];
+    readonly sceneDocument: string;
+    readonly catalogs: DemoProjectBundle['sourceFiles']['catalogRefs'];
+    readonly prefabRegistry: string;
+    readonly levelPreset: string;
+    readonly animatedMeshManifest: string;
+  };
+  readonly projectBundle: DemoProjectBundle;
+  readonly prefabAuthoring: DemoPrefabAuthoring;
+  readonly entityDefinitions: readonly RuntimeSessionEcrpEntityDefinition[];
+  readonly sceneDocument: DemoSceneDocument;
+  readonly catalogs: {
+    readonly gameplay: DemoGameplayCatalog;
+    readonly materials: DemoMaterialCatalog;
+    readonly spawns: DemoSpawnCatalog;
+    readonly weapon: DemoWeaponCatalog;
+    readonly levelPreset: DemoLevelPreset;
+    readonly animatedMeshManifest: AshaRendererAnimatedMeshResourceManifest;
+    readonly upstreamGameplay: FpsGameplayPresetCatalogReadout;
+    readonly upstreamEcrpObjectModel: FpsEcrpObjectModelReadout;
+  };
+  readonly runtime: {
+    readonly sessionId: string;
+    readonly seed: number;
+    readonly initialCameraPose: TransformCapability['initial'];
+    readonly collisionShape: {
+      readonly halfExtents: CollisionCapability['halfExtents'];
+    };
+    readonly collisionPolicy: CameraCollisionPolicy;
+    readonly cameraProjection: DemoProjectBundle['runtime']['cameraProjection'];
+    readonly enemyRenderTarget: {
+      readonly label: string;
+      readonly position: TransformCapability['initial']['position'];
+      readonly scale: readonly [number, number, number];
+    };
+  };
+}
+
+export interface DemoProjectContentStatus {
+  readonly kind: 'asha_demo.project_content_status.v1';
+  readonly valid: boolean;
+  readonly diagnostics: readonly string[];
+  readonly projectBundleId: string;
+  readonly entityDefinitionCount: number;
+  readonly sceneId: string;
+  readonly sourceFiles: DemoProjectContent['sourceFiles'];
+  readonly gameplayPresetHash: string;
+  readonly ecrpObjectModelHash: string;
+}
+
+export async function loadDemoProjectContent(
+  fetchJson: DemoJsonReader = readJson,
+): Promise<DemoProjectContent> {
+  const projectBundle = decodeDemoProjectBundle(await fetchJson(PROJECT_BUNDLE_PATH));
+  const sourceFiles = projectBundle.sourceFiles;
+  const catalogRefs = sourceFiles.catalogRefs;
 
   const [
-    entityDefinitions,
-    sceneDocument,
-    gameplayCatalog,
-    materialCatalog,
-    spawnCatalog,
-    weaponCatalog,
-    levelPreset,
-    animatedMeshManifest,
-    prefabRegistry,
+    entityDefinitionDocuments,
+    sceneDocumentSource,
+    gameplayCatalogSource,
+    materialCatalogSource,
+    spawnCatalogSource,
+    weaponCatalogSource,
+    levelPresetSource,
+    animatedMeshManifestSource,
+    prefabRegistrySource,
   ] = await Promise.all([
-    Promise.all((sourceFiles.entityDefinitions ?? []).map((path) => fetchJson(`/${path}`))),
+    Promise.all(sourceFiles.entityDefinitions.map((path) => fetchJson(`/${path}`))),
     fetchJson(`/${sourceFiles.sceneDocument}`),
     fetchJson(`/${catalogRefs.gameplay}`),
     fetchJson(`/${catalogRefs.materials}`),
@@ -35,7 +141,32 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
     fetchJson(`/${sourceFiles.prefabRegistry}`),
   ]);
 
-  const prefabAuthoring = buildDemoPrefabAuthoring(prefabRegistry, projectBundle.gameplayModuleBindings);
+  const entityDefinitions = entityDefinitionDocuments.map((document, index) =>
+    decodeDemoEntityDefinition(document, `entityDefinitions[${index}]`),
+  );
+  const sceneDocument = decodeDemoSceneDocument(sceneDocumentSource);
+  const gameplayCatalog = decodeDemoGameplayCatalog(gameplayCatalogSource);
+  const materialCatalog = decodeDemoMaterialCatalog(materialCatalogSource);
+  const spawnCatalog = decodeDemoSpawnCatalog(spawnCatalogSource);
+  const weaponCatalog = decodeDemoWeaponCatalog(weaponCatalogSource);
+  const levelPreset = decodeDemoLevelPreset(levelPresetSource);
+  const animatedMeshManifest = decodeDemoAnimatedMeshManifest(animatedMeshManifestSource);
+  const prefabRegistryResult = decodeAndValidateAshaPrefabRegistrySourceDocument(
+    prefabRegistrySource,
+    {
+      assetIds: [],
+      entityDefinitionIds: DEMO_PREFAB_ENTITY_DEFINITION_IDS,
+    },
+  );
+  if (!prefabRegistryResult.ok) {
+    throw new Error(
+      `Demo prefab registry failed public source validation: ${formatPrefabDiagnostics(prefabRegistryResult.diagnostics)}`,
+    );
+  }
+  const prefabAuthoring = buildDemoPrefabAuthoring(
+    prefabRegistryResult.registry,
+    projectBundle.gameplayModuleBindings,
+  );
 
   const playerDefinition = requireEntityDefinition(entityDefinitions, 'actor/demo-player');
   const enemyDefinition = requireEntityDefinition(entityDefinitions, 'actor/generated-tunnel-enemy');
@@ -73,10 +204,8 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
       sessionId: projectBundle.runtime.sessionId,
       seed: projectBundle.runtime.seed,
       initialCameraPose: playerTransform.initial,
-      collisionShape: {
-        halfExtents: playerCollision.halfExtents,
-      },
-      collisionPolicy: playerCollision.policy,
+      collisionShape: { halfExtents: playerCollision.halfExtents },
+      collisionPolicy: requireCameraCollisionPolicy(playerCollision.policy),
       cameraProjection: projectBundle.runtime.cameraProjection,
       enemyRenderTarget: {
         label: enemyDefinition.stableId,
@@ -91,8 +220,10 @@ export async function loadDemoProjectContent(fetchJson = readJson) {
   };
 }
 
-export function readDemoProjectContentStatus(demoProjectContent) {
-  const diagnostics = [];
+export function readDemoProjectContentStatus(
+  demoProjectContent: DemoProjectContent,
+): DemoProjectContentStatus {
+  const diagnostics: string[] = [];
   validateProjectBundle(demoProjectContent, diagnostics);
   validateEntitiesAgainstObjectModel(demoProjectContent, diagnostics);
   validateAuthoredRefs(demoProjectContent, diagnostics);
@@ -101,7 +232,7 @@ export function readDemoProjectContentStatus(demoProjectContent) {
     kind: 'asha_demo.project_content_status.v1',
     valid: diagnostics.length === 0,
     diagnostics,
-    projectBundleId: demoProjectContent.projectBundle.project?.gameId ?? null,
+    projectBundleId: demoProjectContent.projectBundle.project.gameId,
     entityDefinitionCount: demoProjectContent.entityDefinitions.length,
     sceneId: demoProjectContent.sceneDocument.sceneId,
     sourceFiles: demoProjectContent.sourceFiles,
@@ -110,78 +241,48 @@ export function readDemoProjectContentStatus(demoProjectContent) {
   };
 }
 
-async function readJson(path) {
+async function readJson(path: string): Promise<unknown> {
   const response = await fetch(path, { cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`Failed to load ASHA demo project file ${path}: ${response.status}`);
   }
-  return response.json();
+  const document: unknown = await response.json();
+  return document;
 }
 
-function validateProjectBundle(demoProjectContent, diagnostics) {
-  const { projectBundle } = demoProjectContent;
-  if (projectBundle.kind !== 'ProjectBundle') {
-    diagnostics.push('project/project-bundle.json kind must be ProjectBundle');
-  }
-  if (projectBundle.project?.gameId !== 'asha-demo') {
+function validateProjectBundle(content: DemoProjectContent, diagnostics: string[]): void {
+  const { projectBundle } = content;
+  if (projectBundle.project.gameId !== 'asha-demo') {
     diagnostics.push('ProjectBundle project.gameId must be asha-demo');
   }
-  if (projectBundle.runtimeRequest?.sceneId !== 4103) {
+  if (projectBundle.runtimeRequest.sceneId !== 4103) {
     diagnostics.push('ProjectBundle runtimeRequest.sceneId must be 4103');
   }
-  if (!Array.isArray(projectBundle.sourceFiles?.entityDefinitions) || projectBundle.sourceFiles.entityDefinitions.length === 0) {
+  if (projectBundle.sourceFiles.entityDefinitions.length === 0) {
     diagnostics.push('ProjectBundle sourceFiles.entityDefinitions must name durable entity files');
   }
-  if (typeof projectBundle.sourceFiles?.animatedMeshManifest !== 'string') {
-    diagnostics.push('ProjectBundle sourceFiles.animatedMeshManifest must name the public renderer-host mesh manifest');
-  }
-  if (typeof projectBundle.gameplayRuntime?.compositionHash !== 'string') {
-    diagnostics.push('ProjectBundle gameplayRuntime.compositionHash must bind the statically linked Rust composition');
-  }
-  if (typeof projectBundle.gameplayRuntime?.declaredReadPlanHash !== 'string') {
-    diagnostics.push('ProjectBundle gameplayRuntime.declaredReadPlanHash must bind the declared view plan');
-  }
-  if (typeof projectBundle.gameplayRuntime?.challengeView?.schemaHash !== 'string') {
-    diagnostics.push('ProjectBundle gameplayRuntime.challengeView must name the linked provider-owned view');
-  }
-  if (
-    !Number.isSafeInteger(projectBundle.gameplayRuntime?.prefabInteraction?.expectedTarget)
-    || projectBundle.gameplayRuntime?.prefabInteraction?.role !== 'interaction/sensor'
-  ) {
-    diagnostics.push('ProjectBundle gameplayRuntime.prefabInteraction must bind the resolved prefab-part target');
-  }
-  if (
-    typeof projectBundle.gameplayRuntime?.scheduler?.owner?.ownerId !== 'string'
-    || !Array.isArray(projectBundle.gameplayRuntime?.scheduler?.declaredEvents)
-    || !Array.isArray(projectBundle.gameplayRuntime?.scheduler?.declaredProposals)
-  ) {
-    diagnostics.push('ProjectBundle gameplayRuntime.scheduler must declare the closed Rust scheduler owner and contracts');
-  }
-  if (typeof projectBundle.sourceFiles?.prefabRegistry !== 'string') {
-    diagnostics.push('ProjectBundle sourceFiles.prefabRegistry must name the durable public prefab registry');
-  }
-  if (demoProjectContent.prefabAuthoring.readout.instances.length !== 2) {
+  if (content.prefabAuthoring.readout.instances.length !== 2) {
     diagnostics.push('public prefab authoring must produce the authored and player placement instances');
   }
-  if (demoProjectContent.prefabAuthoring.readout.selected?.roles?.some((role) => role.role === 'interaction/sensor') !== true) {
+  if (
+    content.prefabAuthoring.readout.selected?.roles
+      .some((role) => role.role === 'interaction/sensor') !== true
+  ) {
     diagnostics.push('public prefab authoring must expose the stable interaction/sensor part role');
   }
-  if (projectBundle.gameplayModuleBindings?.bindings?.length !== 2) {
+  if (projectBundle.gameplayModuleBindings.bindings.length !== 2) {
     diagnostics.push('ProjectBundle gameplayModuleBindings must declare the Session and prefab-part challenge bindings');
   }
-  if (projectBundle.gameplayModuleBindings?.overrides?.length !== 2) {
+  if (projectBundle.gameplayModuleBindings.overrides.length !== 2) {
     diagnostics.push('ProjectBundle gameplayModuleBindings must declare two prefab-instance configuration overrides');
   }
-  if (projectBundle.gameplayTriggers?.length !== 1) {
+  if (projectBundle.gameplayTriggers.length !== 1) {
     diagnostics.push('ProjectBundle gameplayTriggers must declare the generated-tunnel challenge boundary');
   }
 }
 
-function validateEntitiesAgainstObjectModel(demoProjectContent, diagnostics) {
-  const entityDefinitionIds = new Set(
-    demoProjectContent.entityDefinitions.map((definition) => definition.stableId),
-  );
-
+function validateEntitiesAgainstObjectModel(content: DemoProjectContent, diagnostics: string[]): void {
+  const entityDefinitionIds = new Set(content.entityDefinitions.map((definition) => definition.stableId));
   const requiredRoles: readonly FpsEcrpRuntimeRole[] = ['player', 'enemy'];
   for (const role of requiredRoles) {
     const entry = findFpsEcrpObjectModelEntry(role);
@@ -189,10 +290,8 @@ function validateEntitiesAgainstObjectModel(demoProjectContent, diagnostics) {
       diagnostics.push(`missing EntityDefinition for ${entry.entityDefinitionId}`);
       continue;
     }
-    const definition = demoProjectContent.entityDefinitions.find(
-      (candidate) => candidate.stableId === entry.entityDefinitionId,
-    );
-    if (definition.source?.relativePath !== entry.sourcePath) {
+    const definition = requireEntityDefinition(content.entityDefinitions, entry.entityDefinitionId);
+    if (definition.source.relativePath !== entry.sourcePath) {
       diagnostics.push(`${entry.entityDefinitionId} source.relativePath must be ${entry.sourcePath}`);
     }
     if (definition.displayName !== entry.displayName) {
@@ -207,15 +306,15 @@ function validateEntitiesAgainstObjectModel(demoProjectContent, diagnostics) {
   }
 }
 
-function validateAuthoredRefs(demoProjectContent, diagnostics) {
-  const { catalogs, projectBundle, sceneDocument } = demoProjectContent;
+function validateAuthoredRefs(content: DemoProjectContent, diagnostics: string[]): void {
+  const { catalogs, projectBundle, sceneDocument } = content;
   const upstreamPreset = catalogs.upstreamGameplay.defaultPreset.preset;
   const upstreamHashes = catalogs.upstreamGameplay.defaultPreset.hashes;
 
-  if (projectBundle.catalogs?.gameplayCatalogId !== catalogs.upstreamGameplay.catalog.catalogId) {
+  if (projectBundle.catalogs.gameplayCatalogId !== catalogs.upstreamGameplay.catalog.catalogId) {
     diagnostics.push('ProjectBundle gameplayCatalogId does not match upstream gameplay catalog');
   }
-  if (projectBundle.catalogs?.objectModelId !== catalogs.upstreamEcrpObjectModel.model.modelId) {
+  if (projectBundle.catalogs.objectModelId !== catalogs.upstreamEcrpObjectModel.model.modelId) {
     diagnostics.push('ProjectBundle objectModelId does not match upstream ECRP object model');
   }
   if (catalogs.gameplay.defaultPresetId !== upstreamPreset.presetId) {
@@ -230,7 +329,7 @@ function validateAuthoredRefs(demoProjectContent, diagnostics) {
   if (!deepEqual(catalogs.weapon, { kind: catalogs.weapon.kind, ...upstreamPreset.weapon })) {
     diagnostics.push('weapon catalog tuning does not match upstream gameplay preset weapon tuning');
   }
-  if (!deepEqual(stripKind(catalogs.levelPreset), upstreamPreset.generator)) {
+  if (!deepEqual(levelPresetWithoutSource(catalogs.levelPreset), upstreamPreset.generator)) {
     diagnostics.push('level preset ref does not match upstream gameplay preset generator ref');
   }
   if (sceneDocument.levelPresetRef !== upstreamPreset.generator.presetId) {
@@ -241,23 +340,23 @@ function validateAuthoredRefs(demoProjectContent, diagnostics) {
   }
 
   const spawnMarkerIds = new Set(catalogs.spawns.markers.map((marker) => marker.markerId));
-  for (const placement of sceneDocument.placements ?? []) {
-    if (!spawnMarkerIds.has(placement.spawnMarkerId)) {
+  for (const placement of sceneDocument.placements) {
+    if (placement.spawnMarkerId !== undefined && !spawnMarkerIds.has(placement.spawnMarkerId)) {
       diagnostics.push(`SceneDocument placement references missing spawn marker ${placement.spawnMarkerId}`);
     }
   }
-  if (!Array.isArray(catalogs.materials.materials) || catalogs.materials.materials.length === 0) {
+  if (catalogs.materials.materials.length === 0) {
     diagnostics.push('material catalog must contain at least one material role');
   }
-  if (
-    catalogs.animatedMeshManifest?.kind !== 'asha_renderer_animated_mesh_resources.v0'
-    || catalogs.animatedMeshManifest.resources?.length !== 1
-  ) {
+  if (catalogs.animatedMeshManifest.resources.length !== 1) {
     diagnostics.push('animated mesh manifest must declare exactly one public renderer-host resource');
   }
 }
 
-function requireEntityDefinition(entityDefinitions, stableId) {
+function requireEntityDefinition(
+  entityDefinitions: readonly RuntimeSessionEcrpEntityDefinition[],
+  stableId: string,
+): RuntimeSessionEcrpEntityDefinition {
   const definition = entityDefinitions.find((candidate) => candidate.stableId === stableId);
   if (definition === undefined) {
     throw new Error(`ASHA demo project content is missing ${stableId}`);
@@ -265,19 +364,51 @@ function requireEntityDefinition(entityDefinitions, stableId) {
   return definition;
 }
 
-function requireCapability(entityDefinition, kind) {
-  const capability = entityDefinition.capabilities.find((candidate) => candidate.kind === kind);
+function requireCapability<K extends RuntimeSessionEcrpProjectCapabilityDefinition['kind']>(
+  entityDefinition: RuntimeSessionEcrpEntityDefinition,
+  kind: K,
+): Extract<RuntimeSessionEcrpProjectCapabilityDefinition, { readonly kind: K }> {
+  const capability = entityDefinition.capabilities.find(
+    (candidate): candidate is Extract<RuntimeSessionEcrpProjectCapabilityDefinition, { readonly kind: K }> =>
+      candidate.kind === kind,
+  );
   if (capability === undefined) {
     throw new Error(`${entityDefinition.stableId} is missing ${kind}`);
   }
   return capability;
 }
 
-function stripKind(value) {
-  const { kind, sceneDocument, ...withoutKind } = value;
-  return withoutKind;
+function levelPresetWithoutSource(preset: DemoLevelPreset): Omit<DemoLevelPreset, 'kind' | 'sceneDocument'> {
+  return {
+    presetId: preset.presetId,
+    seed: preset.seed,
+    outputHash: preset.outputHash,
+    renderProjectionHash: preset.renderProjectionHash,
+    collisionProjectionHash: preset.collisionProjectionHash,
+  };
 }
 
-function deepEqual(left, right) {
+function deepEqual(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function formatPrefabDiagnostics(
+  diagnostics: readonly { readonly code: string; readonly path: string }[],
+): string {
+  return diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.path}`).join(', ');
+}
+
+function requireCameraCollisionPolicy(value: object | undefined): CameraCollisionPolicy {
+  if (value === undefined || Array.isArray(value)) {
+    throw new Error('Demo player collisionBody.policy must be an object');
+  }
+  const policy = value as Readonly<Record<string, unknown>>;
+  if (policy['mode'] !== 'axis_separable_slide') {
+    throw new Error('Demo player collisionBody.policy.mode must be axis_separable_slide');
+  }
+  const maxIterations = policy['maxIterations'];
+  if (typeof maxIterations !== 'number' || !Number.isSafeInteger(maxIterations) || maxIterations <= 0) {
+    throw new Error('Demo player collisionBody.policy.maxIterations must be a positive safe integer');
+  }
+  return { mode: 'axis_separable_slide', maxIterations };
 }

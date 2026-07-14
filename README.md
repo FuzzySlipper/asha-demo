@@ -70,6 +70,21 @@ bloated `src/app.ts`, handwritten app/source JavaScript, private ASHA imports,
 renderer backend imports, and modules that mix RuntimeSession calls with direct
 DOM projection mutation.
 
+Run `npm run check:strict-boundary` for the typed content/runtime border. Fetched
+documents enter as `unknown`: Demo-owned ProjectBundle extensions use bounded
+decoders, generated module-binding and trigger values use the public generated
+wire validator, and prefab JSON crosses the public
+`decodeAndValidateAshaPrefabRegistrySourceDocument` boundary before authoring
+state exists. These checks are early consumer diagnostics only; the composed
+Rust RuntimeSession revalidates the ProjectBundle and remains authority.
+
+Project-wide `strict` remains a finite follow-up rather than a hidden claim. The
+strict gate currently covers all of `src/content/**` and `src/runtime/**`; the
+remaining debt is concentrated in the large UI bootstrap and older HUD/shell
+projection helpers. `npm run check:content-boundary` also exercises the healthy
+load and committed malformed source-reference, schema, variant/override, and
+dangling-role fixtures.
+
 Run `npm run check:demo-rs` before changing demo-owned Rust tooling or the game
 manifest. It compiles the downstream Rust preflight crate and checks stable
 demo-owned content metadata without importing ASHA internals.

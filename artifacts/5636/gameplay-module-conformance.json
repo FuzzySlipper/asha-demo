@@ -9,7 +9,7 @@
     "asha-demo.challenge-state-read",
     "asha-demo.challenge-configuration"
   ],
-  "consumerNeedsManifestHash": "fnv1a64:dc4263e6fc8ae7d2",
+  "consumerNeedsManifestHash": "fnv1a64:57bd3ca538f438bf",
   "moduleIds": [
     "asha.owner-events",
     "demo.primary-fire-effect"

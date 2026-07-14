@@ -12,6 +12,7 @@ import {
 } from '@asha/renderer-host';
 import {
   billboardHandle,
+  cameraHandle,
   telemetryOverlayHandle,
   type PresentationOp,
   type RuntimeProjectionFrame,
@@ -1907,9 +1908,9 @@ function tickEnemyPolicy() {
 
 function readRuntimeCameraHandle() {
   if (typeof runtimeCamera === 'number') {
-    return runtimeCamera;
+    return cameraHandle(runtimeCamera);
   }
-  return runtimeCamera.handle ?? runtimeCamera.camera;
+  return cameraHandle('handle' in runtimeCamera ? runtimeCamera.handle : runtimeCamera.camera);
 }
 
 function encounterTickBlockedEvent(reason) {
@@ -2357,6 +2358,6 @@ function readAuthoredActorCapability(stableId, kind) {
       dead: capability.current <= 0,
     };
   }
-  return capability;
+  return null;
 }
 }

@@ -40,10 +40,24 @@
       "fields": ["artifactHash", "contractHash", "providerId", "sdkHash", "sourceHash"],
       "requiredLevel": "delivery",
       "evidence": {
-        "type": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
-        "provider": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
-        "selector": ["project/project-bundle.json"],
-        "delivery": ["artifacts/5636/gameplay-module-conformance.json"]
+        "type": [
+          "demo-rs/crates/primary-fire-effect/src/gameplay.rs",
+          "@asha/contracts#validateGeneratedWireValue",
+          "@asha/game-workspace#decodeAndValidateAshaPrefabRegistrySourceDocument"
+        ],
+        "provider": [
+          "demo-rs/crates/primary-fire-effect/src/gameplay.rs",
+          "src/content/project-content.ts"
+        ],
+        "selector": [
+          "project/project-bundle.json",
+          "src/content/project-source.ts"
+        ],
+        "delivery": [
+          "src/content/prefab-authoring.ts",
+          "src/runtime/demo-runtime-gateway.ts",
+          "artifacts/5636/gameplay-module-conformance.json"
+        ]
       }
     },
     {
@@ -72,10 +86,23 @@
       "target": { "scope": "session" },
       "requiredLevel": "delivery",
       "evidence": {
-        "type": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
-        "provider": ["demo-rs/crates/primary-fire-effect/src/gameplay.rs"],
-        "selector": ["project/project-bundle.json"],
-        "delivery": ["artifacts/5636/gameplay-module-conformance.json"]
+        "type": [
+          "demo-rs/crates/primary-fire-effect/src/gameplay.rs",
+          "@asha/contracts#GameplayModuleBindingRegistry"
+        ],
+        "provider": [
+          "demo-rs/crates/primary-fire-effect/src/gameplay.rs",
+          "src/content/project-content.ts"
+        ],
+        "selector": [
+          "project/project-bundle.json",
+          "src/content/project-source.ts"
+        ],
+        "delivery": [
+          "src/content/project-content.ts",
+          "src/runtime/demo-runtime-gateway.ts",
+          "artifacts/5636/gameplay-module-conformance.json"
+        ]
       }
     }
   ]

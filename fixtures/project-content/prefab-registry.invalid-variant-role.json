@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "definitions": [
+    {
+      "id": 70,
+      "schemaVersion": 1,
+      "displayName": "Interaction console",
+      "parts": [
+        {
+          "id": 1,
+          "namespace": "body",
+          "displayName": "Body",
+          "parent": null,
+          "transform": {
+            "translation": [0, 0, 0],
+            "rotation": [0, 0, 0, 1],
+            "scale": [1, 1, 1]
+          },
+          "source": {
+            "kind": "entityDefinition",
+            "stableId": "demo.console.body"
+          }
+        }
+      ],
+      "partRoles": [
+        { "role": "console/body", "part": 1 }
+      ],
+      "variant": null
+    },
+    {
+      "id": 71,
+      "schemaVersion": 1,
+      "displayName": "Broken console variant",
+      "parts": [],
+      "partRoles": [],
+      "variant": {
+        "base": 70,
+        "removedRoles": ["missing/role"],
+        "overrides": [
+          {
+            "targetRole": "missing/role",
+            "value": { "field": "activation", "active": false }
+          }
+        ]
+      }
+    }
+  ]
+}
