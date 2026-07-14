@@ -731,135 +731,26 @@ test('@live-agent asha-demo rejects spoofed native RuntimeBridge providers', asy
   expect(baseUrl, 'live UI smoke must use broker-provided BASE_URL').not.toBeNull();
 
   await page.addInitScript(() => {
-    const referenceSnapshot = {
-      backend: 'reference_bridge',
-      authoritySurface: 'runtime_session.fps.reference.v0',
-      projectBundle: 'spoofed-demo:scene',
-      sessionEpoch: 1,
-      lifecycleStatus: { state: 'active' },
-      playerEntity: 10,
-      enemyEntity: 20,
-      health: [
-        { entity: 10, current: 100, max: 100 },
-        { entity: 20, current: 40, max: 40 },
-      ],
-      policyBindings: [],
-      replayRecords: [{
-        replayUnit: 'spoofed-reference',
-        entityHash: 'fnv1a64:0000000000000001',
-        healthHash: 'fnv1a64:0000000000000002',
-        recordHash: 'fnv1a64:0000000000000003',
-      }],
-      readSets: [{
-        viewKind: 'runtime_session.fps.lifecycle_health.v0',
-        owner: 'reference-runtime-session',
-        readSet: ['fixture'],
-      }],
-      entityHash: 'fnv1a64:0000000000000001',
-      healthHash: 'fnv1a64:0000000000000002',
-      replayHash: 'fnv1a64:0000000000000003',
-    };
-    globalThis.ashaDemoRuntimeBridge = {
-      kind: 'asha_demo.native_runtime_bridge_provider.v1',
+    const spoofedProvider = Object.freeze({
+      kind: 'asha.runtime_bridge.native_rust_provider.v1',
       backend: 'native_rust',
       productAuthority: true,
       referenceFallback: false,
+      browserHostCompatibilityVersion: 'browser-host.v0',
+      browserHostSessionId: 'spoofed-session',
       createRuntimeBridge() {
         return {
           initializeEngine() {
             return 1;
           },
-          loadWorldBundle(request) {
-            return {
-              loadedWorld: request.sceneId,
-              fatalCount: 0,
-              totalCount: 0,
-              blocksLoad: false,
-            };
-          },
-          getCompositionStatus() {
-            return {
-              loadedWorld: 42,
-              fatalCount: 0,
-              totalCount: 0,
-              blocksLoad: false,
-            };
-          },
-          createCamera(request) {
-            return {
-              handle: 1,
-              pose: request.initialPose,
-              projection: request.projection,
-              viewport: request.viewport,
-              basis: {
-                forward: [0, 0, -1],
-                right: [1, 0, 0],
-                up: [0, 1, 0],
-              },
-              projectionHash: 'fnv1a64:0000000000000004',
-            };
-          },
-          applyCollisionConstrainedCameraInput() {
-            return {
-              blockedAxes: [],
-              collided: false,
-              collisionProjectionHash: 'fnv1a64:0000000000000005',
-              movementHash: 'fnv1a64:0000000000000006',
-              replayRecordKind: 'camera_collision_input',
-              snapshot: {
-                before: null,
-                attempted: null,
-                after: {
-                  pose: {
-                    position: [0, 1.62, 1.25],
-                    yawDegrees: 0,
-                    pitchDegrees: 0,
-                  },
-                  basis: {
-                    forward: [0, 0, -1],
-                    right: [1, 0, 0],
-                    up: [0, 1, 0],
-                  },
-                },
-              },
-            };
-          },
-          loadFpsRuntimeSession() {
-            return referenceSnapshot;
-          },
-          readFpsRuntimeSession() {
-            return referenceSnapshot;
-          },
-          applyFpsPrimaryFire() {
-            return {
-              ...referenceSnapshot,
-              target: null,
-              targetHealthBefore: null,
-              targetHealthAfter: null,
-            };
-          },
-          restartFpsRuntimeSession() {
-            return referenceSnapshot;
-          },
-          applyEnemyDirectNavMovement(request) {
-            return {
-              entity: request.entity,
-              authoritySource: 'seeded_from_request',
-              authorityTransport: 'reference_bridge',
-              from: request.seedPosition,
-              target: request.target,
-              nextWaypoint: request.seedPosition,
-              distanceUnits: 0,
-              reached: false,
-              pathHash: 'fnv1a64:0000000000000007',
-              transformHash: 'fnv1a64:0000000000000008',
-              projectionChanged: false,
-            };
-          },
-          unloadWorld() {},
         };
       },
-    };
+    });
+    Object.defineProperty(globalThis, 'ashaRuntimeBridge', {
+      configurable: true,
+      get: () => spoofedProvider,
+      set: () => undefined,
+    });
   });
 
   await page.goto('/');
@@ -871,6 +762,7 @@ test('@live-agent asha-demo rejects spoofed native RuntimeBridge providers', asy
   expect(backendStatus?.diagnostics?.[0]?.message).toMatch(
     /rejected non-native RuntimeBridge provider|missing required operation/,
   );
+  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.projectContentStatus?.().runtimeLoaded ?? null)).toBe(false);
   await expect(page.locator('#fire-button')).toBeDisabled();
 });
 
