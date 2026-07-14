@@ -2,13 +2,20 @@ use asha_demo_primary_fire_effect::{
     gameplay_challenge_view_contract, gameplay_runtime_prefab_bootstrap,
     gameplay_runtime_project_input,
 };
+use asha_gameplay_module_sdk::{
+    gameplay_canonical_payload_hash, GameplayCausationRef, GameplayContractRef, GameplayEmitterRef,
+    GameplayEntityRef, GameplayOwnerRef, GameplayProposalEnvelope,
+    PrimaryFireGameplayDecisionWorkspace, StandardGameplayProposalKind,
+};
 use asha_runtime_session_composition::{
     EngineBridge, EngineConfig, FpsBridgeBoundsCapability, FpsBridgeHealth, FpsBridgeRole,
     FpsBridgeStoredEntityDefinition, FpsBridgeTransformCapability, FpsBridgeWeaponMount,
     FpsPrimaryFireRequest, FpsPrimaryFireResult, FpsRuntimeSessionLoadRequest,
-    FpsRuntimeSessionRestartRequest, GameplayModuleViewRequest, GameplayModuleViewScope,
-    GameplayPrefabPartInteractionRequest, GeneratedTunnelPreset,
-    GeneratedTunnelRuntimeApplyRequest, RuntimeBridge, StaticRuntimeSessionBuilder,
+    FpsRuntimeSessionRestartRequest, GameplayDecisionMoment, GameplayDecisionStatus,
+    GameplayModuleViewRequest, GameplayModuleViewScope, GameplayOperationWorkspace,
+    GameplayPrefabPartInteractionRequest, GameplayRuntimeDecisionOwner,
+    GameplayRuntimeDecisionOwnerOutput, GeneratedTunnelPreset, GeneratedTunnelRuntimeApplyRequest,
+    RuntimeBridge, StaticRuntimeSessionBuilder,
 };
 
 const SENSOR_701: u64 = 1_585_192_660_180_873;
@@ -74,6 +81,188 @@ fn enemy_fire_keeps_base_damage_and_cannot_advance_the_player_challenge() {
         after.gameplay.module_state_hash,
         before.gameplay.module_state_hash
     );
+}
+
+#[test]
+fn stale_primary_fire_transform_revision_rejects_before_owner_or_state_mutation() {
+    let mut bridge = initialized_bridge(-0.5);
+    let fps_before = bridge.read_fps_runtime_session().unwrap();
+    let composed_before = bridge.read_composed_runtime_session().unwrap();
+    let mut owner = RecordingPrimaryFireOwner::default();
+
+    let receipt = bridge
+        .decide_composed_gameplay(
+            primary_fire_decision_moment("demo-primary-fire-stale-revision", "revision:stale"),
+            &mut owner,
+        )
+        .unwrap();
+
+    assert_eq!(receipt.status, GameplayDecisionStatus::Stale);
+    assert!(receipt
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("owner revision")));
+    assert_decision_rejection_did_not_mutate(&mut bridge, &owner, &fps_before, &composed_before);
+}
+
+#[test]
+fn invalid_primary_fire_transform_inputs_fail_closed_without_mutation() {
+    for invalid_input in [
+        InvalidTransformInput::MissingPayload,
+        InvalidTransformInput::UndeclaredContract,
+        InvalidTransformInput::StaleWorkspaceHash,
+    ] {
+        let mut bridge = initialized_bridge(-0.5);
+        let fps_before = bridge.read_fps_runtime_session().unwrap();
+        let composed_before = bridge.read_composed_runtime_session().unwrap();
+        let mut moment = primary_fire_decision_moment(
+            &format!("demo-primary-fire-invalid-{invalid_input:?}"),
+            "revision:current",
+        );
+        match invalid_input {
+            InvalidTransformInput::MissingPayload => {
+                moment.workspace = GameplayOperationWorkspace::from_payload(
+                    StandardGameplayProposalKind::ResolvePrimaryFire.contract(),
+                    Vec::new(),
+                );
+            }
+            InvalidTransformInput::UndeclaredContract => {
+                moment.workspace.contract = GameplayContractRef {
+                    namespace: "demo.primary-fire-effect.invalid".to_owned(),
+                    name: "undeclared-workspace".to_owned(),
+                    version: 1,
+                    schema_hash: "fnv1a64:0000000000000000".to_owned(),
+                };
+            }
+            InvalidTransformInput::StaleWorkspaceHash => {
+                moment.workspace.workspace_hash = "fnv1a64:0000000000000000".to_owned();
+            }
+        }
+        let mut owner = RecordingPrimaryFireOwner::default();
+
+        let receipt = bridge.decide_composed_gameplay(moment, &mut owner).unwrap();
+
+        assert_ne!(
+            receipt.status,
+            GameplayDecisionStatus::Accepted,
+            "{invalid_input:?} unexpectedly reached commit"
+        );
+        assert!(
+            !receipt.diagnostics.is_empty(),
+            "{invalid_input:?} did not produce rejection evidence"
+        );
+        assert!(receipt.routing.is_none());
+        assert_decision_rejection_did_not_mutate(
+            &mut bridge,
+            &owner,
+            &fps_before,
+            &composed_before,
+        );
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum InvalidTransformInput {
+    MissingPayload,
+    UndeclaredContract,
+    StaleWorkspaceHash,
+}
+
+fn primary_fire_decision_moment(
+    decision_id: &str,
+    expected_owner_revision: &str,
+) -> GameplayDecisionMoment {
+    let workspace = PrimaryFireGameplayDecisionWorkspace {
+        shooter: 10,
+        shooter_role: "player".to_owned(),
+        target: Some(20),
+        range_millimeters: Some(2_000),
+        base_damage: 40,
+        damage: 40,
+        channel_id: "value.health".to_owned(),
+        tick: 1,
+    };
+    let canonical_payload = serde_json::to_vec(&workspace).unwrap();
+    let contract = StandardGameplayProposalKind::ResolvePrimaryFire.contract();
+    GameplayDecisionMoment {
+        decision_id: decision_id.to_owned(),
+        operation: GameplayProposalEnvelope {
+            proposal_id: format!("{decision_id}:proposal"),
+            proposal: contract.clone(),
+            tick: 1,
+            root_sequence: 0,
+            wave: 0,
+            proposal_sequence: 0,
+            emitter: GameplayEmitterRef::Owner {
+                owner_id: StandardGameplayProposalKind::ResolvePrimaryFire
+                    .owner()
+                    .owner_id,
+            },
+            causation: GameplayCausationRef {
+                root_id: decision_id.to_owned(),
+                parent_event_id: None,
+                decision_id: Some(decision_id.to_owned()),
+            },
+            originating_event_id: None,
+            source: Some(GameplayEntityRef {
+                entity: asha_runtime_session_composition::EntityId::new(10),
+            }),
+            targets: vec![GameplayEntityRef {
+                entity: asha_runtime_session_composition::EntityId::new(20),
+            }],
+            payload_hash: gameplay_canonical_payload_hash(&canonical_payload),
+            canonical_payload: canonical_payload.clone(),
+        },
+        expected_owner_revision: expected_owner_revision.to_owned(),
+        workspace: GameplayOperationWorkspace::from_payload(contract, canonical_payload),
+        resume_token: None,
+    }
+}
+
+fn assert_decision_rejection_did_not_mutate(
+    bridge: &mut EngineBridge,
+    owner: &RecordingPrimaryFireOwner,
+    fps_before: &asha_runtime_session_composition::FpsRuntimeSessionSnapshot,
+    composed_before: &asha_runtime_session_composition::ComposedRuntimeSessionReadout,
+) {
+    assert!(!owner.route_called);
+    assert_eq!(&bridge.read_fps_runtime_session().unwrap(), fps_before);
+    let composed_after = bridge.read_composed_runtime_session().unwrap();
+    assert_eq!(
+        composed_after.gameplay.module_state_hash,
+        composed_before.gameplay.module_state_hash
+    );
+    assert_eq!(
+        composed_after.gameplay.last_reaction_frame_hash,
+        composed_before.gameplay.last_reaction_frame_hash
+    );
+}
+
+#[derive(Default)]
+struct RecordingPrimaryFireOwner {
+    route_called: bool,
+}
+
+impl GameplayRuntimeDecisionOwner for RecordingPrimaryFireOwner {
+    fn revision_hash(&self, owner: &GameplayOwnerRef) -> String {
+        assert_eq!(
+            owner,
+            &StandardGameplayProposalKind::ResolvePrimaryFire.owner()
+        );
+        "revision:current".to_owned()
+    }
+
+    fn route_precommit(
+        &mut self,
+        _owner: &GameplayOwnerRef,
+        _operation: &GameplayProposalEnvelope,
+    ) -> GameplayRuntimeDecisionOwnerOutput {
+        self.route_called = true;
+        GameplayRuntimeDecisionOwnerOutput {
+            accepted: true,
+            ..GameplayRuntimeDecisionOwnerOutput::default()
+        }
+    }
 }
 
 #[test]

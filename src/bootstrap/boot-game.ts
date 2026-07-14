@@ -1394,6 +1394,7 @@ function resetLoop() {
     runtimeCamera = createRuntimeCamera();
     enemyPolicyTick = 0;
     lastEnemyPolicyReadout = null;
+    restartEnemyLoopCadence();
     lastCollisionReceipt = null;
     menuMode = 'closed';
     lastMovementEvent = 'Reset unavailable: Rust runtime backend missing';
@@ -1421,6 +1422,7 @@ function resetLoop() {
   runtimeCamera = createRuntimeCamera();
   enemyPolicyTick = 0;
   lastEnemyPolicyReadout = null;
+  restartEnemyLoopCadence();
   lastCollisionReceipt = null;
   menuMode = 'closed';
   lastMovementEvent = 'Reset';
@@ -1552,6 +1554,7 @@ function drainResolvedInputDeliveries() {
           delivery.receipt.record.recordHash,
           action.actionId,
           result.runtime,
+          runtimeCamera.pose,
         ));
       }
     }
@@ -1575,17 +1578,39 @@ function readPauseOutcome(recordHash, actionId, accepted) {
   };
 }
 
-function readGameplayOutcome(recordHash, actionId, receipt) {
+function readGameplayOutcome(recordHash, actionId, receipt, cameraPose) {
   const outcome = receipt?.combatReadout?.outcome ?? { kind: 'rejected' };
+  const gameplayTransform = receipt?.gameplayTransform ?? null;
+  const target = outcome.kind === 'hit' ? outcome.target : null;
+  const damageEvent = receipt?.combatReadout?.events.find(
+    (event) => event.kind === 'damage_applied' && event.target === target,
+  ) ?? null;
+  const targetHealth = receipt?.combatReadout?.health.find(
+    (health) => health.entity === target,
+  ) ?? null;
+  const targetHealthBefore = damageEvent?.kind === 'damage_applied' && targetHealth !== null
+    ? { current: damageEvent.before, max: targetHealth.max }
+    : null;
+  const targetHealthAfter = damageEvent?.kind === 'damage_applied' && targetHealth !== null
+    ? { current: damageEvent.after, max: targetHealth.max }
+    : null;
   return {
     recordHash,
     actionId,
     accepted: receipt?.accepted === true,
+    cameraPose,
     outcome: {
       kind: outcome.kind,
-      target: outcome.target ?? null,
-      targetHealthBefore: outcome.targetHealthBefore ?? null,
-      targetHealthAfter: outcome.targetHealthAfter ?? null,
+      target,
+      targetHealthBefore,
+      targetHealthAfter,
+    },
+    gameplayTransform: gameplayTransform === null ? null : {
+      status: gameplayTransform.status,
+      damageApplied: gameplayTransform.damageApplied,
+      decisionReceiptHash: gameplayTransform.decisionReceiptHash,
+      reactionFrameHash: gameplayTransform.reactionFrameHash,
+      replayHash: gameplayTransform.replayHash,
     },
     replayHash: receipt?.replayEvidence?.replayHash ?? receipt?.combatReadout?.replayHash ?? null,
   };
@@ -1596,7 +1621,12 @@ function comparableGameplayOutcomes(outcomes) {
     recordHash: outcome.recordHash,
     actionId: outcome.actionId,
     accepted: outcome.accepted,
+    cameraPose: outcome.cameraPose,
     outcome: outcome.outcome,
+    gameplayTransform: outcome.gameplayTransform === null ? null : {
+      status: outcome.gameplayTransform.status,
+      damageApplied: outcome.gameplayTransform.damageApplied,
+    },
   }));
 }
 
@@ -1643,8 +1673,10 @@ async function replayRecordedInput() {
   const replayRuntime = await createDemoInputReplaySession(demoProjectContent);
   const replaySession = replayRuntime.session;
   const replayGateway = replayRuntime.gateway;
+  const replayCameraPose = recordedGameplayOutcomes[0]?.cameraPose
+    ?? demoProjectContent.runtime.initialCameraPose;
   const replayCamera = replayGateway.createCamera({
-    initialPose: demoProjectContent.runtime.initialCameraPose,
+    initialPose: replayCameraPose,
     projection: demoProjectContent.runtime.cameraProjection,
     viewport: { width: 1280, height: 720 },
   })?.snapshot;
@@ -1708,6 +1740,7 @@ async function replayRecordedInput() {
       record.recordHash,
       replayReceipt.action.actionId,
       gameplayReceipt,
+      replayCameraPose,
     ));
   }
   const samePauseOutcomes = JSON.stringify(comparablePauseOutcomes(replayOutcomes))
@@ -1904,6 +1937,15 @@ function tickEnemyPolicy() {
   void applyLatestRuntimeProjection();
   renderHud();
   return readout;
+}
+
+function restartEnemyLoopCadence() {
+  if (enemyLoopTimer !== null) {
+    window.clearInterval(enemyLoopTimer);
+  }
+  enemyLoopTimer = window.setInterval(() => {
+    tickEnemyPolicy();
+  }, 750);
 }
 
 function readRuntimeCameraHandle() {
@@ -2148,9 +2190,7 @@ function sampleLiveTelemetry(elapsedMs, frameTimeMs) {
 }
 
 renderHud();
-enemyLoopTimer = window.setInterval(() => {
-  tickEnemyPolicy();
-}, 750);
+restartEnemyLoopCadence();
 tickHud();
 
 (globalThis as any).ashaRendererSurface = {

@@ -159,7 +159,7 @@ export async function createDemoRuntimeBackend(
 ): Promise<DemoRuntimeBackend> {
   try {
     const providerResolution = await resolveNativeRustRuntimeBridgeProvider({
-      providerGlobalNames: ['ashaRuntimeBridge', 'ashaDemoRuntimeBridge'],
+      providerGlobalNames: ['ashaRuntimeBridge'],
     });
     const profile = providerResolution.profile;
     if (providerResolution.status !== 'available') {

@@ -9,6 +9,7 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   const baseUrl = brokerBaseUrl();
   expect(baseUrl, 'live UI smoke must use broker-provided BASE_URL').not.toBeNull();
 
+  await page.clock.install();
   await page.goto('/');
 
   const canvas = page.locator('[data-demo-readout="asha-renderer-browser-surface"]');
@@ -228,23 +229,29 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
   expect(poseAfterLook?.yawDegrees).not.toBe(poseBeforeMove?.yawDegrees);
   expect(poseAfterLook?.pitchDegrees).not.toBe(poseBeforeMove?.pitchDegrees);
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(600);
+  await expect.poll(async () => page.evaluate(
+    () => globalThis.ashaRendererSurface?.movementState?.().collided ?? null,
+  ), { timeout: 3000 }).toBe(true);
+  const collisionState = await page.evaluate(() => ({
+    pose: globalThis.ashaRendererSurface?.cameraPose?.() ?? null,
+    movement: globalThis.ashaRendererSurface?.movementState?.() ?? null,
+    evidence: globalThis.ashaRendererSurface?.runtimeCollisionEvidence?.() ?? null,
+  }));
   await page.keyboard.up('KeyW');
-  const poseAfterMove = await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null);
+  const poseAfterMove = collisionState.pose;
   expect(poseAfterMove?.position).not.toEqual(poseBeforeMove?.position);
   expect(Math.abs((poseAfterMove?.position?.[1] ?? Number.NaN) - (poseBeforeMove?.position?.[1] ?? Number.NaN))).toBeLessThan(
     0.00001,
   );
-  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().authority ?? null)).toBe(
-    'external_collision',
-  );
-  expect(await page.evaluate(() => globalThis.ashaRendererSurface?.movementState?.().collided ?? null)).toBe(true);
-  const collisionEvidence = await page.evaluate(() => globalThis.ashaRendererSurface?.runtimeCollisionEvidence?.() ?? null);
+  expect(collisionState.movement?.authority).toBe('external_collision');
+  expect(collisionState.movement?.collided).toBe(true);
+  const collisionEvidence = collisionState.evidence;
   expect(collisionEvidence?.envelope?.movementMode).toBe('grounded');
   expect(collisionEvidence?.envelope?.grid).toBe(0);
   expect(collisionEvidence?.collisionSourceHash).toBe(backendStatus.generatedTunnelOperation.collisionSourceHash);
   expect(collisionEvidence?.collisionProjectionHash).toBe(backendStatus.generatedTunnelOperation.collisionProjectionHash);
 
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
   await page.evaluate(() => globalThis.ashaRendererSurface?.reset?.());
   expect(await page.evaluate(() => globalThis.ashaRendererSurface?.cameraPose?.() ?? null)).toEqual({
     position: [0, 1.62, 1.5],
@@ -252,7 +259,7 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
     yawDegrees: 0,
   });
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(550);
+  await page.clock.runFor(550);
   await page.keyboard.up('KeyW');
   await page.evaluate((movement) => {
     document.dispatchEvent(new MouseEvent('mousemove', {
@@ -260,9 +267,10 @@ test('@live-agent asha-demo mounts the upstream ASHA renderer surface', async ({
       movementX: movement.movementX,
       movementY: movement.movementY,
     }));
-  }, { movementX: 0, movementY: -400 });
-  await page.waitForTimeout(100);
+  }, { movementX: 0, movementY: -147 });
+  await page.clock.runFor(100);
   const fireResult = await page.evaluate(() => globalThis.ashaRendererSurface?.firePrimary?.() ?? null);
+  await page.clock.resume();
   expect(fireResult?.interaction?.shotsFired).toBe(1);
   expect(fireResult?.interaction?.remainingTargets).toBe(0);
   expect(fireResult?.runtime?.accepted).toBe(true);
@@ -726,6 +734,112 @@ test('@live-agent gameplay fabric drives the close-range tunnel challenge', asyn
 
 });
 
+test('@live-agent far primary fire preserves base damage through the composed Transform', async ({ page }) => {
+  test.setTimeout(60_000);
+  const baseUrl = brokerBaseUrl();
+  expect(baseUrl, 'live UI smoke must use broker-provided BASE_URL').not.toBeNull();
+  await page.clock.install();
+  await page.goto('/');
+  await page.waitForFunction(() => globalThis.ashaRendererSurface?.runtimeBackendStatus?.()?.status === 'rust_authority');
+  await page.locator('#lock-button').click();
+  await expect.poll(async () => page.evaluate(() => document.pointerLockElement?.id ?? null)).toBe('asha-render-surface');
+  await page.evaluate(() => {
+    document.dispatchEvent(new MouseEvent('mousemove', {
+      bubbles: true,
+      movementX: 0,
+      movementY: 100,
+    }));
+  });
+  await page.clock.runFor(100);
+
+  const farFire = await page.evaluate(() => globalThis.ashaRendererSurface?.firePrimary?.() ?? null);
+  expect(farFire?.runtime?.accepted).toBe(true);
+  expect(farFire?.runtime?.combatReadout?.outcome.kind).toBe('hit');
+  expect(farFire?.runtime?.gameplayTransform).toMatchObject({
+    moduleId: 'demo.primary-fire-effect',
+    status: 'accepted',
+    damageApplied: 40,
+  });
+  expect(farFire?.runtime?.combatReadout?.events).toContainEqual({
+    kind: 'damage_applied',
+    target: 20,
+    amount: 40,
+    before: 45,
+    after: 5,
+  });
+  expect(farFire?.runtime?.combatReadout?.health).toContainEqual({
+    entity: 20,
+    current: 5,
+    max: 45,
+    dead: false,
+  });
+});
+
+test('@live-agent accepted transformed hit verification-replays from frozen camera authority', async ({ page }) => {
+  test.setTimeout(60_000);
+  const baseUrl = brokerBaseUrl();
+  expect(baseUrl, 'live UI smoke must use broker-provided BASE_URL').not.toBeNull();
+  await page.clock.install();
+  await page.goto('/');
+  await page.waitForFunction(() => globalThis.ashaRendererSurface?.runtimeBackendStatus?.()?.status === 'rust_authority');
+  await page.locator('#lock-button').click();
+  await expect.poll(async () => page.evaluate(() => document.pointerLockElement?.id ?? null)).toBe('asha-render-surface');
+
+  await page.keyboard.down('KeyW');
+  await page.clock.runFor(550);
+  await page.keyboard.up('KeyW');
+  await page.evaluate(() => {
+    document.dispatchEvent(new MouseEvent('mousemove', {
+      bubbles: true,
+      movementX: 0,
+      movementY: 220,
+    }));
+  });
+  await page.clock.runFor(100);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.clock.runFor(50);
+  await expect.poll(async () => page.evaluate(
+    () => globalThis.ashaRendererSurface?.inputAuthorityState?.().recordedGameplayActions.length ?? 0,
+  )).toBe(1);
+
+  const replay = await page.evaluate(() => globalThis.ashaRendererSurface?.replayRecordedInput?.() ?? null);
+  expect(replay).toMatchObject({
+    accepted: true,
+    sameOutcomes: true,
+    samePauseOutcomes: true,
+    sameGameplayOutcomes: true,
+    duplicateRejected: true,
+    duplicateDiagnostics: ['replayAlreadyDelivered'],
+  });
+  expect(replay?.recordHashes).toHaveLength(1);
+  expect(replay?.sourceGameplayOutcomes[0]).toMatchObject({
+    actionId: 'gameplay.primaryFire',
+    accepted: true,
+    outcome: {
+      kind: 'hit',
+      targetHealthBefore: { current: 45, max: 45 },
+      targetHealthAfter: { current: 0, max: 45 },
+    },
+    gameplayTransform: {
+      status: 'accepted',
+      damageApplied: 45,
+    },
+  });
+  expect(replay?.sourceGameplayOutcomes[0]?.outcome).toEqual(replay?.replayGameplayOutcomes[0]?.outcome);
+  expect(replay?.sourceGameplayOutcomes[0]?.cameraPose).toEqual(replay?.replayGameplayOutcomes[0]?.cameraPose);
+  expect(replay?.sourceGameplayOutcomes[0]?.gameplayTransform?.damageApplied)
+    .toBe(replay?.replayGameplayOutcomes[0]?.gameplayTransform?.damageApplied);
+  expect(replay?.sourceGameplayOutcomes[0]?.gameplayTransform?.decisionReceiptHash)
+    .toMatch(/^fnv1a64:[0-9a-f]{16}$/);
+  expect(replay?.replayGameplayOutcomes[0]?.gameplayTransform?.decisionReceiptHash)
+    .toMatch(/^fnv1a64:[0-9a-f]{16}$/);
+  expect(replay?.sourceGameplayOutcomes[0]?.gameplayTransform?.reactionFrameHash)
+    .toMatch(/^fnv1a64:[0-9a-f]{16}$/);
+  expect(replay?.replayGameplayOutcomes[0]?.gameplayTransform?.reactionFrameHash)
+    .toMatch(/^fnv1a64:[0-9a-f]{16}$/);
+});
+
 test('@live-agent asha-demo rejects spoofed native RuntimeBridge providers', async ({ page }) => {
   const baseUrl = brokerBaseUrl();
   expect(baseUrl, 'live UI smoke must use broker-provided BASE_URL').not.toBeNull();
@@ -891,6 +1005,7 @@ test('@live-agent resolved input owns pause, consumption, resume, and semantic r
       && /^fnv1a64:[0-9a-f]{16}$/.test(outcome.timeStateHash),
   )).toBe(true);
   expect(replay?.sourceGameplayOutcomes[0]?.outcome).toEqual(replay?.replayGameplayOutcomes[0]?.outcome);
+  expect(replay?.sourceGameplayOutcomes[0]?.cameraPose).toEqual(replay?.replayGameplayOutcomes[0]?.cameraPose);
   expect(replay?.sourceGameplayOutcomes[0]?.replayHash).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
   expect(replay?.replayGameplayOutcomes[0]?.replayHash).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
   expect(replay?.replayGameplayOutcomes[0]).toMatchObject({
