@@ -14,7 +14,7 @@
     "objectModelId": "asha.generated_tunnel.fps_ecrp_object_model.v0"
   },
   "gameplayRuntime": {
-    "compositionHash": "fnv1a64:5c6bb3529152f8e1",
+    "compositionHash": "fnv1a64:b0ff59982863a494",
     "declaredReadPlanHash": "fnv1a64:6ac56aec40e8d930",
     "challengeView": {
       "namespace": "demo.primary-fire-effect",
@@ -69,7 +69,7 @@
           "version": "0.1.0",
           "sdkHash": "fnv1a64:423dbcb90d661cd7",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
-          "artifactHash": "fnv1a64:2f048518fe5613fb",
+          "artifactHash": "fnv1a64:150c7bec8541fea9",
           "providerId": "provider.demo.primary-fire-effect"
         },
         "configuration": {
@@ -90,7 +90,7 @@
           "version": "0.1.0",
           "sdkHash": "fnv1a64:423dbcb90d661cd7",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
-          "artifactHash": "fnv1a64:2f048518fe5613fb",
+          "artifactHash": "fnv1a64:150c7bec8541fea9",
           "providerId": "provider.demo.primary-fire-effect"
         },
         "configuration": {
@@ -111,7 +111,7 @@
           "version": "0.1.0",
           "sdkHash": "fnv1a64:423dbcb90d661cd7",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
-          "artifactHash": "fnv1a64:2f048518fe5613fb",
+          "artifactHash": "fnv1a64:150c7bec8541fea9",
           "providerId": "provider.demo.primary-fire-effect"
         },
         "configuration": {
@@ -188,7 +188,7 @@
         "enabled": null
       }
     ],
-    "registryHash": "fnv1a64:0b87bf0fa1c3954e"
+    "registryHash": "fnv1a64:f2d81eb9fec3faf5"
   },
   "gameplayTriggers": [
     {

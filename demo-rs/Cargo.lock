@@ -613,6 +613,7 @@ dependencies = [
  "protocol-render",
  "protocol-scene",
  "protocol-view",
+ "render-bridge",
  "runtime-bridge-api",
  "serde",
  "serde_json",
@@ -753,6 +754,7 @@ version = "0.1.0"
 dependencies = [
  "core-ids",
  "protocol-render",
+ "protocol-scene",
  "serde",
 ]
 
@@ -901,6 +903,23 @@ dependencies = [
  "core-assets",
  "core-catalog",
  "protocol-presentation",
+]
+
+[[package]]
+name = "render-bridge"
+version = "0.1.0"
+dependencies = [
+ "core-assets",
+ "core-catalog",
+ "core-ids",
+ "core-math",
+ "core-scene",
+ "core-space",
+ "core-state",
+ "core-voxel",
+ "protocol-render",
+ "svc-mesh",
+ "svc-spatial",
 ]
 
 [[package]]
@@ -1056,6 +1075,7 @@ version = "0.1.0"
 dependencies = [
  "core-commands",
  "core-events",
+ "core-scene",
  "core-space",
  "core-voxel",
  "svc-collision",
@@ -1086,6 +1106,7 @@ dependencies = [
  "protocol-game-rules",
  "protocol-input",
  "protocol-presentation",
+ "protocol-project-bundle",
  "protocol-render",
  "protocol-scene",
  "protocol-time-control",
@@ -1097,6 +1118,7 @@ dependencies = [
  "render-animation",
  "render-audio",
  "render-billboard",
+ "render-bridge",
  "render-particle",
  "render-telemetry-overlay",
  "rule-animation-controller",
