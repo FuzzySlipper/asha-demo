@@ -1,6 +1,6 @@
 # Playwright Broker Readiness
 
-`asha-demo` is opted into the Den Playwright broker for objective live UI evidence.
+`asha-demo` is opted into the Den Playwright broker for visible product acceptance.
 
 The broker command uses this shape:
 
@@ -52,22 +52,15 @@ The repo root has `.den-playwright.json` with:
 - `tests.command` invoking Playwright;
 - `tests.artifactPolicy` set to `live-ui`.
 
-The smoke test in `tests/live-ui.spec.mjs` reads `BASE_URL` or
+The browser test in `tests/live-ui.spec.mjs` reads `BASE_URL` or
 `PLAYWRIGHT_BROKER_BASE_URL` and fails if neither is set. It checks objective
-UI/readout content only: the ASHA renderer canvas, generated-tunnel room labels,
-durable ProjectBundle/ECRP content refs, RuntimeSession ECRP load, movement
-authority, collision response, primary-fire combat/death readouts, HUD counters,
-and typed restart/reset state, including the selected animated mesh clip and
-renderer playback readback.
+player-visible behavior: native startup, the renderer canvas, firing and combat
+HUD change, pause/resume, and reset. A second regression demonstrates that a
+no-op fire control fails acceptance even if startup diagnostics remain healthy.
 
-## Evidence Expectations
+## Acceptance Notes
 
-Live UI handoffs should report:
-
-- `run-index.json`;
-- screenshot, trace, or video paths when produced;
-- whether human inspection happened;
-- visual uncertainty that remains;
-- the objective UI claim being tested.
-
-Passing Playwright is not enough for subjective visual/demo acceptance. Human-facing demo claims still need inspected browser-visible evidence.
+Live UI handoffs should report the exact Demo and ASHA revisions, the command,
+and whether a human inspected the visible result. Screenshots, traces, and videos
+are useful debugging artifacts when a failure needs them; they are not committed
+delivery tokens.

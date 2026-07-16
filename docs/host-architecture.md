@@ -40,12 +40,9 @@ operations; the shell's menu mode is presentation only and is never the
 simulation gate. While time is paused, rendering, HUD projection, options, and
 inspection reads remain live.
 
-Accepted pause/resume deliveries retain their authority-issued
-`RecordedInputAction`. The live surface can create a fresh native RuntimeSession,
-replay those records without synthesizing DOM events, and expose source/replay
-context hashes, time hashes, replay hashes, and duplicate-delivery rejection.
 Missing input/time operations fail closed with the normal runtime-backend
-diagnostic; there is no demo-local key-state or pause fallback.
+diagnostic; there is no demo-local key-state or pause fallback. Replay and
+cross-provider conformance are tested outside this product repository.
 
 ## Static gameplay composition
 
@@ -62,7 +59,7 @@ provider is used.
 The close-range rule is a typed gameplay-fabric Transform inside the ordinary
 authoritative primary-fire transaction. Rust derives range, target, and weapon
 facts from the current Session, runs Guard -> Transform -> React, revalidates the
-final Workspace, and commits through the existing combat/lifecycle owners.
+  final Workspace, and commits through the existing combat/lifecycle owners.
 Accepted combat, trigger, and prefab-part facts then enter the same wave-frozen
 fabric and update module-owned challenge state. The browser only submits camera
 bound RuntimeSession intents and reads combat projection, composed evidence, and
@@ -84,8 +81,7 @@ LAN binding. The static no-provider diagnostic path is `npm run dev:static`.
 
 The standalone command is a host-side smoke for the packaged app path. It builds
 `dist/ui`, installs the public native Rust RuntimeBridge provider before app
-boot, loads the same ProjectBundle/content without a dev-server port, and writes
-`dist/standalone/status.json`. That status also proves the gameplay registry,
-binding hash, reaction frame, state hash, composed RuntimeSession hash, named
-challenge view, prefab interaction, and combat replay evidence.
+boot, and loads the same ProjectBundle/content without a dev-server port. Its
+ephemeral readout helps developers diagnose host composition and gameplay state;
+it is not a product-delivery certificate.
 It must not grow a reference/mock fallback or a manual localhost-port requirement.

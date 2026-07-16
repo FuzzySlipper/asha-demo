@@ -5,7 +5,6 @@
   "projectBundle": "project/project-bundle.json",
   "contentRoot": "dist/ui",
   "hostBootstrap": "host/standalone-bootstrap.mjs",
-  "smokeArtifact": "dist/standalone/status.json",
   "runtimeProvider": {
     "kind": "native_runtime_bridge_provider",
     "injection": "globalThis.ashaRuntimeBridge",

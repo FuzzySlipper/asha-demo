@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -6,7 +6,6 @@ import { installAshaDemoStandaloneProvider } from '../host/standalone-bootstrap.
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'dist/ui');
-const standaloneRoot = join(repoRoot, 'dist/standalone');
 const shouldBuild = !process.argv.includes('--no-build');
 
 if (shouldBuild) {
@@ -53,7 +52,6 @@ if (!fireReceipt?.accepted) {
   throw new Error('Standalone host native RuntimeSession rejected primary fire smoke.');
 }
 const gameplayReadout = runtimeGateway.readGameplayRuntime();
-const composedReadout = runtimeGateway.readComposedRuntimeSession();
 const challengeState = runtimeGateway.readGameplayChallengeState();
 if (gameplayReadout?.reactionFrameCount < 2 || gameplayReadout?.decisionReceiptCount < 1) {
   throw new Error('Standalone host did not retain the linked gameplay module reaction frame.');
@@ -63,10 +61,9 @@ if (
     !== content.projectBundle.gameplayRuntime.prefabInteraction.expectedTarget
   || challengeState?.revision < 1
 ) {
-  throw new Error('Standalone host did not retain typed prefab interaction and named challenge-view evidence.');
+  throw new Error('Standalone host did not retain typed prefab interaction and named challenge-view readback.');
 }
 
-const telemetry = runtimeGateway.readTelemetry();
 const summary = {
   kind: 'asha_demo.standalone_host_smoke.v1',
   hostMode: 'standalone_compiled',
@@ -79,20 +76,11 @@ const summary = {
   gameplayModule: fireReceipt.gameplayTransform?.moduleId ?? null,
   runtimeStatus: runtimeBackend.status,
   primaryFireAccepted: fireReceipt.accepted,
-  gameplayRegistryDigest: gameplayReadout.gameplayRegistryDigest,
-  gameplayBindingRegistryHash: gameplayReadout.bindingRegistryHash,
   gameplayReactionFrameCount: gameplayReadout.reactionFrameCount,
-  gameplayLastFrameHash: gameplayReadout.lastReactionFrameHash,
-  gameplayModuleStateHash: gameplayReadout.moduleStateHash,
-  composedRuntimeSessionHash: composedReadout.runtimeSessionHash,
-  challengeViewHash: challengeState.viewHash,
+  challengeRevision: challengeState.revision,
   prefabInteractionTarget: runtimeBackend.prefabInteractionReceipt.target,
-  replayHash: fireReceipt.combatReadout?.replayHash ?? null,
-  telemetryReplayRecords: telemetry?.replayRecords?.length ?? 0,
 };
 
-mkdirSync(standaloneRoot, { recursive: true });
-writeFileSync(join(standaloneRoot, 'status.json'), `${JSON.stringify(summary, null, 2)}\n`);
 console.log(JSON.stringify(summary, null, 2));
 
 function runBuild() {

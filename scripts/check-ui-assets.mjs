@@ -37,7 +37,6 @@ for (const path of Object.values(projectBundle.sourceFiles.catalogRefs)) {
 }
 requireProjectFile(projectBundle.sourceFiles.levelPreset);
 requireProjectFile(projectBundle.sourceFiles.animatedMeshManifest);
-requireProjectFile('docs/demo-surface-audit.md');
 
 if (appTs.includes("from 'three'") || appTs.includes('from "three"')) {
   errors.push('asha-demo must not import Three.js directly; rendering is mounted through @asha/renderer-host');

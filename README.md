@@ -1,194 +1,59 @@
 # ASHA Demo
 
-Human-facing demonstrations of ASHA capabilities.
+`asha-demo` is a human-facing ASHA Game Project. Its acceptance oracle is the
+playable browser experience: the native host must start, the world must be
+visible, and player controls must visibly change projected game state.
 
-This repository is intentionally separate from `asha-testing`, which owns synthetic proof harnesses, boundary checks, and evidence workflows. Code here should optimize for clear, deliverable demonstrations built on public ASHA surfaces.
+Synthetic conformance belongs in `asha-testing`. This repository does not keep
+evidence catalogs, committed test reports, proof panels, reference-authority
+fallbacks, or private test globals.
 
-## Starting posture
+## Setup and run
 
-Start with the product README and runnable demo experience first. Add proof or evidence harnesses later only when they support the human-facing demo, and keep them secondary to the product flow.
+Clone beside `asha-engine`, then:
 
-Use the engine-owned public surface manifest in `/home/dev/asha-engine/harness/public-surface/ts-packages.json` to decide which ASHA packages are approved for this repo. If a demo needs a missing engine capability, request or add that public surface in ASHA instead of copying `asha-testing` internals or proof scaffolding.
-
-## Fresh setup
-
-Clone beside the engine repo:
-
-```sh
-cd /home/dev
-git clone git@github.com:FuzzySlipper/asha-engine.git asha-engine
-git clone git@github.com:FuzzySlipper/asha-demo.git asha-demo
-cd asha-demo
+```bash
 npm install
+npm run dev -- --port 5173
 ```
 
-The local package links in `package.json` expect `../asha-engine`. The package
-scope remains `@asha/*`.
+The development host installs the public native Rust RuntimeBridge provider
+before booting the game. Missing runtime authority is a startup/product failure;
+the Game Project does not fall back to reference authority.
 
 ## Verification
 
-```sh
-npm run check:dependencies
-npm run check:architecture
-npm run check:demo-rs
-npm run check:gameplay-module
-npm run check:host
-npm run check:standalone
+```bash
 npm test
 npm run build
+BASE_URL=http://127.0.0.1:5173 npm run test:live-ui
 ```
 
-For interactive browser evidence, run `npm run dev -- --port 5173` or let the
-Den Playwright broker provide the host and port. The default browser host binds
-to `0.0.0.0` and installs the public native Rust RuntimeBridge provider before
-app boot.
+`npm test` runs local dependency, authority-boundary, content, Rust provider,
+host, and build checks. `test:live-ui` uses only visible DOM/browser behavior:
+it requires successful startup, observes the HUD change after Fire, checks the
+pause/resume controls, and verifies Reset restores the visible counters. A
+no-op Fire control fails even if manifests and diagnostic hashes still exist.
 
-## Demo Surface
+Playwright output is ephemeral under ignored result/artifact directories. Exact
+engine and Demo revisions belong in the CI or Den review record, not a
+refresh-only committed report.
 
-This repo contains the first ASHA Game Project demo surface:
+## Repository boundary
 
-- `asha.game.toml` declares the bounded workspace shape.
-- `project/project-bundle.json` declares the demo ProjectBundle, runtime request,
-  durable source file refs, generated gameplay-module bindings/configuration,
-  and the close-range trigger definition.
-- `catalogs/actors/`, `catalogs/gameplay/`, `catalogs/materials/`, `catalogs/spawns/`, and `catalogs/weapons/` hold inspectable demo content.
-- `levels/presets/`, `levels/scenes/`, `assets/`, and `replays/` are source roots for demo-owned content and evidence.
-- `policies/` is documentation-only until ASHA exposes an approved public policy-authoring surface.
-- The served UI consumes public ASHA package roots for the integrated RuntimeSession loop: first-person generated-tunnel room rendering from the public renderer projection, browser-operable movement/look controls with collision readout, deterministic generated tunnel projection, enemy placement from durable ECRP content, hash-pinned animated mesh playback from RuntimeSession animation intent, primary-fire health/HUD feedback, typed HUD/menu controls, death status, and typed restart receipt. Runtime authority requires the standard injected public native Rust RuntimeBridge provider (`asha.runtime_bridge.native_rust_provider.v1` at `globalThis.ashaRuntimeBridge`); a plain static browser session fails closed with a visible missing-backend diagnostic instead of using reference authority.
-- The native provider is one consumer-composed RuntimeSession cell.
-  `demo-rs/crates/native-runtime-provider` statically links the real
-  `demo.primary-fire-effect` module through approved public Rust facades. The
-  close-range damage Transform runs synchronously inside authoritative primary
-  fire, accepted owner facts drive the challenge reactions, and the visible HUD
-  projects the module's provider-owned named view. There is no second gameplay
-  host, TypeScript gameplay callback, event ferry, or shadow authority session.
+- TypeScript consumes approved public ASHA package roots and projects browser
+  UI; it does not own simulation authority.
+- `demo-rs/crates/primary-fire-effect` owns only the Demo-specific gameplay
+  module and its local provider regression.
+- `demo-rs/crates/native-runtime-provider` composes that module through public
+  Rust facades into the native runtime cell.
+- Generic collision, combat, lifecycle, replay, serialization, and render
+  authority remain upstream.
 
-Run `npm run check:dependencies` before adding code or package dependencies. The guard reads ASHA's public-surface manifest and rejects private ASHA packages, generated contract file paths, Rust crate paths, and package-internal `src/*` imports.
+Add authored content under `catalogs/`, `levels/`, `assets/`, `prefabs/`, or
+`project/`. Keep runtime calls in `src/runtime/`, browser composition in
+`src/bootstrap/`, non-authoritative view shaping in `src/projection/`, and DOM
+mutation in `src/shell/`.
 
-Run `npm run check:architecture` before moving source boundaries. It rejects
-bloated `src/app.ts`, handwritten app/source JavaScript, private ASHA imports,
-renderer backend imports, and modules that mix RuntimeSession calls with direct
-DOM projection mutation.
-
-Run `npm run check:strict-boundary` for the typed content/runtime border. Fetched
-documents enter as `unknown`: Demo-owned ProjectBundle extensions use bounded
-decoders, generated module-binding and trigger values use the public generated
-wire validator, and prefab JSON crosses the public
-`decodeAndValidateAshaPrefabRegistrySourceDocument` boundary before authoring
-state exists. These checks are early consumer diagnostics only; the composed
-Rust RuntimeSession revalidates the ProjectBundle and remains authority.
-
-Project-wide `strict` remains a finite follow-up rather than a hidden claim. The
-strict gate currently covers all of `src/content/**` and `src/runtime/**`; the
-remaining debt is concentrated in the large UI bootstrap and older HUD/shell
-projection helpers. `npm run check:content-boundary` also exercises the healthy
-load and committed malformed source-reference, schema, variant/override, and
-dangling-role fixtures.
-
-Run `npm run check:demo-rs` before changing demo-owned Rust tooling or the game
-manifest. It compiles the downstream Rust preflight crate and checks stable
-demo-owned content metadata without importing ASHA internals.
-
-Run `npm run check:gameplay-module` before changing the close-range challenge.
-It executes the public gameplay-module conformance kit against the real linked
-provider and authored binding registry, including frozen reads, state facts,
-verification replay, recorded-fact playback, and save/reload. Its machine-readable
-report is `artifacts/5636/gameplay-module-conformance.json`.
-
-Run `npm run check:host` before changing host manifests. It verifies browser and
-standalone host configs use the same ProjectBundle/content path and native
-RuntimeBridge provider contract without reference fallback.
-
-Run `npm run standalone` before changing packaged-host behavior. It builds the
-same UI/content bundle, installs the public native RuntimeBridge provider from
-host bootstrap, loads RuntimeSession content without a manually selected
-dev-server port, and writes `dist/standalone/status.json`.
-
-Run `npm run capture:replay` after a build to refresh the committed
-generated-tunnel replay evidence under `replays/`. It consumes public
-RuntimeSession telemetry/replay readouts for movement, player death/restart,
-and primary-fire enemy defeat; it does not implement replay authority locally.
-
-Run `npm run test:live-ui` only with `BASE_URL` or `PLAYWRIGHT_BROKER_BASE_URL` set by the Den Playwright broker or an equivalent local dev-server wrapper. The live UI smoke checks objective text/readout values and writes screenshots under `PLAYWRIGHT_BROKER_ARTIFACT_ROOT` when provided.
-
-## Source Layout
-
-This repo follows ASHA's game-agent source organization guide:
-`../asha-engine/docs/game-agent-code-organization.md`.
-
-- `src/app.ts` is an entrypoint only. It imports `bootGame()`, calls it, and
-  reports fatal startup errors.
-- `src/bootstrap/` composes the demo, mounts adapters, wires browser events, and
-  starts the frame loop. It should not become a declaration pile or gameplay
-  authority module.
-- `src/content/` loads authored ProjectBundle/ECRP/catalog files and performs
-  consumer-side preflight/readout shaping.
-- `src/runtime/` is the ASHA runtime gateway. Direct RuntimeSession/native
-  provider calls belong here, not in HUD, shell, or feature projection code.
-- `src/input/` maps local controls to typed intents such as `HudMenuIntent`.
-- `src/projection/` builds non-authoritative HUD/menu/readout descriptors from
-  RuntimeSession projections plus shell state.
-- `src/shell/` owns DOM lookup, DOM mutation, reticle updates, and browser host
-  rendering adapters.
-- `demo-rs/` owns demo-specific Rust tooling and the statically linked product
-  gameplay module/binding cell. Generic authority remains in public engine
-  facades; the demo module owns only its close-range challenge state and reactions.
-- `host/` describes browser-served and standalone host shapes.
-
-Add new game content under `catalogs/`, `levels/`, `assets/`, or `project/`.
-Add new HUD/readout shape under `src/projection/`, DOM rendering under
-`src/shell/`, control mapping under `src/input/`, and RuntimeSession calls under
-`src/runtime/`. Feature-specific assembly should move under `src/features/`
-when a feature grows past the current generated-tunnel loop.
-
-## Authority Split
-
-ASHA Rust decides accepted state. `asha-demo` TypeScript describes content,
-collects browser input, projects HUD/menu/readouts, and submits typed intents.
-Demo code must not own:
-
-- RuntimeSession authority;
-- generic collision, combat, health/lifecycle, pathfinding, replay, or restart
-  authority;
-- renderer backend authority or direct Three.js wiring;
-- generated ASHA contract truth or private engine/package internals;
-- reference/mock RuntimeSession as product authority.
-
-Demo-owned Rust follows
-`../asha-engine/docs/runtime-session-static-composition.md`: it contributes a
-closed static module composition, typed Transform, and module-local challenge
-state to the same RuntimeSession cell, while engine owners retain collision,
-combat, lifecycle, capability mutation, trigger reconciliation, replay,
-scheduling, and RuntimeSession validation. The ProjectBundle pins the derived
-composition/read-plan/binding identities and closed scheduler contracts;
-TypeScript submits ordinary intents and projects bounded readouts.
-
-## Current Boundaries
-
-This is a public-surface playable loop, not a full native FPS host. Runtime
-authority, collision, combat, health/lifecycle, generation, policy, and render
-projection stay in public ASHA surfaces. The demo repo owns authored project
-files, browser mounting, HUD placement, and the human-facing playable page. The
-demo does not use reference/mock RuntimeSession authority as its product path.
-
-Browser-served native-provider mode is runnable through `npm run dev` or the Den
-Playwright broker. Static no-provider diagnostics are still available through
-`npm run dev:static` for fail-closed coverage. Standalone compiled mode is
-checked through `npm run standalone` and described in
-`docs/host-architecture.md`. Do not regress standalone into a shortcut to a
-manually managed localhost port.
-
-Known unfinished demo pieces are tracked in `docs/demo-surface-audit.md` and Den
-tasks. Do not recreate a broad disclaimer document; remove, implement, or assign
-placeholders when they appear.
-
-## Live UI evidence
-
-Run `npm run dev -- --port 5173` to serve the public ASHA demo UI through
-`@asha/browser-host`. That host injects the native Rust RuntimeBridge provider
-before app boot, so human browser play should report `rust_authority`. Run
-`npm run dev:static -- --port 5173` only when intentionally checking the
-fail-closed no-provider diagnostic path. `asha-demo` is opted into the Den
-Playwright broker via `.den-playwright.json`; see `docs/playwright-broker.md`
-for the command shape, required `BASE_URL`/`PLAYWRIGHT_BROKER_BASE_URL`
-behavior, and evidence expectations.
+See [host architecture](docs/host-architecture.md) and the
+[proof disposition ledger](docs/proof-disposition.md).

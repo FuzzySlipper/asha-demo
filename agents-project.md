@@ -23,6 +23,19 @@ If a demo needs a missing camera, rendering, runtime, asset, interaction, bridge
 - Engine/runtime/protocol/render authority belongs in `asha-engine`.
 - Studio/editor UX belongs in `asha-studio`.
 
+## Acceptance posture
+
+- Local product acceptance uses visible browser interactions and user-facing
+  state. A no-op control or failed startup must fail.
+- Operational diagnostics may explain a failure, but hashes/tokens/readouts are
+  not the sole delivery oracle.
+- Synthetic compatibility, replay, negative fixtures, and cross-repository
+  certification belong in `asha-testing`.
+- Do not add proof panels, test-only globals, committed execution reports, or
+  refresh-only screenshots. Browser artifacts belong in ignored CI/Den output.
+- Keep Demo-owned Rust provider regressions when they exercise the real composed
+  product module; do not wrap them in a second conformance/report layer.
+
 ## Public-surface rule
 
 Use public ASHA package roots only. If a demo needs a missing capability, request the public ASHA surface rather than recreating engine concepts locally.

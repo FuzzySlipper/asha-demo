@@ -3,3 +3,4 @@ dist/
 demo-rs/target/
 playwright-report/
 test-results/
+artifacts/

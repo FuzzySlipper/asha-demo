@@ -33,17 +33,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
 
 [[package]]
-name = "asha-demo-gameplay-conformance"
-version = "0.1.0"
-dependencies = [
- "asha-demo-primary-fire-effect",
- "asha-gameplay-module-conformance",
- "asha-gameplay-module-sdk",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "asha-demo-native-runtime-provider"
 version = "0.1.0"
 dependencies = [
@@ -71,21 +60,6 @@ dependencies = [
  "asha-runtime-session-composition",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "asha-gameplay-module-conformance"
-version = "0.1.0"
-dependencies = [
- "asha-gameplay-module-sdk",
- "core-ids",
- "core-scene",
- "rule-gameplay-fabric",
- "rule-project-bundle",
- "serde",
- "serde_json",
- "svc-gameplay-fabric",
- "svc-serialization",
 ]
 
 [[package]]

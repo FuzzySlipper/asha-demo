@@ -1,6 +1,6 @@
 # ASHA Demo Assets
 
-The animated mesh proof serves the committed Kenney GLB through the public
+The animated character serves the committed Kenney GLB through the public
 `@asha/renderer-host` resource manifest. The runtime loads the hash-pinned GLB
 from this project asset root; it does not depend on `/home/stash` or engine
 fixture paths.

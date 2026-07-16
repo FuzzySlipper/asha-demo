@@ -27,10 +27,6 @@ export function renderHudElements(elements: any, view: any): void {
     elements.animationCueState.textContent = view.animationCueLabel;
     elements.animationCueState.dataset.status = view.animationCueStatus;
   }
-  if (elements.presentationDegradationState instanceof HTMLElement) {
-    elements.presentationDegradationState.textContent = view.presentationDegradationLabel;
-    elements.presentationDegradationState.dataset.status = view.presentationDegradationStatus;
-  }
   if (elements.eventState instanceof HTMLElement) {
     elements.eventState.textContent = view.eventLabel;
   }
