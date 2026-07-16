@@ -14,7 +14,11 @@
     "objectModelId": "asha.generated_tunnel.fps_ecrp_object_model.v0"
   },
   "gameplayRuntime": {
-    "compositionHash": "fnv1a64:b0ff59982863a494",
+    "compositionRequirement": {
+      "loadMode": "compatible",
+      "semanticCompatibilityDigest": "fnv1a64:d5d1f26cc8272072",
+      "artifactProvenanceDigest": "fnv1a64:93ae83151493d503"
+    },
     "declaredReadPlanHash": "fnv1a64:6ac56aec40e8d930",
     "challengeView": {
       "namespace": "demo.primary-fire-effect",
@@ -67,9 +71,9 @@
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
           "version": "0.1.0",
-          "sdkHash": "fnv1a64:423dbcb90d661cd7",
+          "sdkHash": "fnv1a64:669691f614be751f",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
-          "artifactHash": "fnv1a64:150c7bec8541fea9",
+          "artifactHash": "fnv1a64:09d5eecc7c9ecbf3",
           "providerId": "provider.demo.primary-fire-effect"
         },
         "configuration": {
@@ -88,9 +92,9 @@
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
           "version": "0.1.0",
-          "sdkHash": "fnv1a64:423dbcb90d661cd7",
+          "sdkHash": "fnv1a64:669691f614be751f",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
-          "artifactHash": "fnv1a64:150c7bec8541fea9",
+          "artifactHash": "fnv1a64:09d5eecc7c9ecbf3",
           "providerId": "provider.demo.primary-fire-effect"
         },
         "configuration": {
@@ -109,9 +113,9 @@
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
           "version": "0.1.0",
-          "sdkHash": "fnv1a64:423dbcb90d661cd7",
+          "sdkHash": "fnv1a64:669691f614be751f",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
-          "artifactHash": "fnv1a64:150c7bec8541fea9",
+          "artifactHash": "fnv1a64:09d5eecc7c9ecbf3",
           "providerId": "provider.demo.primary-fire-effect"
         },
         "configuration": {
@@ -188,7 +192,7 @@
         "enabled": null
       }
     ],
-    "registryHash": "fnv1a64:f2d81eb9fec3faf5"
+    "registryHash": "fnv1a64:fb4c60a54906c4ee"
   },
   "gameplayTriggers": [
     {

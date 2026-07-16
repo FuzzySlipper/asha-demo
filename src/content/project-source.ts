@@ -1,5 +1,6 @@
 import {
   validateGeneratedWireValue,
+  type GameplayCompositionRequirement,
   type GameplayContractRef,
   type GameplayModuleBindingRegistry,
   type GameplayOwnerRef,
@@ -54,7 +55,7 @@ export interface DemoProjectBundle {
     readonly objectModelId: string;
   };
   readonly gameplayRuntime: {
-    readonly compositionHash: string;
+    readonly compositionRequirement: GameplayCompositionRequirement;
     readonly declaredReadPlanHash: string;
     readonly challengeView: GameplayContractRef;
     readonly prefabInteraction: {
@@ -203,7 +204,11 @@ export function decodeDemoProjectBundle(value: unknown): DemoProjectBundle {
       objectModelId: nonEmptyString(catalogs['objectModelId'], '$.catalogs.objectModelId'),
     },
     gameplayRuntime: {
-      compositionHash: nonEmptyString(gameplayRuntime['compositionHash'], '$.gameplayRuntime.compositionHash'),
+      compositionRequirement: generatedValue<GameplayCompositionRequirement>(
+        gameplayRuntime['compositionRequirement'],
+        'gameExtension.GameplayCompositionRequirement',
+        '$.gameplayRuntime.compositionRequirement',
+      ),
       declaredReadPlanHash: nonEmptyString(
         gameplayRuntime['declaredReadPlanHash'],
         '$.gameplayRuntime.declaredReadPlanHash',

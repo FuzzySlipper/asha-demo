@@ -57,6 +57,7 @@ name = "asha-demo-preflight"
 version = "0.1.0"
 dependencies = [
  "asha-demo-primary-fire-effect",
+ "asha-gameplay-module-sdk",
  "asha-runtime-session-composition",
  "serde_json",
  "toml",
@@ -359,6 +360,7 @@ dependencies = [
  "core-ids",
  "core-math",
  "gameplay-module-sdk",
+ "protocol-diagnostics",
  "protocol-entity-authoring",
  "protocol-game-extension",
  "protocol-project-bundle",
@@ -610,6 +612,8 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "protocol-assets",
+ "protocol-diagnostics",
+ "protocol-game-extension",
  "protocol-render",
  "protocol-scene",
  "protocol-view",
@@ -1025,6 +1029,7 @@ dependencies = [
  "core-space",
  "core-voxel",
  "gameplay-module-sdk",
+ "protocol-diagnostics",
  "protocol-game-extension",
  "protocol-voxel-annotation",
  "rule-gameplay-fabric",

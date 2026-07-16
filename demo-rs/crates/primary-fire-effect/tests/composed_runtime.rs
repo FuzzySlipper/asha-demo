@@ -3,9 +3,9 @@ use asha_demo_primary_fire_effect::{
     gameplay_runtime_project_input,
 };
 use asha_gameplay_module_sdk::{
-    gameplay_canonical_payload_hash, GameplayCausationRef, GameplayContractRef, GameplayEmitterRef,
-    GameplayEntityRef, GameplayOwnerRef, GameplayProposalEnvelope,
-    PrimaryFireGameplayDecisionWorkspace, StandardGameplayProposalKind,
+    gameplay_canonical_payload_hash, GameplayCausationRef, GameplayCompositionDiagnosticCode,
+    GameplayContractRef, GameplayEmitterRef, GameplayEntityRef, GameplayOwnerRef,
+    GameplayProposalEnvelope, PrimaryFireGameplayDecisionWorkspace, StandardGameplayProposalKind,
 };
 use asha_runtime_session_composition::{
     EngineBridge, EngineConfig, FpsBridgeBoundsCapability, FpsBridgeHealth, FpsBridgeRole,
@@ -19,6 +19,30 @@ use asha_runtime_session_composition::{
 };
 
 const SENSOR_701: u64 = 1_585_192_660_180_873;
+
+#[test]
+fn compatible_project_load_survives_benign_artifact_provenance_churn() {
+    let mut input = gameplay_runtime_project_input();
+    input
+        .composition_requirement
+        .as_mut()
+        .expect("Demo carries an explicit compatibility requirement")
+        .artifact_provenance_digest = Some("fnv1a64:0000000000000000".to_owned());
+    let mut bridge = StaticRuntimeSessionBuilder::activate_project_with_prefabs(
+        input,
+        gameplay_runtime_prefab_bootstrap(),
+    )
+    .and_then(StaticRuntimeSessionBuilder::build)
+    .expect("compatible mode accepts artifact-only drift");
+    let readout = bridge.read_composed_runtime_session().unwrap();
+    assert!(readout
+        .gameplay
+        .compatibility_diagnostics
+        .iter()
+        .any(|diagnostic| {
+            diagnostic.code == GameplayCompositionDiagnosticCode::ArtifactProvenanceMismatch
+        }));
+}
 
 #[test]
 fn close_range_transform_changes_authoritative_damage_but_far_fire_preserves_base() {

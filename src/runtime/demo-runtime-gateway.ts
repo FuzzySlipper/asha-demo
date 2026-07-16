@@ -225,10 +225,8 @@ export async function createDemoRuntimeBackend(
     }
     const composedBeforeInteraction = bridge.readComposedRuntimeSession();
     if (
-      composedBeforeInteraction.gameplay.gameplayRegistryDigest
-        !== content.projectBundle.gameplayRuntime.compositionHash
-      || composedBeforeInteraction.gameplay.bindingRegistryHash
-        !== content.projectBundle.gameplayModuleBindings.registryHash
+      composedBeforeInteraction.gameplay.semanticCompatibilityDigest
+        !== content.projectBundle.gameplayRuntime.compositionRequirement.semanticCompatibilityDigest
     ) {
       return unavailableRuntimeBackend(
         profile,

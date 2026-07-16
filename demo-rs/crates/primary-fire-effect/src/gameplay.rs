@@ -764,6 +764,7 @@ pub fn gameplay_runtime_project_input() -> GameplayRuntimeProjectInput {
             .with_artifact("assets/lock.json", "{\"entries\":[]}")
             .with_artifact("scene/scene.json", gameplay_scene_artifact()),
         composition: gameplay_composition().expect("Demo gameplay composition is valid"),
+        composition_requirement: Some(gameplay_project_composition_requirement()),
         bindings: gameplay_authored_binding_registry(),
         entity_targets: GameplayBindingEntityTargets::new(),
         spatial_entities: vec![GameplayRuntimeSpatialEntity {
@@ -795,6 +796,14 @@ pub fn gameplay_runtime_project_input() -> GameplayRuntimeProjectInput {
             ],
         ),
     }
+}
+
+pub fn gameplay_project_composition_requirement() -> GameplayCompositionRequirement {
+    let project_bundle: serde_json::Value =
+        serde_json::from_str(include_str!("../../../../project/project-bundle.json"))
+            .expect("Demo ProjectBundle is valid JSON");
+    serde_json::from_value(project_bundle["gameplayRuntime"]["compositionRequirement"].clone())
+        .expect("Demo ProjectBundle carries a typed gameplay composition requirement")
 }
 
 pub fn gameplay_runtime_prefab_bootstrap() -> GameplayRuntimePrefabBootstrap {

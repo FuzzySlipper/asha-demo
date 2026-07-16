@@ -4,8 +4,12 @@ use std::path::{Path, PathBuf};
 
 use asha_demo_primary_fire_effect::{
     gameplay_authored_binding_registry, gameplay_challenge_view_contract, gameplay_composition,
-    gameplay_declared_read_plan_hash, gameplay_runtime_prefab_bootstrap,
-    gameplay_runtime_project_input,
+    gameplay_declared_read_plan_hash, gameplay_project_composition_requirement,
+    gameplay_runtime_prefab_bootstrap, gameplay_runtime_project_input,
+};
+use asha_gameplay_module_sdk::{
+    gameplay_module_binding_registry_hash, gameplay_module_binding_registry_semantic_hash,
+    gameplay_runtime_composition_identity, GameplayModuleBindingRegistry,
 };
 use asha_runtime_session_composition::{
     GameplayPrefabPartInteractionRequest, StaticRuntimeSessionBuilder,
@@ -44,15 +48,19 @@ fn main() {
 
 fn print_linked_contract() {
     let project_input = gameplay_runtime_project_input();
+    let composition = gameplay_composition().expect("linked gameplay composition is valid");
+    let bindings = gameplay_authored_binding_registry();
+    let identity = gameplay_runtime_composition_identity(composition.registry(), &bindings);
     let value = serde_json::json!({
-        "compositionHash": gameplay_composition()
-            .expect("linked gameplay composition is valid")
-            .registry()
-            .registry_digest(),
+        "compositionRequirement": {
+            "loadMode": "compatible",
+            "semanticCompatibilityDigest": identity.semantic_compatibility_digest,
+            "artifactProvenanceDigest": identity.artifact_provenance_digest,
+        },
         "declaredReadPlanHash": gameplay_declared_read_plan_hash(),
         "challengeView": gameplay_challenge_view_contract(),
         "scheduler": project_input.scheduler,
-        "gameplayModuleBindings": gameplay_authored_binding_registry(),
+        "gameplayModuleBindings": bindings,
     });
     println!(
         "{}",
@@ -100,23 +108,45 @@ fn run_preflight(repo_root: &Path) -> Result<PreflightSummary, String> {
     }
     let composition = gameplay_composition()
         .map_err(|error| format!("static gameplay composition is invalid: {error}"))?;
+    let composition_requirement = gameplay_project_composition_requirement();
+    if composition_requirement.load_mode
+        != asha_gameplay_module_sdk::GameplayCompositionLoadMode::Compatible
+    {
+        return Err("Demo ProjectBundle must use normal compatible gameplay loading".to_owned());
+    }
+    let authored_bindings = gameplay_authored_binding_registry();
+    let composition_identity =
+        gameplay_runtime_composition_identity(composition.registry(), &authored_bindings);
     require_json_string(
         &project_bundle,
-        &["gameplayRuntime", "compositionHash"],
-        composition.registry().registry_digest(),
+        &[
+            "gameplayRuntime",
+            "compositionRequirement",
+            "semanticCompatibilityDigest",
+        ],
+        &composition_identity.semantic_compatibility_digest,
     )?;
     require_json_string(
         &project_bundle,
         &["gameplayRuntime", "declaredReadPlanHash"],
         &gameplay_declared_read_plan_hash(),
     )?;
-    let authored_bindings = serde_json::to_value(gameplay_authored_binding_registry())
-        .map_err(|error| format!("gameplay binding registry did not serialize: {error}"))?;
-    let stored_bindings = project_bundle
-        .get("gameplayModuleBindings")
-        .ok_or_else(|| "ProjectBundle.gameplayModuleBindings is required".to_owned())?;
-    if stored_bindings != &authored_bindings {
-        return Err("ProjectBundle gameplayModuleBindings drifted from the statically linked module contract".to_owned());
+    let stored_bindings: GameplayModuleBindingRegistry = serde_json::from_value(
+        project_bundle
+            .get("gameplayModuleBindings")
+            .ok_or_else(|| "ProjectBundle.gameplayModuleBindings is required".to_owned())?
+            .clone(),
+    )
+    .map_err(|error| format!("ProjectBundle.gameplayModuleBindings is invalid: {error}"))?;
+    if stored_bindings.registry_hash != gameplay_module_binding_registry_hash(&stored_bindings) {
+        return Err(
+            "ProjectBundle gameplayModuleBindings has an invalid exact content hash".to_owned(),
+        );
+    }
+    if gameplay_module_binding_registry_semantic_hash(&stored_bindings)
+        != gameplay_module_binding_registry_semantic_hash(&authored_bindings)
+    {
+        return Err("ProjectBundle gameplayModuleBindings is semantically incompatible with the statically linked module contract".to_owned());
     }
     let authored_view = serde_json::to_value(gameplay_challenge_view_contract())
         .map_err(|error| format!("gameplay challenge view did not serialize: {error}"))?;

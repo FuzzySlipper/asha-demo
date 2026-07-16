@@ -647,7 +647,14 @@ test('@live-agent gameplay fabric drives the close-range tunnel challenge', asyn
     prefabProjection: globalThis.ashaRendererSurface?.prefabPlacementProjection?.() ?? null,
   }));
   expect(initial.challenge).toMatchObject({ status: 'armed', score: 0, closeRangeHits: 0, triggerEntries: 0 });
-  expect(initial.readout?.bindingRegistryHash).toBe('fnv1a64:0b87bf0fa1c3954e');
+  expect(initial.readout?.bindingRegistryHash).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
+  expect(initial.readout?.semanticCompatibilityDigest).toBe('fnv1a64:d5d1f26cc8272072');
+  expect(initial.readout?.compatibilityDiagnostics).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      code: 'artifactProvenanceMismatch',
+      severity: 'warning',
+    }),
+  ]));
   expect(initial.readout?.authorityStateHash).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
   expect(initial.readout).toMatchObject({
     schedulerPendingActionCount: 0,
@@ -656,7 +663,7 @@ test('@live-agent gameplay fabric drives the close-range tunnel challenge', asyn
     schedulerTruncated: false,
   });
   expect(initial.composed?.runtimeSessionHash).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
-  expect(initial.composed?.gameplay?.gameplayRegistryDigest).toBe('fnv1a64:5c6bb3529152f8e1');
+  expect(initial.composed?.gameplay?.gameplayRegistryDigest).toMatch(/^fnv1a64:[0-9a-f]{16}$/);
   expect(initial.prefabAuthoring?.definitions).toHaveLength(1);
   expect(initial.prefabAuthoring?.selected?.roles?.map((role) => role.role)).toEqual([
     'console/body',

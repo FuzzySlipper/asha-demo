@@ -52,9 +52,12 @@ diagnostic; there is no demo-local key-state or pause fallback.
 `demo-rs/crates/native-runtime-provider` builds the product-owned N-API provider
 from the public static RuntimeSession builder and the demo's real
 `primary-fire-effect` crate. Activation validates the compiled composition
-against `ProjectBundle.gameplayRuntime.compositionHash`, the derived read-plan
+against the semantic digest in
+`ProjectBundle.gameplayRuntime.compositionRequirement`; exact artifact
+provenance remains a runtime advisory in compatible mode. The derived read-plan
 hash, `ProjectBundle.gameplayModuleBindings`, prefab placements, trigger
-definitions, and the closed scheduler declaration before the provider is used.
+definitions, and closed scheduler declaration are also validated before the
+provider is used.
 
 The close-range rule is a typed gameplay-fabric Transform inside the ordinary
 authoritative primary-fire transaction. Rust derives range, target, and weapon
