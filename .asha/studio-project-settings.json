@@ -1,0 +1,29 @@
+{
+  "artifactKind": "asha_studio_project_settings",
+  "project": {
+    "gameId": "asha-demo",
+    "manifestPath": "asha.game.toml"
+  },
+  "schemaVersion": 1,
+  "settingsVersion": "asha-studio-project-settings.v1",
+  "spatialGrid": {
+    "coordinateSystem": "rightHandedYUp",
+    "origin": [
+      0,
+      0,
+      0
+    ],
+    "plane": "xz",
+    "snapAnchor": "boundary",
+    "spacing": [
+      0.25,
+      0.25,
+      0.25
+    ]
+  },
+  "transformSnapping": {
+    "rotationDegrees": 15,
+    "scaleIncrement": 0.1
+  },
+  "units": "meters"
+}

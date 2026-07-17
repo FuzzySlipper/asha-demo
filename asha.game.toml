@@ -13,6 +13,8 @@ engine_source = "../asha-engine"
 [workspace]
 scene_roots = ["levels/presets", "levels/scenes"]
 asset_roots = ["assets"]
+prefab_roots = ["prefabs"]
+replay_roots = ["replays"]
 catalog_packages = ["catalogs/actors", "catalogs/gameplay", "catalogs/materials", "catalogs/spawns", "catalogs/weapons"]
 policy_packages = []
 
@@ -26,7 +28,7 @@ backend_profile = "native.napi.launcher.v1"
 [studio]
 workspace_mode = true
 attach_enabled = false
-allowed_source_writes = ["levels/presets", "levels/scenes", "assets", "catalogs/actors", "catalogs/gameplay", "catalogs/materials", "catalogs/spawns", "catalogs/weapons"]
+allowed_source_writes = ["levels/presets", "levels/scenes", "prefabs", "assets", "catalogs/actors", "catalogs/gameplay", "catalogs/materials", "catalogs/spawns", "catalogs/weapons"]
 
 [publish]
 command = "npm run build"
