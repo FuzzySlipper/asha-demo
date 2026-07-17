@@ -14,8 +14,20 @@ const projectBundlePath = '/project/project-bundle.json';
 const prefabRegistryPath = '/prefabs/registry.json';
 
 await assertTypedBoundaryHasNoAny();
-const healthyContent = await loadDemoProjectContent(readProjectJson);
+const healthyContent = await loadDemoProjectContent(readProjectJson, readProjectText);
 assert.equal(readDemoProjectContentStatus(healthyContent).valid, true);
+assert.equal(
+  healthyContent.sceneDocumentSourceText,
+  await readProjectText(`/${healthyContent.sourceFiles.sceneDocument}`),
+);
+assert.deepEqual(
+  healthyContent.sceneDocument.nodes
+    .filter((node) => node.kind.kind === 'entityInstance')
+    .map((node) => node.kind.instance.reference.kind === 'entityDefinition'
+      ? node.kind.instance.reference.stableId
+      : `prefab:${node.kind.instance.reference.prefabId}`),
+  ['actor/demo-player', 'actor/generated-tunnel-enemy'],
+);
 
 const sourceReferenceFixture = await readFixture('project-bundle.invalid-source-reference.json');
 const healthyBundle = await readProjectJson(projectBundlePath);
@@ -106,11 +118,15 @@ async function readFixture(name) {
 }
 
 async function readProjectJson(path) {
+  return JSON.parse(await readProjectText(path));
+}
+
+async function readProjectText(path) {
   const relativePath = path.startsWith('/') ? path.slice(1) : path;
   if (relativePath.split('/').includes('..')) {
     throw new Error(`Fixture reader rejected traversal path ${path}`);
   }
-  return JSON.parse(await readFile(join(repoRoot, relativePath), 'utf8'));
+  return readFile(join(repoRoot, relativePath), 'utf8');
 }
 
 function isObject(value) {

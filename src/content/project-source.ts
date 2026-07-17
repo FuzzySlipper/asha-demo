@@ -13,7 +13,6 @@ import type {
   RuntimeSessionEcrpEntityDefinition,
   RuntimeSessionEcrpProjectCapabilityDefinition,
   RuntimeSessionEcrpProjectLoadInput,
-  RuntimeSessionEcrpSceneDocument,
   RuntimeSessionProjectIdentity,
 } from '@asha/runtime-session';
 
@@ -86,15 +85,6 @@ export interface DemoGameplayRuntimeSchedulerDefinition {
   readonly owner: GameplayOwnerRef;
   readonly declaredEvents: readonly GameplayContractRef[];
   readonly declaredProposals: readonly GameplayContractRef[];
-}
-
-export interface DemoSceneDocument extends RuntimeSessionEcrpSceneDocument {
-  readonly levelPresetRef: string;
-  readonly generatedTunnelSeed: number;
-  readonly materialCatalogRef: string;
-  readonly spawnCatalogRef: string;
-  readonly staticCollisionSource: string;
-  readonly renderSurface: string;
 }
 
 export interface DemoGameplayCatalog {
@@ -321,38 +311,6 @@ export function decodeDemoEntityDefinition(value: unknown, path: string): Runtim
     source: decodeEntitySource(definition['source'], `${path}.source`),
     capabilities: sourceArray(definition['capabilities'], `${path}.capabilities`)
       .map((capability, index) => decodeCapability(capability, `${path}.capabilities[${index}]`)),
-  };
-}
-
-export function decodeDemoSceneDocument(value: unknown): DemoSceneDocument {
-  const scene = sourceObject(value, '$');
-  requireLiteral(scene['kind'], 'SceneDocument', '$.kind');
-  return {
-    kind: 'SceneDocument',
-    sceneId: nonEmptyString(scene['sceneId'], '$.sceneId'),
-    placements: sourceArray(scene['placements'], '$.placements').map((placement, index) => {
-      const item = sourceObject(placement, `$.placements[${index}]`);
-      const runtimeEntityId = item['runtimeEntityId'];
-      const spawnMarkerId = item['spawnMarkerId'];
-      return {
-        entityDefinitionId: nonEmptyString(
-          item['entityDefinitionId'],
-          `$.placements[${index}].entityDefinitionId`,
-        ),
-        ...(spawnMarkerId === undefined
-          ? {}
-          : { spawnMarkerId: nonEmptyString(spawnMarkerId, `$.placements[${index}].spawnMarkerId`) }),
-        ...(runtimeEntityId === undefined
-          ? {}
-          : { runtimeEntityId: nonNegativeInteger(runtimeEntityId, `$.placements[${index}].runtimeEntityId`) }),
-      };
-    }),
-    levelPresetRef: nonEmptyString(scene['levelPresetRef'], '$.levelPresetRef'),
-    generatedTunnelSeed: nonNegativeInteger(scene['generatedTunnelSeed'], '$.generatedTunnelSeed'),
-    materialCatalogRef: sourcePath(scene['materialCatalogRef'], '$.materialCatalogRef'),
-    spawnCatalogRef: sourcePath(scene['spawnCatalogRef'], '$.spawnCatalogRef'),
-    staticCollisionSource: nonEmptyString(scene['staticCollisionSource'], '$.staticCollisionSource'),
-    renderSurface: nonEmptyString(scene['renderSurface'], '$.renderSurface'),
   };
 }
 

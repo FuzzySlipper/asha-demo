@@ -8,7 +8,9 @@ const indexHtml = readFileSync(join(repoRoot, 'app/index.html'), 'utf8');
 const appTs = readFileSync(join(repoRoot, 'src/bootstrap/boot-game.ts'), 'utf8');
 const entrypointTs = readFileSync(join(repoRoot, 'src/app.ts'), 'utf8');
 const runtimeGatewayTs = readFileSync(join(repoRoot, 'src/runtime/demo-runtime-gateway.ts'), 'utf8');
+const projectSourceTs = readFileSync(join(repoRoot, 'src/content/project-source.ts'), 'utf8');
 const projectBundle = readJson('project/project-bundle.json');
+const sceneDocument = readJson(projectBundle.sourceFiles.sceneDocument);
 const styles = readFileSync(join(repoRoot, 'app/styles.css'), 'utf8');
 const status = buildUiStatus(repoRoot);
 const errors = [];
@@ -26,6 +28,7 @@ requireText(appTs, 'generated-tunnel-enemy');
 requireText(runtimeGatewayTs, 'createRuntimeSessionFacade');
 requireText(runtimeGatewayTs, 'createDemoRuntimeGateway');
 requireText(runtimeGatewayTs, 'readAnimationIntent');
+requireText(runtimeGatewayTs, 'session.decodeSceneDocument');
 requireText(styles, '#asha-render-surface');
 requireProjectFile('project/project-bundle.json');
 requireProjectFile(projectBundle.sourceFiles.sceneDocument);
@@ -37,6 +40,13 @@ for (const path of Object.values(projectBundle.sourceFiles.catalogRefs)) {
 }
 requireProjectFile(projectBundle.sourceFiles.levelPreset);
 requireProjectFile(projectBundle.sourceFiles.animatedMeshManifest);
+
+if (projectSourceTs.includes('decodeDemoSceneDocument') || projectSourceTs.includes('DemoSceneDocument')) {
+  errors.push('asha-demo must consume the generated canonical scene contract and Rust codec, not a parallel Demo scene type');
+}
+if (sceneDocument.schemaVersion !== 3 || !Array.isArray(sceneDocument.nodes)) {
+  errors.push('the Demo product scene must be a canonical schema-v3 FlatSceneDocument');
+}
 
 if (appTs.includes("from 'three'") || appTs.includes('from "three"')) {
   errors.push('asha-demo must not import Three.js directly; rendering is mounted through @asha/renderer-host');

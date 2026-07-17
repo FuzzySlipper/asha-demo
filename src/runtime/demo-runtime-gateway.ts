@@ -1,5 +1,6 @@
 import {
   cameraHandle,
+  type FlatSceneDocument,
   type GameplayContractRef,
   type InputActionPhase,
 } from '@asha/contracts';
@@ -32,7 +33,10 @@ import type {
   RuntimeSessionFacade,
   RuntimeSessionGeneratedTunnelOperationReceipt,
 } from '@asha/runtime-session';
-import type { DemoProjectContent } from '../content/project-content.js';
+import {
+  readSceneBootstrapBindings,
+  type DemoProjectContent,
+} from '../content/project-content.js';
 
 export interface DemoRuntimeDiagnostic {
   readonly code: string;
@@ -63,6 +67,9 @@ export interface DemoAvailableRuntimeBackend {
   readonly status: 'rust_authority';
   readonly session: RuntimeSessionFacade;
   readonly loadReceipt: RuntimeSessionEcrpProjectLoadReceipt;
+  readonly sceneDocument: FlatSceneDocument;
+  readonly sceneDocumentCanonicalJson: string;
+  readonly sceneDocumentContentHash: string;
   readonly generatedTunnelOperation: RuntimeSessionGeneratedTunnelOperationReceipt;
   readonly bridge: RuntimeBridge;
   readonly composedRuntimeReadout: ComposedRuntimeSessionReadout;
@@ -79,6 +86,9 @@ export interface DemoUnavailableRuntimeBackend {
   readonly status: 'missing_rust_backend' | 'rust_backend_failed';
   readonly session: null;
   readonly loadReceipt: RuntimeSessionEcrpProjectLoadReceipt;
+  readonly sceneDocument: null;
+  readonly sceneDocumentCanonicalJson: null;
+  readonly sceneDocumentContentHash: null;
   readonly generatedTunnelOperation: null;
   readonly bridge: null;
   readonly composedRuntimeReadout: null;
@@ -180,11 +190,29 @@ export async function createDemoRuntimeBackend(
       project: content.projectBundle.project,
       projectBundle: content.projectBundle.runtimeRequest,
     });
+    const sceneCodec = session.decodeSceneDocument({
+      sourceText: content.sceneDocumentSourceText,
+    });
+    if (
+      !sceneCodec.accepted
+      || sceneCodec.document === null
+      || sceneCodec.canonicalJson === null
+      || sceneCodec.contentHash === null
+    ) {
+      return unavailableRuntimeBackend(
+        profile,
+        'rust_scene_document_rejected',
+        `Rust rejected the committed Demo SceneDocument: ${formatSceneCodecDiagnostics(sceneCodec.diagnostics)}`,
+        null,
+        'rust_backend_failed',
+      );
+    }
+    const sceneDocument = sceneCodec.document;
     const loadReceipt = session.loadEcrpProject({
       kind: 'runtime_session.load_ecrp_project.v0',
       projectBundle: content.projectBundle,
       entityDefinitions: content.entityDefinitions,
-      sceneDocument: content.sceneDocument,
+      sceneDocument,
     });
 
     if (!loadReceipt.accepted) {
@@ -196,10 +224,33 @@ export async function createDemoRuntimeBackend(
         'rust_backend_failed',
       );
     }
+    const generatorBinding = readSceneBootstrapBindings(sceneDocument)?.generator ?? null;
+    if (generatorBinding === null) {
+      return unavailableRuntimeBackend(
+        profile,
+        'missing_scene_generator_binding',
+        'The canonical Demo SceneDocument does not declare its generated-tunnel bootstrap input.',
+        loadReceipt,
+        'rust_backend_failed',
+      );
+    }
+    if (
+      generatorBinding.providerId !== 'asha.generated-tunnel'
+      || generatorBinding.presetId !== content.catalogs.levelPreset.presetId
+      || generatorBinding.seed !== content.catalogs.levelPreset.seed
+    ) {
+      return unavailableRuntimeBackend(
+        profile,
+        'scene_generator_binding_mismatch',
+        'The canonical scene generator binding does not match the selected Demo level preset.',
+        loadReceipt,
+        'rust_backend_failed',
+      );
+    }
     const generatedTunnelOperation = session.requestGeneratedTunnelOperation({
       operation: 'apply_to_runtime_world',
-      presetId: content.catalogs.levelPreset.presetId,
-      seed: content.catalogs.levelPreset.seed,
+      presetId: generatorBinding.presetId,
+      seed: generatorBinding.seed,
     });
     if (generatedTunnelOperation.status !== 'applied') {
       return unavailableRuntimeBackend(
@@ -275,6 +326,9 @@ export async function createDemoRuntimeBackend(
       status: 'rust_authority',
       session,
       loadReceipt,
+      sceneDocument,
+      sceneDocumentCanonicalJson: sceneCodec.canonicalJson,
+      sceneDocumentContentHash: sceneCodec.contentHash,
       generatedTunnelOperation,
       bridge,
       composedRuntimeReadout,
@@ -521,6 +575,9 @@ function unavailableRuntimeBackend(
       sessionHashBefore: 'missing-rust-backend',
       sessionHashAfter: 'missing-rust-backend',
     },
+    sceneDocument: null,
+    sceneDocumentCanonicalJson: null,
+    sceneDocumentContentHash: null,
     diagnostics: [{ code, severity: 'error', message }],
     generatedTunnelOperation: null,
     bridge: null,
@@ -548,6 +605,14 @@ function errorToBackendDiagnostic(error: unknown): { readonly code: string; read
 
 function formatLoadDiagnostics(diagnostics: readonly RuntimeSessionEcrpProjectDiagnostic[]): string {
   return diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.path}`).join('; ');
+}
+
+function formatSceneCodecDiagnostics(
+  diagnostics: readonly { readonly code: string; readonly message: string }[],
+): string {
+  return diagnostics.length === 0
+    ? 'missing canonical scene document result'
+    : diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.message}`).join('; ');
 }
 
 function sourceObject(value: unknown, path: string): Readonly<Record<string, unknown>> {

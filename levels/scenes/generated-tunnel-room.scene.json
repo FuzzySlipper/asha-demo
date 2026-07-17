@@ -1,20 +1,116 @@
 {
-  "kind": "SceneDocument",
-  "sceneId": "asha-demo.generated-tunnel-room.v1",
-  "levelPresetRef": "tiny-enclosed",
-  "generatedTunnelSeed": 17,
-  "materialCatalogRef": "catalogs/materials/generated-tunnel.materials.json",
-  "spawnCatalogRef": "catalogs/spawns/generated-tunnel.spawns.json",
-  "placements": [
+  "schemaVersion": 3,
+  "id": 4103,
+  "metadata": {
+    "name": "Generated tunnel room",
+    "authoringFormatVersion": 3
+  },
+  "dependencies": [],
+  "nodes": [
     {
-      "entityDefinitionId": "actor/demo-player",
-      "spawnMarkerId": "spawn.player.start"
+      "id": 1,
+      "parent": null,
+      "childOrder": 0,
+      "label": "Runtime Inputs",
+      "tags": ["generated-tunnel", "bootstrap"],
+      "transform": {
+        "translation": [0, 0, 0],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1, 1, 1]
+      },
+      "kind": {
+        "kind": "bootstrap",
+        "bindings": {
+          "generator": {
+            "providerId": "asha.generated-tunnel",
+            "presetId": "tiny-enclosed",
+            "seed": 17
+          },
+          "catalogs": [
+            {
+              "bindingId": "gameplay",
+              "catalogId": "asha.generated_tunnel.gameplay_catalog.v0",
+              "sourcePath": "catalogs/gameplay/default-fps.catalog.json"
+            },
+            {
+              "bindingId": "materials",
+              "catalogId": "asha-demo.generated-tunnel.materials.v1",
+              "sourcePath": "catalogs/materials/generated-tunnel.materials.json"
+            },
+            {
+              "bindingId": "spawns",
+              "catalogId": "asha-demo.generated-tunnel.spawns.v1",
+              "sourcePath": "catalogs/spawns/generated-tunnel.spawns.json"
+            },
+            {
+              "bindingId": "weapon",
+              "catalogId": "weapon.primary_fire.generated_tunnel.v0",
+              "sourcePath": "catalogs/weapons/primary-fire.weapon.json"
+            }
+          ]
+        }
+      }
     },
     {
-      "entityDefinitionId": "actor/generated-tunnel-enemy",
-      "spawnMarkerId": "spawn.enemy.primary"
+      "id": 2,
+      "parent": null,
+      "childOrder": 1,
+      "label": "Actors",
+      "tags": ["generated-tunnel"],
+      "transform": {
+        "translation": [0, 0, 0],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1, 1, 1]
+      },
+      "kind": {
+        "kind": "emptyGroup"
+      }
+    },
+    {
+      "id": 10,
+      "parent": 2,
+      "childOrder": 0,
+      "label": "Demo Player",
+      "tags": ["player", "spawn"],
+      "transform": {
+        "translation": [0, 1.62, 1.5],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1, 1, 1]
+      },
+      "kind": {
+        "kind": "entityInstance",
+        "instance": {
+          "instanceId": "asha-demo.player.start",
+          "reference": {
+            "kind": "entityDefinition",
+            "stableId": "actor/demo-player"
+          },
+          "spawnMarkerId": "spawn.player.start"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "parent": 2,
+      "childOrder": 1,
+      "label": "Generated Tunnel Enemy",
+      "tags": ["enemy", "spawn", "challenge"],
+      "transform": {
+        "translation": [0, 0.5, -2.6],
+        "rotation": [0, 1, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "kind": {
+        "kind": "entityInstance",
+        "instance": {
+          "instanceId": "asha-demo.enemy.primary",
+          "reference": {
+            "kind": "entityDefinition",
+            "stableId": "actor/generated-tunnel-enemy"
+          },
+          "spawnMarkerId": "spawn.enemy.primary"
+        }
+      }
     }
-  ],
-  "staticCollisionSource": "RuntimeSessionFacade.applyCollisionConstrainedCameraInput",
-  "renderSurface": "mountAshaRendererBrowserSurface"
+  ]
 }

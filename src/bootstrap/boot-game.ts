@@ -85,7 +85,7 @@ const surface = await mountAshaRendererAnimatedMeshSurface(canvas, {
   clearColor: 0x101820,
   frame: levelFrame,
   controls: {
-    initialPosition: demoProjectContent.runtime.initialCameraPose.position,
+    initialPosition: readPlayerTransform().position,
     mouseSensitivity: (inputSettings.lookSensitivityDegreesPerPixel * Math.PI) / 180,
     moveSpeed: inputSettings.moveSpeedUnitsPerSecond,
     movementAuthority: constrainCameraMovement,
@@ -135,9 +135,10 @@ let reticlePulseTimer = null;
 let lastCollisionReceipt = null;
 
 function createRuntimeCamera() {
+  const initialPose = readPlayerTransform();
   const fallbackCamera = {
     handle: -1,
-    pose: demoProjectContent.runtime.initialCameraPose,
+    pose: initialPose,
     projection: demoProjectContent.runtime.cameraProjection,
     viewport: readViewport(),
   };
@@ -146,7 +147,7 @@ function createRuntimeCamera() {
   }
 
   return runtimeGateway.createCamera({
-    initialPose: demoProjectContent.runtime.initialCameraPose,
+    initialPose,
     projection: demoProjectContent.runtime.cameraProjection,
     viewport: readViewport(),
   })?.snapshot ?? fallbackCamera;
@@ -1195,6 +1196,17 @@ function readEnemyTransform() {
     yawDegrees: 0,
     pitchDegrees: 0,
   };
+}
+
+function readPlayerTransform() {
+  const transform = readActorCapability('actor/demo-player', 'transform');
+  return transform === null
+    ? demoProjectContent.runtime.initialCameraPose
+    : {
+        position: transform.position,
+        yawDegrees: transform.yawDegrees,
+        pitchDegrees: transform.pitchDegrees,
+      };
 }
 
 function readEnemyHealth() {

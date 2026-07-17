@@ -8,6 +8,10 @@ import {
 } from '@asha/catalog-core';
 import {
   type CameraCollisionPolicy,
+  type FlatSceneDocument,
+  type GeneratedWireValue,
+  type SceneBootstrapBindings,
+  validateGeneratedWireValue,
 } from '@asha/contracts';
 import {
   decodeAndValidateAshaPrefabRegistrySourceDocument,
@@ -28,14 +32,12 @@ import {
   decodeDemoLevelPreset,
   decodeDemoMaterialCatalog,
   decodeDemoProjectBundle,
-  decodeDemoSceneDocument,
   decodeDemoSpawnCatalog,
   decodeDemoWeaponCatalog,
   type DemoGameplayCatalog,
   type DemoLevelPreset,
   type DemoMaterialCatalog,
   type DemoProjectBundle,
-  type DemoSceneDocument,
   type DemoSpawnCatalog,
   type DemoWeaponCatalog,
 } from './project-source.js';
@@ -49,6 +51,7 @@ const DEMO_PREFAB_ENTITY_DEFINITION_IDS = [
 ] as const;
 
 type DemoJsonReader = (path: string) => Promise<unknown>;
+type DemoTextReader = (path: string) => Promise<string>;
 type TransformCapability = Extract<
   RuntimeSessionEcrpProjectCapabilityDefinition,
   { readonly kind: 'transform' }
@@ -72,7 +75,8 @@ export interface DemoProjectContent {
   readonly projectBundle: DemoProjectBundle;
   readonly prefabAuthoring: DemoPrefabAuthoring;
   readonly entityDefinitions: readonly RuntimeSessionEcrpEntityDefinition[];
-  readonly sceneDocument: DemoSceneDocument;
+  readonly sceneDocument: FlatSceneDocument;
+  readonly sceneDocumentSourceText: string;
   readonly catalogs: {
     readonly gameplay: DemoGameplayCatalog;
     readonly materials: DemoMaterialCatalog;
@@ -106,7 +110,7 @@ export interface DemoProjectContentStatus {
   readonly diagnostics: readonly string[];
   readonly projectBundleId: string;
   readonly entityDefinitionCount: number;
-  readonly sceneId: string;
+  readonly sceneId: number;
   readonly sourceFiles: DemoProjectContent['sourceFiles'];
   readonly gameplayPresetHash: string;
   readonly ecrpObjectModelHash: string;
@@ -114,6 +118,7 @@ export interface DemoProjectContentStatus {
 
 export async function loadDemoProjectContent(
   fetchJson: DemoJsonReader = readJson,
+  fetchText?: DemoTextReader,
 ): Promise<DemoProjectContent> {
   const projectBundle = decodeDemoProjectBundle(await fetchJson(PROJECT_BUNDLE_PATH));
   const sourceFiles = projectBundle.sourceFiles;
@@ -121,7 +126,7 @@ export async function loadDemoProjectContent(
 
   const [
     entityDefinitionDocuments,
-    sceneDocumentSource,
+    sceneDocumentSourceText,
     gameplayCatalogSource,
     materialCatalogSource,
     spawnCatalogSource,
@@ -131,7 +136,7 @@ export async function loadDemoProjectContent(
     prefabRegistrySource,
   ] = await Promise.all([
     Promise.all(sourceFiles.entityDefinitions.map((path) => fetchJson(`/${path}`))),
-    fetchJson(`/${sourceFiles.sceneDocument}`),
+    readSceneDocumentSourceText(`/${sourceFiles.sceneDocument}`, fetchJson, fetchText),
     fetchJson(`/${catalogRefs.gameplay}`),
     fetchJson(`/${catalogRefs.materials}`),
     fetchJson(`/${catalogRefs.spawns}`),
@@ -144,7 +149,7 @@ export async function loadDemoProjectContent(
   const entityDefinitions = entityDefinitionDocuments.map((document, index) =>
     decodeDemoEntityDefinition(document, `entityDefinitions[${index}]`),
   );
-  const sceneDocument = decodeDemoSceneDocument(sceneDocumentSource);
+  const sceneDocument = validateSceneDocumentWireShape(sceneDocumentSourceText);
   const gameplayCatalog = decodeDemoGameplayCatalog(gameplayCatalogSource);
   const materialCatalog = decodeDemoMaterialCatalog(materialCatalogSource);
   const spawnCatalog = decodeDemoSpawnCatalog(spawnCatalogSource);
@@ -190,6 +195,7 @@ export async function loadDemoProjectContent(
     prefabAuthoring,
     entityDefinitions,
     sceneDocument,
+    sceneDocumentSourceText,
     catalogs: {
       gameplay: gameplayCatalog,
       materials: materialCatalog,
@@ -234,7 +240,7 @@ export function readDemoProjectContentStatus(
     diagnostics,
     projectBundleId: demoProjectContent.projectBundle.project.gameId,
     entityDefinitionCount: demoProjectContent.entityDefinitions.length,
-    sceneId: demoProjectContent.sceneDocument.sceneId,
+    sceneId: demoProjectContent.sceneDocument.id,
     sourceFiles: demoProjectContent.sourceFiles,
     gameplayPresetHash: demoProjectContent.catalogs.upstreamGameplay.defaultPreset.hashes.presetHash,
     ecrpObjectModelHash: demoProjectContent.catalogs.upstreamEcrpObjectModel.hashes.modelHash,
@@ -248,6 +254,61 @@ async function readJson(path: string): Promise<unknown> {
   }
   const document: unknown = await response.json();
   return document;
+}
+
+async function readText(path: string): Promise<string> {
+  const response = await fetch(path, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`Failed to load ASHA demo project file ${path}: ${response.status}`);
+  }
+  return response.text();
+}
+
+async function readSceneDocumentSourceText(
+  path: string,
+  fetchJson: DemoJsonReader,
+  fetchText: DemoTextReader | undefined,
+): Promise<string> {
+  if (fetchText !== undefined) {
+    return fetchText(path);
+  }
+  if (fetchJson === readJson) {
+    return readText(path);
+  }
+  // Injected readers used by bounded checks may only expose decoded JSON. The
+  // production browser and standalone host both provide literal source text.
+  return `${JSON.stringify(await fetchJson(path), null, 2)}\n`;
+}
+
+function validateSceneDocumentWireShape(sourceText: string): FlatSceneDocument {
+  let value: unknown;
+  try {
+    value = JSON.parse(sourceText) as unknown;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`SceneDocument source is not JSON: ${message}`);
+  }
+  if (!isGeneratedWireValue(value)) {
+    throw new Error('SceneDocument source must contain canonical JSON data');
+  }
+  const validation = validateGeneratedWireValue('scene.FlatSceneDocument', value, '$');
+  if (validation.valid === false) {
+    throw new Error(`${validation.issue.path}: ${validation.issue.message}`);
+  }
+  return value as unknown as FlatSceneDocument;
+}
+
+function isGeneratedWireValue(value: unknown): value is GeneratedWireValue {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+    return true;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value);
+  }
+  if (Array.isArray(value)) {
+    return value.every(isGeneratedWireValue);
+  }
+  return typeof value === 'object' && Object.values(value).every(isGeneratedWireValue);
 }
 
 function validateProjectBundle(content: DemoProjectContent, diagnostics: string[]): void {
@@ -332,17 +393,33 @@ function validateAuthoredRefs(content: DemoProjectContent, diagnostics: string[]
   if (!deepEqual(levelPresetWithoutSource(catalogs.levelPreset), upstreamPreset.generator)) {
     diagnostics.push('level preset ref does not match upstream gameplay preset generator ref');
   }
-  if (sceneDocument.levelPresetRef !== upstreamPreset.generator.presetId) {
-    diagnostics.push('SceneDocument levelPresetRef does not match level preset');
+  if (sceneDocument.id !== projectBundle.runtimeRequest.sceneId) {
+    diagnostics.push('SceneDocument id does not match ProjectBundle runtime sceneId');
   }
-  if (sceneDocument.generatedTunnelSeed !== upstreamPreset.generator.seed) {
-    diagnostics.push('SceneDocument generatedTunnelSeed does not match level preset');
+
+  const bootstrapBindings = readSceneBootstrapBindings(sceneDocument);
+  if (bootstrapBindings === null) {
+    diagnostics.push('SceneDocument must declare one canonical bootstrap node');
+  } else {
+    validateSceneGeneratorBinding(bootstrapBindings, catalogs.levelPreset, diagnostics);
+    validateSceneCatalogBindings(content, bootstrapBindings, diagnostics);
   }
 
   const spawnMarkerIds = new Set(catalogs.spawns.markers.map((marker) => marker.markerId));
-  for (const placement of sceneDocument.placements) {
-    if (placement.spawnMarkerId !== undefined && !spawnMarkerIds.has(placement.spawnMarkerId)) {
-      diagnostics.push(`SceneDocument placement references missing spawn marker ${placement.spawnMarkerId}`);
+  const placedDefinitions = new Set<string>();
+  for (const node of sceneDocument.nodes) {
+    if (node.kind.kind !== 'entityInstance' || node.kind.instance.reference.kind !== 'entityDefinition') {
+      continue;
+    }
+    placedDefinitions.add(node.kind.instance.reference.stableId);
+    const marker = node.kind.instance.spawnMarkerId;
+    if (marker !== null && !spawnMarkerIds.has(marker)) {
+      diagnostics.push(`SceneDocument entity instance references missing spawn marker ${marker}`);
+    }
+  }
+  for (const stableId of ['actor/demo-player', 'actor/generated-tunnel-enemy']) {
+    if (!placedDefinitions.has(stableId)) {
+      diagnostics.push(`SceneDocument is missing entity instance ${stableId}`);
     }
   }
   if (catalogs.materials.materials.length === 0) {
@@ -350,6 +427,55 @@ function validateAuthoredRefs(content: DemoProjectContent, diagnostics: string[]
   }
   if (catalogs.animatedMeshManifest.resources.length !== 1) {
     diagnostics.push('animated mesh manifest must declare exactly one public renderer-host resource');
+  }
+}
+
+export function readSceneBootstrapBindings(
+  sceneDocument: FlatSceneDocument,
+): SceneBootstrapBindings | null {
+  const node = sceneDocument.nodes.find((candidate) => candidate.kind.kind === 'bootstrap');
+  return node?.kind.kind === 'bootstrap' ? node.kind.bindings : null;
+}
+
+function validateSceneGeneratorBinding(
+  bindings: SceneBootstrapBindings,
+  levelPreset: DemoLevelPreset,
+  diagnostics: string[],
+): void {
+  const generator = bindings.generator;
+  if (generator === null) {
+    diagnostics.push('SceneDocument bootstrap must bind the generated-tunnel provider');
+    return;
+  }
+  if (generator.providerId !== 'asha.generated-tunnel') {
+    diagnostics.push('SceneDocument generator providerId must be asha.generated-tunnel');
+  }
+  if (generator.presetId !== levelPreset.presetId || generator.seed !== levelPreset.seed) {
+    diagnostics.push('SceneDocument generator binding does not match the selected level preset');
+  }
+}
+
+function validateSceneCatalogBindings(
+  content: DemoProjectContent,
+  bindings: SceneBootstrapBindings,
+  diagnostics: string[],
+): void {
+  const expected = [
+    ['gameplay', content.catalogs.gameplay.catalogId, content.sourceFiles.catalogs.gameplay],
+    ['materials', content.catalogs.materials.catalogId, content.sourceFiles.catalogs.materials],
+    ['spawns', content.catalogs.spawns.catalogId, content.sourceFiles.catalogs.spawns],
+    ['weapon', content.catalogs.weapon.weaponId, content.sourceFiles.catalogs.weapon],
+  ] as const;
+  const byBindingId = new Map(bindings.catalogs.map((binding) => [binding.bindingId, binding]));
+  for (const [bindingId, catalogId, sourcePath] of expected) {
+    const binding = byBindingId.get(bindingId);
+    if (binding === undefined) {
+      diagnostics.push(`SceneDocument bootstrap is missing ${bindingId} catalog binding`);
+      continue;
+    }
+    if (binding.catalogId !== catalogId || binding.sourcePath !== sourcePath) {
+      diagnostics.push(`SceneDocument ${bindingId} catalog binding does not match ProjectBundle content`);
+    }
   }
 }
 
