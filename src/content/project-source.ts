@@ -135,6 +135,7 @@ export interface DemoWeaponCatalog {
 
 export interface DemoLevelPreset {
   readonly kind: 'asha_demo.generated_tunnel_preset_ref.v1';
+  readonly providerId: 'asha.generated-tunnel';
   readonly presetId: 'tiny-enclosed';
   readonly seed: number;
   readonly outputHash: string;
@@ -388,6 +389,11 @@ export function decodeDemoLevelPreset(value: unknown): DemoLevelPreset {
   requireLiteral(preset['kind'], 'asha_demo.generated_tunnel_preset_ref.v1', '$.kind');
   return {
     kind: 'asha_demo.generated_tunnel_preset_ref.v1',
+    providerId: requireLiteral(
+      preset['providerId'],
+      'asha.generated-tunnel',
+      '$.providerId',
+    ),
     presetId: requireLiteral(preset['presetId'], 'tiny-enclosed', '$.presetId'),
     seed: nonNegativeInteger(preset['seed'], '$.seed'),
     outputHash: nonEmptyString(preset['outputHash'], '$.outputHash'),

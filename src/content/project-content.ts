@@ -18,6 +18,7 @@ import {
 } from '@asha/game-workspace';
 import type { AshaRendererAnimatedMeshResourceManifest } from '@asha/renderer-host';
 import type {
+  FpsBootstrapResolutionRegistry,
   RuntimeSessionEcrpEntityDefinition,
   RuntimeSessionEcrpProjectCapabilityDefinition,
 } from '@asha/runtime-session';
@@ -74,6 +75,7 @@ export interface DemoProjectContent {
   };
   readonly projectBundle: DemoProjectBundle;
   readonly prefabAuthoring: DemoPrefabAuthoring;
+  readonly bootstrapResolutionRegistry: FpsBootstrapResolutionRegistry;
   readonly entityDefinitions: readonly RuntimeSessionEcrpEntityDefinition[];
   readonly sceneDocument: FlatSceneDocument;
   readonly sceneDocumentSourceText: string;
@@ -172,6 +174,15 @@ export async function loadDemoProjectContent(
     prefabRegistryResult.registry,
     projectBundle.gameplayModuleBindings,
   );
+  const bootstrapResolutionRegistry = buildBootstrapResolutionRegistry({
+    entityDefinitions,
+    prefabAuthoring,
+    gameplayCatalog,
+    materialCatalog,
+    spawnCatalog,
+    weaponCatalog,
+    levelPreset,
+  });
 
   const playerDefinition = requireEntityDefinition(entityDefinitions, 'actor/demo-player');
   const enemyDefinition = requireEntityDefinition(entityDefinitions, 'actor/generated-tunnel-enemy');
@@ -193,6 +204,7 @@ export async function loadDemoProjectContent(
     },
     projectBundle,
     prefabAuthoring,
+    bootstrapResolutionRegistry,
     entityDefinitions,
     sceneDocument,
     sceneDocumentSourceText,
@@ -447,8 +459,8 @@ function validateSceneGeneratorBinding(
     diagnostics.push('SceneDocument bootstrap must bind the generated-tunnel provider');
     return;
   }
-  if (generator.providerId !== 'asha.generated-tunnel') {
-    diagnostics.push('SceneDocument generator providerId must be asha.generated-tunnel');
+  if (generator.providerId !== levelPreset.providerId) {
+    diagnostics.push('SceneDocument generator providerId must match the selected level preset provider');
   }
   if (generator.presetId !== levelPreset.presetId || generator.seed !== levelPreset.seed) {
     diagnostics.push('SceneDocument generator binding does not match the selected level preset');
@@ -504,13 +516,42 @@ function requireCapability<K extends RuntimeSessionEcrpProjectCapabilityDefiniti
   return capability;
 }
 
-function levelPresetWithoutSource(preset: DemoLevelPreset): Omit<DemoLevelPreset, 'kind' | 'sceneDocument'> {
+function levelPresetWithoutSource(
+  preset: DemoLevelPreset,
+): Omit<DemoLevelPreset, 'kind' | 'providerId' | 'sceneDocument'> {
   return {
     presetId: preset.presetId,
     seed: preset.seed,
     outputHash: preset.outputHash,
     renderProjectionHash: preset.renderProjectionHash,
     collisionProjectionHash: preset.collisionProjectionHash,
+  };
+}
+
+function buildBootstrapResolutionRegistry(input: {
+  readonly entityDefinitions: readonly RuntimeSessionEcrpEntityDefinition[];
+  readonly prefabAuthoring: DemoPrefabAuthoring;
+  readonly gameplayCatalog: DemoGameplayCatalog;
+  readonly materialCatalog: DemoMaterialCatalog;
+  readonly spawnCatalog: DemoSpawnCatalog;
+  readonly weaponCatalog: DemoWeaponCatalog;
+  readonly levelPreset: DemoLevelPreset;
+}): FpsBootstrapResolutionRegistry {
+  return {
+    schemaVersion: 1,
+    entityDefinitionIds: input.entityDefinitions.map((definition) => definition.stableId),
+    prefabIds: input.prefabAuthoring.readout.definitions.map((definition) => definition.prefab),
+    spawnMarkerIds: input.spawnCatalog.markers.map((marker) => marker.markerId),
+    generatorPresets: [{
+      providerId: input.levelPreset.providerId,
+      presetId: input.levelPreset.presetId,
+    }],
+    catalogIds: [
+      input.gameplayCatalog.catalogId,
+      input.materialCatalog.catalogId,
+      input.spawnCatalog.catalogId,
+      input.weaponCatalog.weaponId,
+    ],
   };
 }
 

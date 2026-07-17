@@ -41,6 +41,7 @@ if (runtimeBackend.sceneDocumentContentHash === null) {
 }
 assertCanonicalSceneBootstrap(runtimeBackend, readout);
 assertLegacySceneDiagnostic(runtimeBackend);
+assertIndependentRegistryRejectsSceneDrift(content, runtimeBackend);
 await assertStudioEditedTransformWinsOnFreshBoot(content, sceneSourcePath);
 
 const cameraReceipt = runtimeGateway.createCamera({
@@ -177,6 +178,53 @@ function assertLegacySceneDiagnostic(runtimeBackend) {
   });
   if (result.accepted || !result.diagnostics.some((diagnostic) => diagnostic.code === 'legacy-demo-scene')) {
     throw new Error('Rust scene codec did not classify the removed Demo scene shape as legacy-demo-scene.');
+  }
+}
+
+function assertIndependentRegistryRejectsSceneDrift(content, runtimeBackend) {
+  const beforeSnapshot = runtimeBackend.bridge.readFpsRuntimeSession();
+  const beforeReadout = runtimeBackend.session.readEcrpRuntimeReadout();
+  const driftedScene = structuredClone(runtimeBackend.sceneDocument);
+  const player = driftedScene.nodes.find((node) =>
+    node.kind.kind === 'entityInstance'
+      && node.kind.instance.reference.kind === 'entityDefinition'
+      && node.kind.instance.reference.stableId === 'actor/demo-player');
+  if (player === undefined || player.kind.kind !== 'entityInstance') {
+    throw new Error('Canonical Demo scene is missing the player instance for registry-drift acceptance.');
+  }
+  player.kind.instance.spawnMarkerId = 'spawn.scene-invented';
+
+  let rejection = null;
+  try {
+    runtimeBackend.session.loadEcrpProject({
+      kind: 'runtime_session.load_ecrp_project.v0',
+      projectBundle: content.projectBundle,
+      bootstrapResolutionRegistry: content.bootstrapResolutionRegistry,
+      entityDefinitions: content.entityDefinitions,
+      sceneDocument: driftedScene,
+    });
+  } catch (error) {
+    rejection = error;
+  }
+  const rejectionMessage = rejection instanceof Error ? rejection.message : String(rejection);
+  if (rejection === null || !rejectionMessage.includes('UnknownSpawnMarker')) {
+    throw new Error(
+      `Rust admission did not reject a scene-invented marker against fixed registry evidence: ${rejectionMessage}`,
+    );
+  }
+
+  const afterSnapshot = runtimeBackend.bridge.readFpsRuntimeSession();
+  const afterReadout = runtimeBackend.session.readEcrpRuntimeReadout();
+  for (const field of ['sessionEpoch', 'entityHash', 'healthHash', 'replayHash']) {
+    if (afterSnapshot[field] !== beforeSnapshot[field]) {
+      throw new Error(`Rejected scene reference mutated prior FPS ${field}.`);
+    }
+  }
+  if (
+    afterReadout.sessionHash !== beforeReadout.sessionHash
+    || JSON.stringify(afterReadout.hashes) !== JSON.stringify(beforeReadout.hashes)
+  ) {
+    throw new Error('Rejected scene reference replaced the prior RuntimeSession ECRP readout.');
   }
 }
 

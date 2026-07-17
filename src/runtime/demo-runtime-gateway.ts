@@ -211,6 +211,7 @@ export async function createDemoRuntimeBackend(
     const loadReceipt = session.loadEcrpProject({
       kind: 'runtime_session.load_ecrp_project.v0',
       projectBundle: content.projectBundle,
+      bootstrapResolutionRegistry: content.bootstrapResolutionRegistry,
       entityDefinitions: content.entityDefinitions,
       sceneDocument,
     });
@@ -235,7 +236,7 @@ export async function createDemoRuntimeBackend(
       );
     }
     if (
-      generatorBinding.providerId !== 'asha.generated-tunnel'
+      generatorBinding.providerId !== content.catalogs.levelPreset.providerId
       || generatorBinding.presetId !== content.catalogs.levelPreset.presetId
       || generatorBinding.seed !== content.catalogs.levelPreset.seed
     ) {

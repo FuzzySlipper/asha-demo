@@ -28,6 +28,22 @@ assert.deepEqual(
       : `prefab:${node.kind.instance.reference.prefabId}`),
   ['actor/demo-player', 'actor/generated-tunnel-enemy'],
 );
+assert.deepEqual(healthyContent.bootstrapResolutionRegistry, {
+  schemaVersion: 1,
+  entityDefinitionIds: healthyContent.entityDefinitions.map((definition) => definition.stableId),
+  prefabIds: healthyContent.prefabAuthoring.readout.definitions.map((definition) => definition.prefab),
+  spawnMarkerIds: healthyContent.catalogs.spawns.markers.map((marker) => marker.markerId),
+  generatorPresets: [{
+    providerId: healthyContent.catalogs.levelPreset.providerId,
+    presetId: healthyContent.catalogs.levelPreset.presetId,
+  }],
+  catalogIds: [
+    healthyContent.catalogs.gameplay.catalogId,
+    healthyContent.catalogs.materials.catalogId,
+    healthyContent.catalogs.spawns.catalogId,
+    healthyContent.catalogs.weapon.weaponId,
+  ],
+});
 
 const sourceReferenceFixture = await readFixture('project-bundle.invalid-source-reference.json');
 const healthyBundle = await readProjectJson(projectBundlePath);

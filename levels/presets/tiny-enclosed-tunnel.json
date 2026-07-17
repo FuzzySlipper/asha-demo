@@ -1,5 +1,6 @@
 {
   "kind": "asha_demo.generated_tunnel_preset_ref.v1",
+  "providerId": "asha.generated-tunnel",
   "presetId": "tiny-enclosed",
   "seed": 17,
   "outputHash": "1471496d88d70647",
