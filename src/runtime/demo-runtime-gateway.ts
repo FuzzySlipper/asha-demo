@@ -224,10 +224,18 @@ export async function createDemoRuntimeBackend(
       );
     }
     const composedBeforeInteraction = bridge.readComposedRuntimeSession();
-    if (
-      composedBeforeInteraction.gameplay.semanticCompatibilityDigest
-        !== content.projectBundle.gameplayRuntime.compositionRequirement.semanticCompatibilityDigest
-    ) {
+    const compositionRequirement = content.projectBundle.gameplayRuntime.compositionRequirement;
+    const explicitCompositionMismatch = compositionRequirement !== undefined
+      && composedBeforeInteraction.gameplay.semanticCompatibilityDigest
+        !== compositionRequirement.semanticCompatibilityDigest;
+    const legacyCompositionWasNotMigrated = compositionRequirement === undefined
+      && (
+        composedBeforeInteraction.gameplay.compositionLoadMode !== 'compatible'
+        || !composedBeforeInteraction.gameplay.compatibilityDiagnostics.some(
+          diagnostic => diagnostic.code === 'legacyCompatibilityDefaulted',
+        )
+      );
+    if (explicitCompositionMismatch || legacyCompositionWasNotMigrated) {
       return unavailableRuntimeBackend(
         profile,
         'composed_runtime_contract_mismatch',

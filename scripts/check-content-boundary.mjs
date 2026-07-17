@@ -7,6 +7,7 @@ import {
   loadDemoProjectContent,
   readDemoProjectContentStatus,
 } from '../dist/ui/content/project-content.js';
+import { decodeDemoProjectBundle } from '../dist/ui/content/project-source.js';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const projectBundlePath = '/project/project-bundle.json';
@@ -20,6 +21,7 @@ const sourceReferenceFixture = await readFixture('project-bundle.invalid-source-
 const healthyBundle = await readProjectJson(projectBundlePath);
 assert.equal(isObject(healthyBundle), true);
 assert.equal(isObject(sourceReferenceFixture), true);
+assertCompositionMigrationBoundary(healthyBundle);
 const sourceReferenceFiles = requireObject(sourceReferenceFixture.sourceFiles, 'fixture.sourceFiles');
 const invalidSourceBundle = {
   ...healthyBundle,
@@ -52,6 +54,42 @@ await assertPrefabFixtureFails(
 );
 
 console.log('ASHA demo typed content boundary check passed.');
+
+function assertCompositionMigrationBoundary(projectBundle) {
+  const legacyBundle = structuredClone(projectBundle);
+  const legacyRuntime = requireObject(legacyBundle.gameplayRuntime, 'legacy.gameplayRuntime');
+  delete legacyRuntime.compositionRequirement;
+  legacyRuntime.compositionHash = 'fnv1a64:b0ff59982863a494';
+  const decodedLegacy = decodeDemoProjectBundle(legacyBundle);
+  assert.equal(decodedLegacy.gameplayRuntime.compositionRequirement, undefined);
+  assert.equal(
+    decodedLegacy.gameplayRuntime.legacyCompositionHash,
+    'fnv1a64:b0ff59982863a494',
+  );
+
+  const exactBundle = structuredClone(projectBundle);
+  const exactRuntime = requireObject(exactBundle.gameplayRuntime, 'exact.gameplayRuntime');
+  const exactRequirement = requireObject(
+    exactRuntime.compositionRequirement,
+    'exact.gameplayRuntime.compositionRequirement',
+  );
+  exactRequirement.loadMode = 'exact';
+  assert.equal(
+    decodeDemoProjectBundle(exactBundle).gameplayRuntime.compositionRequirement?.loadMode,
+    'exact',
+  );
+
+  const ambiguousBundle = structuredClone(projectBundle);
+  const ambiguousRuntime = requireObject(
+    ambiguousBundle.gameplayRuntime,
+    'ambiguous.gameplayRuntime',
+  );
+  ambiguousRuntime.compositionHash = 'fnv1a64:b0ff59982863a494';
+  assert.throws(
+    () => decodeDemoProjectBundle(ambiguousBundle),
+    /compositionRequirement and legacy compositionHash cannot both be present/u,
+  );
+}
 
 async function assertPrefabFixtureFails(name, expected) {
   const invalidPrefab = await readFixture(name);

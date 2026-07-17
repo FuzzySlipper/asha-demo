@@ -764,7 +764,10 @@ pub fn gameplay_runtime_project_input() -> GameplayRuntimeProjectInput {
             .with_artifact("assets/lock.json", "{\"entries\":[]}")
             .with_artifact("scene/scene.json", gameplay_scene_artifact()),
         composition: gameplay_composition().expect("Demo gameplay composition is valid"),
-        composition_requirement: Some(gameplay_project_composition_requirement()),
+        composition_requirement: decode_gameplay_project_composition_requirement(include_str!(
+            "../../../../project/project-bundle.json"
+        ))
+        .expect("Demo ProjectBundle has a valid gameplay composition declaration"),
         bindings: gameplay_authored_binding_registry(),
         entity_targets: GameplayBindingEntityTargets::new(),
         spatial_entities: vec![GameplayRuntimeSpatialEntity {
@@ -799,11 +802,44 @@ pub fn gameplay_runtime_project_input() -> GameplayRuntimeProjectInput {
 }
 
 pub fn gameplay_project_composition_requirement() -> GameplayCompositionRequirement {
-    let project_bundle: serde_json::Value =
-        serde_json::from_str(include_str!("../../../../project/project-bundle.json"))
-            .expect("Demo ProjectBundle is valid JSON");
-    serde_json::from_value(project_bundle["gameplayRuntime"]["compositionRequirement"].clone())
-        .expect("Demo ProjectBundle carries a typed gameplay composition requirement")
+    decode_gameplay_project_composition_requirement(include_str!(
+        "../../../../project/project-bundle.json"
+    ))
+    .expect("Demo ProjectBundle has a valid gameplay composition declaration")
+    .expect("Demo ProjectBundle carries an explicit gameplay composition requirement")
+}
+
+pub fn decode_gameplay_project_composition_requirement(
+    serialized_project_bundle: &str,
+) -> Result<Option<GameplayCompositionRequirement>, String> {
+    let project_bundle: serde_json::Value = serde_json::from_str(serialized_project_bundle)
+        .map_err(|error| format!("ProjectBundle is invalid JSON: {error}"))?;
+    let gameplay_runtime = project_bundle
+        .get("gameplayRuntime")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "ProjectBundle.gameplayRuntime must be an object".to_owned())?;
+    let requirement = gameplay_runtime.get("compositionRequirement");
+    let legacy_hash = gameplay_runtime.get("compositionHash");
+
+    match (requirement, legacy_hash) {
+        (Some(_), Some(_)) => Err(
+            "ProjectBundle gameplayRuntime cannot contain both compositionRequirement and legacy compositionHash"
+                .to_owned(),
+        ),
+        (Some(requirement), None) => serde_json::from_value(requirement.clone())
+            .map(Some)
+            .map_err(|error| {
+                format!("ProjectBundle gameplayRuntime.compositionRequirement is invalid: {error}")
+            }),
+        (None, Some(serde_json::Value::String(hash))) if !hash.trim().is_empty() => Ok(None),
+        (None, Some(_)) => Err(
+            "ProjectBundle gameplayRuntime.compositionHash must be a non-empty string".to_owned(),
+        ),
+        (None, None) => Err(
+            "ProjectBundle gameplayRuntime must contain compositionRequirement or legacy compositionHash"
+                .to_owned(),
+        ),
+    }
 }
 
 pub fn gameplay_runtime_prefab_bootstrap() -> GameplayRuntimePrefabBootstrap {

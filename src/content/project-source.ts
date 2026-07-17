@@ -55,7 +55,8 @@ export interface DemoProjectBundle {
     readonly objectModelId: string;
   };
   readonly gameplayRuntime: {
-    readonly compositionRequirement: GameplayCompositionRequirement;
+    readonly compositionRequirement?: GameplayCompositionRequirement;
+    readonly legacyCompositionHash?: string;
     readonly declaredReadPlanHash: string;
     readonly challengeView: GameplayContractRef;
     readonly prefabInteraction: {
@@ -181,6 +182,7 @@ export function decodeDemoProjectBundle(value: unknown): DemoProjectBundle {
       `$.gameplayTriggers[${index}]`,
     ),
   );
+  const composition = decodeGameplayCompositionSource(gameplayRuntime);
 
   return {
     kind: 'ProjectBundle',
@@ -204,11 +206,7 @@ export function decodeDemoProjectBundle(value: unknown): DemoProjectBundle {
       objectModelId: nonEmptyString(catalogs['objectModelId'], '$.catalogs.objectModelId'),
     },
     gameplayRuntime: {
-      compositionRequirement: generatedValue<GameplayCompositionRequirement>(
-        gameplayRuntime['compositionRequirement'],
-        'gameExtension.GameplayCompositionRequirement',
-        '$.gameplayRuntime.compositionRequirement',
-      ),
+      ...composition,
       declaredReadPlanHash: nonEmptyString(
         gameplayRuntime['declaredReadPlanHash'],
         '$.gameplayRuntime.declaredReadPlanHash',
@@ -276,6 +274,41 @@ export function decodeDemoProjectBundle(value: unknown): DemoProjectBundle {
       },
     },
   };
+}
+
+function decodeGameplayCompositionSource(
+  gameplayRuntime: SourceObject,
+): Pick<DemoProjectBundle['gameplayRuntime'], 'compositionRequirement' | 'legacyCompositionHash'> {
+  const requirement = gameplayRuntime['compositionRequirement'];
+  const legacyHash = gameplayRuntime['compositionHash'];
+
+  if (requirement !== undefined && legacyHash !== undefined) {
+    return sourceFailure(
+      '$.gameplayRuntime',
+      'compositionRequirement and legacy compositionHash cannot both be present',
+    );
+  }
+  if (requirement !== undefined) {
+    return {
+      compositionRequirement: generatedValue<GameplayCompositionRequirement>(
+        requirement,
+        'gameExtension.GameplayCompositionRequirement',
+        '$.gameplayRuntime.compositionRequirement',
+      ),
+    };
+  }
+  if (legacyHash !== undefined) {
+    return {
+      legacyCompositionHash: nonEmptyString(
+        legacyHash,
+        '$.gameplayRuntime.compositionHash',
+      ),
+    };
+  }
+  return sourceFailure(
+    '$.gameplayRuntime',
+    'expected compositionRequirement or legacy compositionHash',
+  );
 }
 
 export function decodeDemoEntityDefinition(value: unknown, path: string): RuntimeSessionEcrpEntityDefinition {

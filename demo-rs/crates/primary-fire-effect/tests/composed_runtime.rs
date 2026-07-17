@@ -1,11 +1,12 @@
 use asha_demo_primary_fire_effect::{
-    gameplay_challenge_view_contract, gameplay_runtime_prefab_bootstrap,
-    gameplay_runtime_project_input,
+    decode_gameplay_project_composition_requirement, gameplay_challenge_view_contract,
+    gameplay_runtime_prefab_bootstrap, gameplay_runtime_project_input,
 };
 use asha_gameplay_module_sdk::{
-    gameplay_canonical_payload_hash, GameplayCausationRef, GameplayCompositionDiagnosticCode,
-    GameplayContractRef, GameplayEmitterRef, GameplayEntityRef, GameplayOwnerRef,
-    GameplayProposalEnvelope, PrimaryFireGameplayDecisionWorkspace, StandardGameplayProposalKind,
+    gameplay_canonical_payload_hash, gameplay_runtime_composition_identity, GameplayCausationRef,
+    GameplayCompositionDiagnosticCode, GameplayCompositionLoadMode, GameplayContractRef,
+    GameplayEmitterRef, GameplayEntityRef, GameplayOwnerRef, GameplayProposalEnvelope,
+    PrimaryFireGameplayDecisionWorkspace, StandardGameplayProposalKind,
 };
 use asha_runtime_session_composition::{
     EngineBridge, EngineConfig, FpsBridgeBoundsCapability, FpsBridgeHealth, FpsBridgeRole,
@@ -19,6 +20,78 @@ use asha_runtime_session_composition::{
 };
 
 const SENSOR_701: u64 = 1_585_192_660_180_873;
+
+#[test]
+fn serialized_legacy_project_bundle_reaches_compatible_runtime_migration() {
+    let mut legacy: serde_json::Value =
+        serde_json::from_str(include_str!("../../../../project/project-bundle.json")).unwrap();
+    let gameplay_runtime = legacy["gameplayRuntime"].as_object_mut().unwrap();
+    assert!(gameplay_runtime.remove("compositionRequirement").is_some());
+    gameplay_runtime.insert(
+        "compositionHash".to_owned(),
+        serde_json::Value::String("fnv1a64:b0ff59982863a494".to_owned()),
+    );
+    let serialized = serde_json::to_string(&legacy).unwrap();
+    let decoded = decode_gameplay_project_composition_requirement(&serialized).unwrap();
+    assert_eq!(decoded, None);
+
+    let mut input = gameplay_runtime_project_input();
+    input.composition_requirement = decoded;
+    let mut bridge = StaticRuntimeSessionBuilder::activate_project_with_prefabs(
+        input,
+        gameplay_runtime_prefab_bootstrap(),
+    )
+    .and_then(StaticRuntimeSessionBuilder::build)
+    .expect("serialized legacy ProjectBundle selects compatible migration");
+    let readout = bridge.read_composed_runtime_session().unwrap();
+    assert_eq!(
+        readout.gameplay.composition_load_mode,
+        GameplayCompositionLoadMode::Compatible
+    );
+    assert!(readout
+        .gameplay
+        .compatibility_diagnostics
+        .iter()
+        .any(|diagnostic| {
+            diagnostic.code == GameplayCompositionDiagnosticCode::LegacyCompatibilityDefaulted
+        }));
+}
+
+#[test]
+fn serialized_exact_composition_requirement_remains_exact() {
+    let baseline = gameplay_runtime_project_input();
+    let exact_artifact =
+        gameplay_runtime_composition_identity(baseline.composition.registry(), &baseline.bindings)
+            .artifact_provenance_digest;
+    let mut exact: serde_json::Value =
+        serde_json::from_str(include_str!("../../../../project/project-bundle.json")).unwrap();
+    exact["gameplayRuntime"]["compositionRequirement"]["loadMode"] =
+        serde_json::Value::String("exact".to_owned());
+    exact["gameplayRuntime"]["compositionRequirement"]["artifactProvenanceDigest"] =
+        serde_json::Value::String(exact_artifact);
+    let serialized = serde_json::to_string(&exact).unwrap();
+    let decoded = decode_gameplay_project_composition_requirement(&serialized)
+        .unwrap()
+        .expect("exact requirement");
+    assert_eq!(decoded.load_mode, GameplayCompositionLoadMode::Exact);
+
+    let mut input = gameplay_runtime_project_input();
+    input.composition_requirement = Some(decoded);
+    let mut bridge = StaticRuntimeSessionBuilder::activate_project_with_prefabs(
+        input,
+        gameplay_runtime_prefab_bootstrap(),
+    )
+    .and_then(StaticRuntimeSessionBuilder::build)
+    .expect("unambiguous exact lock remains exact");
+    assert_eq!(
+        bridge
+            .read_composed_runtime_session()
+            .unwrap()
+            .gameplay
+            .composition_load_mode,
+        GameplayCompositionLoadMode::Exact
+    );
+}
 
 #[test]
 fn compatible_project_load_survives_benign_artifact_provenance_churn() {
