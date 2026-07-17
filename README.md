@@ -55,5 +55,6 @@ Add authored content under `catalogs/`, `levels/`, `assets/`, `prefabs/`, or
 `src/bootstrap/`, non-authoritative view shaping in `src/projection/`, and DOM
 mutation in `src/shell/`.
 
-See [host architecture](docs/host-architecture.md) and the
-[proof disposition ledger](docs/proof-disposition.md).
+See [host architecture](docs/host-architecture.md), the
+[Studio-authored content pipeline map](docs/studio-authored-content-pipelines.md),
+and the [proof disposition ledger](docs/proof-disposition.md).
