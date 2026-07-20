@@ -1,18 +1,9 @@
 use asha_gameplay_module_sdk::*;
-use asha_runtime_session_composition::{
-    BundleArtifacts, GameplayBindingEntityTargets, GameplayRuntimePrefabBootstrap,
-    GameplayRuntimePrefabCatalog, GameplayRuntimePrefabOverride, GameplayRuntimePrefabPlacement,
-    GameplayRuntimePrefabPlacementOrigin, GameplayRuntimePrefabTransform,
-    GameplayRuntimeProjectInput, GameplayRuntimeSchedulerDefinition, GameplayRuntimeSpatialEntity,
-    GameplayTriggerDefinition, LoadPlan, LoadStep, RuntimeSessionId, SceneId,
-    GAMEPLAY_TRIGGER_DEFINITION_SCHEMA_VERSION,
-};
 use serde::{Deserialize, Serialize};
 
 const MODULE_ID: &str = "demo.primary-fire-effect";
 const MODULE_NAMESPACE: &str = "demo.primary-fire-effect";
 const PROVIDER_ID: &str = "provider.demo.primary-fire-effect";
-const CHALLENGE_TRIGGER_ENTITY: u64 = 30;
 const PRIMARY_FIRE_TRANSFORM_INVOCATION: &str = "demo.primary-fire-effect.primary-fire.transform";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -425,118 +416,6 @@ pub fn gameplay_declared_reads() -> Vec<GameplayRuntimeDeclaredReadPlan> {
     topology().declared_reads().to_vec()
 }
 
-pub fn gameplay_authored_binding_registry() -> GameplayModuleBindingRegistry {
-    let default_configuration = authored_configuration(
-        "demo.primary-fire-effect.default",
-        CloseRangeChallengeConfig {
-            close_range_millimeters: 2_500,
-            close_range_bonus: 5,
-            objective_points: 6,
-        },
-    );
-    let blue_configuration = authored_configuration(
-        "demo.primary-fire-effect.console-blue",
-        CloseRangeChallengeConfig {
-            close_range_millimeters: 2_000,
-            close_range_bonus: 2,
-            objective_points: 3,
-        },
-    );
-    let red_configuration = authored_configuration(
-        "demo.primary-fire-effect.console-red",
-        CloseRangeChallengeConfig {
-            close_range_millimeters: 3_000,
-            close_range_bonus: 7,
-            objective_points: 9,
-        },
-    );
-    let session_binding = GameplayModuleBinding {
-        binding_id: "demo.primary-fire-effect.session".to_owned(),
-        module_id: MODULE_ID.to_owned(),
-        configuration_id: default_configuration.configuration_id.clone(),
-        state_schema: contract("challenge-state"),
-        target: GameplayModuleBindingTarget::Session,
-        required_reads: vec![],
-        output_contracts: vec![contract("challenge-progressed")],
-        enabled: true,
-    };
-    let prefab_binding = GameplayModuleBinding {
-        binding_id: "demo.primary-fire-effect.console-sensor".to_owned(),
-        module_id: MODULE_ID.to_owned(),
-        configuration_id: default_configuration.configuration_id.clone(),
-        state_schema: contract("challenge-state"),
-        target: GameplayModuleBindingTarget::PrefabPart {
-            part: PrefabPartReference {
-                prefab: PrefabId::new(70),
-                role: "interaction/sensor".to_owned(),
-            },
-        },
-        required_reads: vec![],
-        output_contracts: vec![contract("challenge-progressed")],
-        enabled: true,
-    };
-    let mut builder = GameplayModuleBindingRegistryBuilder::new();
-    builder
-        .configuration(default_configuration)
-        .configuration(blue_configuration.clone())
-        .configuration(red_configuration.clone())
-        .binding(session_binding)
-        .binding(prefab_binding)
-        .instance_override(GameplayModuleBindingOverride {
-            binding_id: "demo.primary-fire-effect.console-sensor".to_owned(),
-            prefab_instance: PrefabInstanceId::new(700),
-            configuration_id: Some(blue_configuration.configuration_id),
-            enabled: None,
-        })
-        .instance_override(GameplayModuleBindingOverride {
-            binding_id: "demo.primary-fire-effect.console-sensor".to_owned(),
-            prefab_instance: PrefabInstanceId::new(701),
-            configuration_id: Some(red_configuration.configuration_id),
-            enabled: None,
-        });
-    builder.build()
-}
-
-/// The generic module-conformance runner exercises a binding slice without a
-/// prefab registry bootstrap. The product host separately proves the authored
-/// prefab-part binding and both instance overrides through real placement
-/// authority, so this slice keeps only the same registry's Session binding.
-pub fn gameplay_session_conformance_binding_registry() -> GameplayModuleBindingRegistry {
-    let authored = gameplay_authored_binding_registry();
-    let session_binding = authored
-        .bindings
-        .iter()
-        .find(|binding| matches!(&binding.target, GameplayModuleBindingTarget::Session))
-        .cloned()
-        .expect("authored gameplay registry has a Session binding");
-    let mut builder = GameplayModuleBindingRegistryBuilder::new();
-    let configuration = authored
-        .configurations
-        .into_iter()
-        .find(|configuration| configuration.configuration_id == session_binding.configuration_id)
-        .expect("Session binding configuration is present");
-    builder
-        .configuration(configuration)
-        .binding(session_binding);
-    builder.build()
-}
-
-fn authored_configuration(
-    configuration_id: &str,
-    config: CloseRangeChallengeConfig,
-) -> GameplayModuleConfiguration {
-    let canonical_config =
-        serde_json::to_vec(&config).expect("authored challenge config serializes");
-    GameplayModuleConfiguration {
-        configuration_id: configuration_id.to_owned(),
-        module: gameplay_module_ref(),
-        configuration: contract("configuration"),
-        codec_id: gameplay_canonical_codec_id(&contract("configuration").schema_hash),
-        config_hash: gameplay_module_payload_hash(&canonical_config),
-        canonical_config,
-    }
-}
-
 pub fn gameplay_composition() -> Result<GameplayStaticComposition, GameplayStaticCompositionError> {
     let mut builder = GameplayStaticCompositionBuilder::new();
     builder.include_standard_owner_events();
@@ -592,18 +471,36 @@ fn provider() -> GameplayStaticModuleProvider {
         vec![
             GameplayConfigurationFieldMetadata {
                 name: "closeRangeMillimeters".to_owned(),
-                value_type: "u32".to_owned(),
+                label: "Close range (millimeters)".to_owned(),
+                value_kind: GameplayConfigurationValueKind::Integer,
                 required: true,
+                reference_kind: None,
+                integer_min: Some(0),
+                integer_max: Some(u32::MAX.into()),
+                number_min: None,
+                number_max: None,
             },
             GameplayConfigurationFieldMetadata {
                 name: "closeRangeBonus".to_owned(),
-                value_type: "u32".to_owned(),
+                label: "Close-range damage bonus".to_owned(),
+                value_kind: GameplayConfigurationValueKind::Integer,
                 required: true,
+                reference_kind: None,
+                integer_min: Some(0),
+                integer_max: Some(u32::MAX.into()),
+                number_min: None,
+                number_max: None,
             },
             GameplayConfigurationFieldMetadata {
                 name: "objectivePoints".to_owned(),
-                value_type: "u32".to_owned(),
+                label: "Objective points".to_owned(),
+                value_kind: GameplayConfigurationValueKind::Integer,
                 required: true,
+                reference_kind: None,
+                integer_min: Some(1),
+                integer_max: Some(u32::MAX.into()),
+                number_min: None,
+                number_max: None,
             },
         ],
     );
@@ -737,158 +634,6 @@ fn trigger_overlap_read() -> GameplayModuleReadTopology {
     }
 }
 
-pub fn gameplay_runtime_project_input() -> GameplayRuntimeProjectInput {
-    GameplayRuntimeProjectInput {
-        load_plan: LoadPlan {
-            steps: vec![
-                LoadStep::ValidateVersions {
-                    bundle_schema_version: 1,
-                    protocol_version: 1,
-                },
-                LoadStep::LoadAssetLock {
-                    artifact: "assets/lock.json".to_owned(),
-                    asset_count: 0,
-                },
-                LoadStep::LoadSceneDocument {
-                    artifact: "scene/scene.json".to_owned(),
-                    scene: SceneId::new(4103),
-                },
-                LoadStep::BootstrapScene {
-                    scene: SceneId::new(4103),
-                    runtime_session: RuntimeSessionId::new(4103),
-                },
-                LoadStep::ValidateFinalState,
-            ],
-        },
-        artifacts: BundleArtifacts::new()
-            .with_artifact("assets/lock.json", "{\"entries\":[]}")
-            .with_artifact("scene/scene.json", gameplay_scene_artifact()),
-        composition: gameplay_composition().expect("Demo gameplay composition is valid"),
-        composition_requirement: decode_gameplay_project_composition_requirement(include_str!(
-            "../../../../project/project-bundle.json"
-        ))
-        .expect("Demo ProjectBundle has a valid gameplay composition declaration"),
-        bindings: gameplay_authored_binding_registry(),
-        entity_targets: GameplayBindingEntityTargets::new(),
-        spatial_entities: vec![GameplayRuntimeSpatialEntity {
-            entity: EntityId::new(CHALLENGE_TRIGGER_ENTITY),
-            translation: [0.0, 1.5, 0.0],
-            half_extents: [0.65, 0.9, 0.45],
-            static_collider: false,
-        }],
-        declared_reads: gameplay_declared_reads(),
-        triggers: vec![GameplayTriggerDefinition {
-            schema_version: GAMEPLAY_TRIGGER_DEFINITION_SCHEMA_VERSION,
-            entity: CHALLENGE_TRIGGER_ENTITY,
-            scope: "encounter.close-range".to_owned(),
-            tags: vec![
-                "challenge".to_owned(),
-                "close-range".to_owned(),
-                "generated-tunnel".to_owned(),
-            ],
-        }],
-        scheduler: GameplayRuntimeSchedulerDefinition::new(
-            GameplayOwnerRef {
-                owner_id: "authority.asha-demo.scheduler".to_owned(),
-                provider_id: "provider.asha-demo.runtime-session".to_owned(),
-            },
-            vec![StandardGameplayEventKind::CombatFireHit.contract()],
-            vec![
-                StandardGameplayProposalKind::ResolvePrimaryFire.contract(),
-                StandardGameplayProposalKind::SetCapabilityActivation.contract(),
-            ],
-        ),
-    }
-}
-
-pub fn gameplay_project_composition_requirement() -> GameplayCompositionRequirement {
-    decode_gameplay_project_composition_requirement(include_str!(
-        "../../../../project/project-bundle.json"
-    ))
-    .expect("Demo ProjectBundle has a valid gameplay composition declaration")
-    .expect("Demo ProjectBundle carries an explicit gameplay composition requirement")
-}
-
-pub fn decode_gameplay_project_composition_requirement(
-    serialized_project_bundle: &str,
-) -> Result<Option<GameplayCompositionRequirement>, String> {
-    let project_bundle: serde_json::Value = serde_json::from_str(serialized_project_bundle)
-        .map_err(|error| format!("ProjectBundle is invalid JSON: {error}"))?;
-    let gameplay_runtime = project_bundle
-        .get("gameplayRuntime")
-        .and_then(serde_json::Value::as_object)
-        .ok_or_else(|| "ProjectBundle.gameplayRuntime must be an object".to_owned())?;
-    let requirement = gameplay_runtime.get("compositionRequirement");
-    let legacy_hash = gameplay_runtime.get("compositionHash");
-
-    match (requirement, legacy_hash) {
-        (Some(_), Some(_)) => Err(
-            "ProjectBundle gameplayRuntime cannot contain both compositionRequirement and legacy compositionHash"
-                .to_owned(),
-        ),
-        (Some(requirement), None) => serde_json::from_value(requirement.clone())
-            .map(Some)
-            .map_err(|error| {
-                format!("ProjectBundle gameplayRuntime.compositionRequirement is invalid: {error}")
-            }),
-        (None, Some(serde_json::Value::String(hash))) if !hash.trim().is_empty() => Ok(None),
-        (None, Some(_)) => Err(
-            "ProjectBundle gameplayRuntime.compositionHash must be a non-empty string".to_owned(),
-        ),
-        (None, None) => Err(
-            "ProjectBundle gameplayRuntime must contain compositionRequirement or legacy compositionHash"
-                .to_owned(),
-        ),
-    }
-}
-
-pub fn gameplay_runtime_prefab_bootstrap() -> GameplayRuntimePrefabBootstrap {
-    GameplayRuntimePrefabBootstrap {
-        registry_json: include_str!("../../../../prefabs/registry.json").to_owned(),
-        catalog: GameplayRuntimePrefabCatalog {
-            asset_ids: Vec::new(),
-            entity_definition_ids: vec![
-                "demo.console.body".to_owned(),
-                "demo.console.body.blue".to_owned(),
-                "demo.console.body.red".to_owned(),
-                "demo.console.sensor".to_owned(),
-            ],
-        },
-        placements: vec![
-            GameplayRuntimePrefabPlacement {
-                command_id: "demo.place-prefab.700".to_owned(),
-                origin: GameplayRuntimePrefabPlacementOrigin::Authored,
-                instance: 700,
-                prefab: 70,
-                seed: 4103,
-                transform: GameplayRuntimePrefabTransform {
-                    translation: [-2.0, 0.0, -1.0],
-                    ..GameplayRuntimePrefabTransform::IDENTITY
-                },
-                overrides: vec![GameplayRuntimePrefabOverride::EntityDefinition {
-                    target_role: "console/body".to_owned(),
-                    stable_id: "demo.console.body.blue".to_owned(),
-                }],
-            },
-            GameplayRuntimePrefabPlacement {
-                command_id: "demo.place-prefab.701".to_owned(),
-                origin: GameplayRuntimePrefabPlacementOrigin::Player,
-                instance: 701,
-                prefab: 70,
-                seed: 4104,
-                transform: GameplayRuntimePrefabTransform {
-                    translation: [2.0, 0.0, -1.0],
-                    ..GameplayRuntimePrefabTransform::IDENTITY
-                },
-                overrides: vec![GameplayRuntimePrefabOverride::EntityDefinition {
-                    target_role: "console/body".to_owned(),
-                    stable_id: "demo.console.body.red".to_owned(),
-                }],
-            },
-        ],
-    }
-}
-
 pub fn gameplay_challenge_view_contract() -> GameplayContractRef {
     contract("challenge-state-view")
 }
@@ -905,11 +650,7 @@ fn build_provenance() -> GameplayModuleBuildProvenance {
     GameplayModuleBuildProvenance::from_build_inputs(
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
-        &[
-            include_bytes!("gameplay.rs"),
-            include_bytes!("lib.rs"),
-            include_bytes!("../../../../prefabs/registry.json"),
-        ],
+        &[include_bytes!("gameplay.rs"), include_bytes!("lib.rs")],
         include_bytes!("../../../Cargo.lock"),
         &[],
     )
@@ -940,18 +681,6 @@ fn capability_activation_codec() -> TypedGameplayEventCodec<CapabilityActivation
 
 fn contract(name: &str) -> GameplayContractRef {
     gameplay_contract(MODULE_NAMESPACE, name, 1, &schema_descriptor(name))
-}
-
-fn gameplay_scene_artifact() -> &'static str {
-    r#"{
-      "schemaVersion": 1,
-      "id": 4103,
-      "metadata": { "name": "asha-demo-composed-runtime", "authoringFormatVersion": 1 },
-      "dependencies": [],
-      "nodes": [
-        { "id": 1, "parent": null, "childOrder": 0, "label": null, "tags": [], "transform": { "translation": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1] }, "kind": { "kind": "emptyGroup" } }
-      ]
-    }"#
 }
 
 fn owner() -> GameplayOwnerRef {

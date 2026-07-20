@@ -1,65 +1,41 @@
 {
-  "kind": "EntityDefinition",
-  "stableId": "actor/demo-player",
-  "displayName": "Demo Player",
-  "source": {
-    "projectBundle": "asha-demo",
-    "relativePath": "catalogs/actors/demo-player.entity.json"
-  },
-  "capabilities": [
-    {
-      "kind": "transform",
-      "initial": {
-        "position": [0, 1.62, 1.5],
-        "yawDegrees": 0,
-        "pitchDegrees": 0
-      }
+  "schemaVersion": 1,
+  "documentId": "asha-demo.entity.demo-player",
+  "documentKind": "entityDefinition",
+  "document": {
+    "stableId": "actor/demo-player",
+    "displayName": "Demo Player",
+    "source": {
+      "projectBundle": "asha-demo",
+      "relativePath": "catalogs/actors/demo-player.entity.json"
     },
-    {
-      "kind": "collisionBody",
-      "halfExtents": [0.25, 0.7, 0.25],
-      "policy": {
-        "mode": "axis_separable_slide",
-        "maxIterations": 3
-      }
-    },
-    {
-      "kind": "controller",
-      "controller": "player_input",
-      "tuning": {
-        "moveSpeedUnitsPerSecond": 3,
-        "sprintMultiplier": 1,
-        "lookSensitivityDegreesPerPixel": 0.1,
-        "cameraHeightUnits": 1.5,
-        "collisionHalfExtents": [0.25, 0.25, 0.25],
-        "maxPitchDegrees": 89
-      }
-    },
-    {
-      "kind": "health",
-      "current": 100,
-      "max": 100
-    },
-    {
-      "kind": "weaponMount",
-      "weaponId": "weapon.primary_fire.generated_tunnel.v0",
-      "tuning": {
+    "tags": [],
+    "metadata": [],
+    "capabilities": [
+      {
+        "kind": "transform",
+        "transform": {
+          "translation": [0, 0, 0],
+          "rotation": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      { "kind": "bounds", "min": [-0.25, -0.7, -0.25], "max": [0.25, 0.7, 0.25] },
+      { "kind": "collision", "staticCollider": false },
+      { "kind": "render", "visible": true },
+      { "kind": "controller", "controllerId": "player_input" },
+      { "kind": "health", "current": 100, "max": 100 },
+      {
+        "kind": "weaponMount",
         "weaponId": "weapon.primary_fire.generated_tunnel.v0",
-        "action": "primary_fire",
         "damage": 40,
         "rangeUnits": 8,
-        "cooldownTicks": 4,
         "ammo": 2,
-        "traceRadiusUnits": 0
-      }
-    },
-    {
-      "kind": "renderProjection",
-      "projection": "first_person_camera"
-    },
-    {
-      "kind": "faction",
-      "factionId": "player"
-    }
-  ]
+        "cooldownTicksAfterFire": 4
+      },
+      { "kind": "renderProjection", "projectionId": "first_person_camera", "visible": true },
+      { "kind": "spawnMarker", "markerId": "spawn.player.start" },
+      { "kind": "faction", "factionId": "player" }
+    ]
+  }
 }

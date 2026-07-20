@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "documentId": "asha-demo.entity.close-range-trigger",
+  "documentKind": "entityDefinition",
+  "document": {
+    "stableId": "trigger/close-range-challenge",
+    "displayName": "Close-range challenge trigger",
+    "source": {
+      "projectBundle": "asha-demo",
+      "relativePath": "catalogs/actors/close-range-trigger.entity.json"
+    },
+    "tags": [],
+    "metadata": [],
+    "capabilities": [
+      {
+        "kind": "transform",
+        "transform": {
+          "translation": [0, 0, 0],
+          "rotation": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      { "kind": "bounds", "min": [-0.65, -0.9, -0.45], "max": [0.65, 0.9, 0.45] },
+      { "kind": "collision", "staticCollider": false },
+      { "kind": "render", "visible": false }
+    ]
+  }
+}

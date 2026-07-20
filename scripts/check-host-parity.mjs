@@ -43,8 +43,8 @@ function checkHost(host, label) {
   if (host.kind !== 'asha_demo.host_config.v1') {
     errors.push(`${label} kind must be asha_demo.host_config.v1`);
   }
-  if (host.projectBundle !== 'project/project-bundle.json') {
-    errors.push(`${label} must use project/project-bundle.json`);
+  if (host.projectBundle !== 'asha.project-bundle.json') {
+    errors.push(`${label} must use the root canonical asha.project-bundle.json`);
   }
   if (host.runtimeProvider?.kind !== 'native_runtime_bridge_provider') {
     errors.push(`${label} must require native RuntimeBridge provider injection`);

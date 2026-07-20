@@ -1,6 +1,11 @@
 # Studio-authored content pipelines
 
-Status: current migration contract for Den #5945 and the #5944 campaign.
+Status: implemented architecture after Den #5945-#5950.
+
+The migration described below is now represented by the root
+`asha.project-bundle.json` and its manifest-authorized source closure. References
+to removed paths in the comparison table describe the pre-migration baseline,
+not supported compatibility surfaces.
 
 ## Product rule
 
@@ -176,7 +181,7 @@ The map uses these labels:
 | Collision and navigation | `requestGeneratedTunnelOperation` installs a newly generated collision world; expected hashes are mirrored in the preset | **Runtime:** derived from saved occupancy plus its finite translation-only composed scene transform. Optional caches carry source identity and are invalidated, never treated as authoring truth | Rust collision/navigation owners and the exact voxel-transform rejection contract above; Studio read-only bounds/source diagnostics | Movement, picking, path queries. #5947 and #5950 |
 | Render mesh/projection | `createAshaRendererGeneratedTunnelRoomSurfaceFrame` consumes an upstream constant rather than the saved scene | **Runtime/editor projection:** mesh chunks derive from saved voxel data and palette | Rust renderer-neutral projection; ordinary Studio viewport | Renderer host consumes projections only. #5947, #5949, #5950 |
 | Lights and clear/environment presentation | No light nodes; `boot-game.ts` hardcodes a clear color and relies on renderer defaults | **Stored:** light scene nodes and typed scene/environment settings | Existing Rust scene-light authority; existing Studio light tools, extended only where project settings are missing | Renderer host consumes scene projection. #5949 and #5950 |
-| Materials and voxel palette | `catalogs/materials/generated-tunnel.materials.json` names roles but not the full material truth | **Stored:** generic material assets/catalog entries; voxel material ids bind through the `VoxelVolumeAsset` palette | Rust asset/catalog/palette validation; Studio material and voxel-palette inspectors | Renderer resolves material assets from projected ids. #5946, #5948, #5949, #5950 |
+| Materials and voxel palette | `catalogs/materials/catalog.json` names roles but not the full material truth | **Stored:** generic material assets/catalog entries; voxel material ids bind through the `VoxelVolumeAsset` palette | Rust asset/catalog/palette validation; Studio material and voxel-palette inspectors | Renderer resolves material assets from projected ids. #5946, #5948, #5949, #5950 |
 | Entity definitions | Two actor JSON files are stored, but console definitions exist only as allowed string ids | **Stored:** every referenced actor/console definition is a canonical typed `EntityDefinition` | Rust capability/reference validation; Studio EntityDefinition inspector | Scene/prefab bootstrap resolves definitions. #5946, #5948, #5950 |
 | Actor placement | Player/enemy absolute transforms are repeated in entity definitions, the scene, and the spawn catalog | **Stored:** a referenced scene marker owns the base pose and the actor scene node owns only a local offset; current actor offsets are identity. Entity definitions own reusable capabilities, not per-scene positions | Rust scene/marker/reference validation; Studio hierarchy, marker, and entity navigation | Runtime composes marker plus local offset when materializing the scene instance. #5946, #5948, #5950 |
 | Spawn/navigation markers | `catalogs/spawns/generated-tunnel.spawns.json`, scene `spawnMarkerId` values, and generator markers overlap | **Stored:** one `SceneNodeKind::Marker` per typed identity; its transform is the only marker pose and generated markers are materialized as normal scene nodes | Rust marker-id/reference validation; Studio marker hierarchy/gizmo and navigation | Encounter/spawn/navigation owners resolve stored scene markers. #5946, #5947, #5948, #5949, #5950 |

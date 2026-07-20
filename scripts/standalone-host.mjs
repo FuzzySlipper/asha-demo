@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
@@ -8,41 +9,42 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const appRoot = join(repoRoot, 'dist/ui');
 const shouldBuild = !process.argv.includes('--no-build');
 
-if (shouldBuild) {
-  runBuild();
-}
+if (shouldBuild) runBuild();
 
 const installation = installAshaDemoStandaloneProvider(globalThis);
 const content = await loadContent();
 const status = await readContentStatus(content);
-const sceneSourcePath = join(appRoot, content.sourceFiles.sceneDocument);
-const committedSceneSourceBeforeBoot = readFileSync(sceneSourcePath, 'utf8');
-
 if (!status.valid) {
   throw new Error(`Standalone host packaged invalid project content: ${status.diagnostics.join('; ')}`);
 }
 
+const storedSourcesBeforePlay = hashManifestClosure(content.projectManifest);
 const runtimeBackend = await createRuntimeBackend(content);
 if (!runtimeBackend.available || runtimeBackend.status !== 'rust_authority') {
   const diagnostic = runtimeBackend.diagnostics?.[0]?.message ?? runtimeBackend.status;
-  throw new Error(`Standalone host failed closed before native RuntimeSession authority loaded: ${diagnostic}`);
+  throw new Error(`Standalone host failed before native RuntimeSession authority loaded: ${diagnostic}`);
+}
+if (!runtimeBackend.loadReceipt.accepted || runtimeBackend.loadReceipt.activeProject === null) {
+  throw new Error('Standalone host did not receive a canonical active-project identity.');
+}
+if (runtimeBackend.loadReceipt.activeProject.projectId !== content.projectManifest.project.id) {
+  throw new Error('Standalone host activated a project other than the manifest-selected Demo project.');
+}
+if (runtimeBackend.sceneDocument.id !== content.projectManifest.entryScene) {
+  throw new Error('Standalone host entry scene did not come from the canonical project load.');
+}
+if (runtimeBackend.storedEnvironment?.status !== 'loaded') {
+  throw new Error('Standalone host did not activate the stored voxel environment.');
 }
 
 const runtimeGateway = await createRuntimeGateway(runtimeBackend);
 const readout = runtimeGateway.readEcrpRuntimeReadout();
-if (readout?.entityCount !== 2) {
-  throw new Error(`Standalone host expected 2 ECRP entities, saw ${readout?.entityCount ?? 'none'}`);
+if (readout?.entityCount !== 3 || runtimeBackend.loadReceipt.activeProject.entityCount !== 7) {
+  throw new Error(
+    `Standalone host expected seven active entities and three FPS role entities, saw ${runtimeBackend.loadReceipt.activeProject.entityCount}/${readout?.entityCount ?? 'none'}`,
+  );
 }
-if (content.sceneDocumentSourceText !== committedSceneSourceBeforeBoot) {
-  throw new Error('Standalone host did not give Rust the exact committed SceneDocument source bytes.');
-}
-if (runtimeBackend.sceneDocumentContentHash === null) {
-  throw new Error('Standalone host did not retain the Rust scene codec content identity.');
-}
-assertCanonicalSceneBootstrap(runtimeBackend, readout);
-assertLegacySceneDiagnostic(runtimeBackend);
-assertIndependentRegistryRejectsSceneDrift(content, runtimeBackend);
-await assertStudioEditedTransformWinsOnFreshBoot(content, sceneSourcePath);
+assertStoredSceneRuntimeTransforms(readout);
 
 const cameraReceipt = runtimeGateway.createCamera({
   initialPose: content.runtime.initialCameraPose,
@@ -65,50 +67,46 @@ if (!fireReceipt?.accepted) {
 }
 const gameplayReadout = runtimeGateway.readGameplayRuntime();
 const challengeState = runtimeGateway.readGameplayChallengeState();
-if (gameplayReadout?.reactionFrameCount < 2 || gameplayReadout?.decisionReceiptCount < 1) {
+if (gameplayReadout?.reactionFrameCount < 1 || gameplayReadout?.decisionReceiptCount < 1) {
   throw new Error('Standalone host did not retain the linked gameplay module reaction frame.');
 }
-if (
-  runtimeBackend.prefabInteractionReceipt?.target
-    !== content.projectBundle.gameplayRuntime.prefabInteraction.expectedTarget
-  || challengeState?.revision < 1
-) {
-  throw new Error('Standalone host did not retain typed prefab interaction and named challenge-view readback.');
+if (challengeState?.revision < 1) {
+  throw new Error('Standalone host did not retain the typed challenge-view readback.');
 }
 
-const summary = {
-  kind: 'asha_demo.standalone_host_smoke.v1',
+const storedSourcesAfterPlay = hashManifestClosure(content.projectManifest);
+if (storedSourcesAfterPlay !== storedSourcesBeforePlay) {
+  throw new Error('Normal runtime play mutated the canonical project source closure.');
+}
+
+console.log(JSON.stringify({
+  kind: 'asha_demo.standalone_host_smoke.v2',
   hostMode: 'standalone_compiled',
   contentRoot: 'dist/ui',
   providerGlobal: installation.providerGlobal,
   providerContract: installation.profile.providerContract,
   referenceFallback: installation.profile.referenceFallback,
-  projectBundle: status.sourceFiles.projectBundle,
+  projectManifest: status.projectManifest,
+  projectId: runtimeBackend.loadReceipt.activeProject.projectId,
+  admissionHash: runtimeBackend.loadReceipt.activeProject.admissionHash,
   entityCount: readout.entityCount,
-  sceneDocumentContentHash: runtimeBackend.sceneDocumentContentHash,
+  storedVoxelAsset: runtimeBackend.storedEnvironment.assetId,
   gameplayModule: fireReceipt.gameplayTransform?.moduleId ?? null,
   runtimeStatus: runtimeBackend.status,
   primaryFireAccepted: fireReceipt.accepted,
   gameplayReactionFrameCount: gameplayReadout.reactionFrameCount,
   challengeRevision: challengeState.revision,
-  prefabInteractionTarget: runtimeBackend.prefabInteractionReceipt.target,
-};
-
-console.log(JSON.stringify(summary, null, 2));
+  storedSourcesUnchanged: true,
+}, null, 2));
 
 function runBuild() {
-  const result = spawnSync('npm', ['run', 'build'], {
-    cwd: repoRoot,
-    stdio: 'inherit',
-  });
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
+  const result = spawnSync('npm', ['run', 'build'], { cwd: repoRoot, stdio: 'inherit' });
+  if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
 async function loadContent() {
   const module = await import(pathToFileURL(join(appRoot, 'content/project-content.js')));
-  return module.loadDemoProjectContent(readStandaloneJson, readStandaloneText);
+  return module.loadDemoProjectContent(readStandaloneJson, readStandaloneBytes);
 }
 
 async function readContentStatus(content) {
@@ -127,139 +125,46 @@ async function createRuntimeGateway(runtimeBackend) {
 }
 
 async function readStandaloneJson(requestPath) {
-  return JSON.parse(await readStandaloneText(requestPath));
+  return JSON.parse(new TextDecoder().decode(await readStandaloneBytes(requestPath)));
 }
 
-async function readStandaloneText(requestPath) {
+async function readStandaloneBytes(requestPath) {
   const normalized = requestPath.replace(/^\/+/, '');
   const filePath = resolve(appRoot, normalized);
-  if (!filePath.startsWith(appRoot)) {
+  if (!filePath.startsWith(`${appRoot}/`) && filePath !== appRoot) {
     throw new Error(`Standalone host rejected content path outside app root: ${requestPath}`);
   }
-  return readFileSync(filePath, 'utf8');
+  return new Uint8Array(readFileSync(filePath));
 }
 
-function assertCanonicalSceneBootstrap(runtimeBackend, readout) {
+function hashManifestClosure(manifest) {
+  const hash = createHash('sha256');
+  hash.update(readFileSync(join(repoRoot, 'asha.project-bundle.json')));
+  for (const artifact of manifest.artifacts) {
+    hash.update(artifact.path);
+    hash.update(readFileSync(join(repoRoot, artifact.path)));
+  }
+  return hash.digest('hex');
+}
+
+function assertStoredSceneRuntimeTransforms(readout) {
   const player = readout.entities.find((entity) => entity.definitionStableId === 'actor/demo-player');
   const enemy = readout.entities.find(
     (entity) => entity.definitionStableId === 'actor/generated-tunnel-enemy',
   );
   assertRuntimeTransform(player, [0, 1.62, 1.5], 'player');
   assertRuntimeTransform(enemy, [0, 0.5, -2.6], 'enemy');
-
-  const instances = runtimeBackend.sceneDocument.nodes.filter(
-    (node) => node.kind.kind === 'entityInstance',
-  );
-  const markers = instances.map((node) => node.kind.instance.spawnMarkerId).sort();
-  if (JSON.stringify(markers) !== JSON.stringify(['spawn.enemy.primary', 'spawn.player.start'])) {
-    throw new Error(`Canonical scene spawn bindings were not retained: ${JSON.stringify(markers)}`);
-  }
 }
 
 function assertRuntimeTransform(entity, expectedPosition, label) {
   const transform = entity?.capabilities.find((capability) => capability.kind === 'transform');
   const positionMatches = transform?.kind === 'transform'
-    && transform.position.every((component, index) =>
-      Math.abs(component - expectedPosition[index]) <= 0.000_001);
+    && transform.position.every((component, index) => (
+      Math.abs(component - expectedPosition[index]) <= 0.000_001
+    ));
   if (!positionMatches) {
     throw new Error(
-      `Standalone host ${label} transform did not come from the canonical scene: ${JSON.stringify(transform)}`,
+      `Standalone host ${label} transform did not come from the stored scene: ${JSON.stringify(transform)}`,
     );
-  }
-}
-
-function assertLegacySceneDiagnostic(runtimeBackend) {
-  const result = runtimeBackend.session.decodeSceneDocument({
-    sourceText: JSON.stringify({
-      kind: 'SceneDocument',
-      sceneId: 'legacy-demo-scene',
-      placements: [],
-    }),
-  });
-  if (result.accepted || !result.diagnostics.some((diagnostic) => diagnostic.code === 'legacy-demo-scene')) {
-    throw new Error('Rust scene codec did not classify the removed Demo scene shape as legacy-demo-scene.');
-  }
-}
-
-function assertIndependentRegistryRejectsSceneDrift(content, runtimeBackend) {
-  const beforeSnapshot = runtimeBackend.bridge.readFpsRuntimeSession();
-  const beforeReadout = runtimeBackend.session.readEcrpRuntimeReadout();
-  const driftedScene = structuredClone(runtimeBackend.sceneDocument);
-  const player = driftedScene.nodes.find((node) =>
-    node.kind.kind === 'entityInstance'
-      && node.kind.instance.reference.kind === 'entityDefinition'
-      && node.kind.instance.reference.stableId === 'actor/demo-player');
-  if (player === undefined || player.kind.kind !== 'entityInstance') {
-    throw new Error('Canonical Demo scene is missing the player instance for registry-drift acceptance.');
-  }
-  player.kind.instance.spawnMarkerId = 'spawn.scene-invented';
-
-  let rejection = null;
-  try {
-    runtimeBackend.session.loadEcrpProject({
-      kind: 'runtime_session.load_ecrp_project.v0',
-      projectBundle: content.projectBundle,
-      bootstrapResolutionRegistry: content.bootstrapResolutionRegistry,
-      entityDefinitions: content.entityDefinitions,
-      sceneDocument: driftedScene,
-    });
-  } catch (error) {
-    rejection = error;
-  }
-  const rejectionMessage = rejection instanceof Error ? rejection.message : String(rejection);
-  if (rejection === null || !rejectionMessage.includes('UnknownSpawnMarker')) {
-    throw new Error(
-      `Rust admission did not reject a scene-invented marker against fixed registry evidence: ${rejectionMessage}`,
-    );
-  }
-
-  const afterSnapshot = runtimeBackend.bridge.readFpsRuntimeSession();
-  const afterReadout = runtimeBackend.session.readEcrpRuntimeReadout();
-  for (const field of ['sessionEpoch', 'entityHash', 'healthHash', 'replayHash']) {
-    if (afterSnapshot[field] !== beforeSnapshot[field]) {
-      throw new Error(`Rejected scene reference mutated prior FPS ${field}.`);
-    }
-  }
-  if (
-    afterReadout.sessionHash !== beforeReadout.sessionHash
-    || JSON.stringify(afterReadout.hashes) !== JSON.stringify(beforeReadout.hashes)
-  ) {
-    throw new Error('Rejected scene reference replaced the prior RuntimeSession ECRP readout.');
-  }
-}
-
-async function assertStudioEditedTransformWinsOnFreshBoot(content, sceneSourcePath) {
-  const editedScene = structuredClone(content.sceneDocument);
-  const player = editedScene.nodes.find((node) =>
-    node.kind.kind === 'entityInstance'
-      && node.kind.instance.reference.kind === 'entityDefinition'
-      && node.kind.instance.reference.stableId === 'actor/demo-player');
-  if (player === undefined) {
-    throw new Error('Canonical Demo scene is missing the player instance.');
-  }
-  player.transform.translation = [1.25, 1.62, 1.5];
-  const editedContent = {
-    ...content,
-    sceneDocument: editedScene,
-    sceneDocumentSourceText: `${JSON.stringify(editedScene, null, 2)}\n`,
-    runtime: {
-      ...content.runtime,
-      sessionId: `${content.runtime.sessionId}.studio-edit-smoke`,
-    },
-  };
-  const editedBackend = await createRuntimeBackend(editedContent);
-  if (!editedBackend.available) {
-    throw new Error(
-      `Fresh RuntimeSession rejected the Studio-shaped transform edit: ${editedBackend.diagnostics[0]?.message ?? 'unknown error'}`,
-    );
-  }
-  const editedGateway = await createRuntimeGateway(editedBackend);
-  const editedReadout = editedGateway.readEcrpRuntimeReadout();
-  const editedPlayer = editedReadout.entities.find(
-    (entity) => entity.definitionStableId === 'actor/demo-player',
-  );
-  assertRuntimeTransform(editedPlayer, [1.25, 1.62, 1.5], 'Studio-edited player');
-  if (readFileSync(sceneSourcePath, 'utf8') !== content.sceneDocumentSourceText) {
-    throw new Error('Runtime play mutated the committed SceneDocument source file.');
   }
 }

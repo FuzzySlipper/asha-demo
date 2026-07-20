@@ -7,16 +7,16 @@ export function buildUiStatus() {
       owner: '@asha/renderer-host',
       controls: {
         fire: 'runtime_action_intent.primary_fire',
-        mode: 'first_person_generated_tunnel_room',
+        mode: 'first_person_stored_project_scene',
         pointerLock: 'click_to_lock_escape_to_unlock',
         reset: 'runtime_session_restart_and_camera_reset',
         owner: '@asha/renderer-host',
       },
-      publicImports: ['@asha/catalog-core', '@asha/renderer-host', '@asha/runtime-bridge', '@asha/ui-dom'],
+      publicImports: ['@asha/renderer-host', '@asha/runtime-bridge', '@asha/runtime-session', '@asha/ui-dom'],
       authorityOwners: {
         collision: '@asha/runtime-bridge',
         combat: '@asha/runtime-bridge',
-        contentValidation: '@asha/catalog-core',
+        contentValidation: '@asha/runtime-bridge',
         hudProjection: '@asha/ui-dom',
         rendering: '@asha/renderer-host',
         animationIntent: '@asha/runtime-session',
@@ -34,6 +34,6 @@ export function buildUiStatus() {
       },
     },
     currentSurface:
-      'Generated-tunnel room demo with durable ProjectBundle/ECRP content, a hash-pinned animated mesh driven by RuntimeSession animation intent and public renderer-host playback readback, Rust-backed RuntimeSession authority when a public bridge provider is attached, and fail-closed HUD diagnostics otherwise.',
+      'Studio-inspectable stored project scene with a stored voxel environment, canonical ProjectContent, a hash-pinned animated mesh driven by RuntimeSession animation intent, Rust-backed RuntimeSession authority, and fail-closed HUD diagnostics.',
   };
 }

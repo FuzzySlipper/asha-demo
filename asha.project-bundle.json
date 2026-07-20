@@ -1,0 +1,35 @@
+{
+  "bundleSchemaVersion": 2,
+  "protocolVersion": 1,
+  "project": { "id": 4103, "name": "ASHA Demo" },
+  "entryScene": 4103,
+  "scenes": [
+    { "id": 4103, "schemaVersion": 4, "artifact": "levels/scenes/generated-tunnel-room.scene.json" }
+  ],
+  "assetLock": { "artifact": "assets/lock.json", "assetCount": 2 },
+  "generationProvenance": {
+    "provider": "asha.tunnel.enclosed.v2",
+    "seed": 23,
+    "version": 2,
+    "params": "fnv1a64:4d8d5bd25fa52c8d"
+  },
+  "artifacts": [
+    { "path": "assets/lock.json", "class": "durable", "role": "assetLock", "contentHash": "d2f280876dcd5d51" },
+    { "path": "assets/mesh-animation/LICENSE.Kenney-Animated-Characters-Retro.txt", "class": "durable", "role": "resource:license", "contentHash": "1e0784b4aae9cde1" },
+    { "path": "assets/mesh-animation/kenney-retro-character-medium.glb", "class": "durable", "role": "resource:animatedMesh", "contentHash": "bd44b76d0424bd16" },
+    { "path": "assets/mesh-animation/kenney-retro-character-medium.manifest.json", "class": "durable", "role": "resource:animatedMeshManifest", "contentHash": "116d4c044b4ad51f" },
+    { "path": "assets/voxels/generated-tunnel.avxl.json", "class": "durable", "role": "voxelVolumeAsset", "contentHash": "4a67a1c388cd904d" },
+    { "path": "catalogs/actors/close-range-trigger.entity.json", "class": "durable", "role": "projectContent", "contentHash": "69aaadbd0a3fce30" },
+    { "path": "catalogs/actors/console-blue.entity.json", "class": "durable", "role": "projectContent", "contentHash": "ae7b07d72dfe02b3" },
+    { "path": "catalogs/actors/console-parts.entity.json", "class": "durable", "role": "projectContent", "contentHash": "58103426163982f1" },
+    { "path": "catalogs/actors/console-red.entity.json", "class": "durable", "role": "projectContent", "contentHash": "dadbad4df5d55bb3" },
+    { "path": "catalogs/actors/console-sensor.entity.json", "class": "durable", "role": "projectContent", "contentHash": "415e7e848dd9e1ab" },
+    { "path": "catalogs/actors/demo-player.entity.json", "class": "durable", "role": "projectContent", "contentHash": "f1fd1fab556d700c" },
+    { "path": "catalogs/actors/generated-tunnel-enemy.entity.json", "class": "durable", "role": "projectContent", "contentHash": "468bcd0116f52d9d" },
+    { "path": "catalogs/gameplay/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "d4fad2a7025005da" },
+    { "path": "catalogs/materials/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "394f85cd84c12f4b" },
+    { "path": "catalogs/presentation/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "33445f7dae8a1cc2" },
+    { "path": "levels/scenes/generated-tunnel-room.scene.json", "class": "durable", "role": "sceneDocument", "contentHash": "87951853316a8878" },
+    { "path": "prefabs/registry.json", "class": "durable", "role": "projectContent", "contentHash": "cd657e0735378fde" }
+  ]
+}

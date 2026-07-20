@@ -5,7 +5,6 @@ import {
   AshaParticleHost,
   type AshaAnimationSampledCue,
   applyAshaRuntimeProjectionFrame,
-  createAshaRendererGeneratedTunnelRoomSurfaceFrame,
   mountAshaRendererAnimatedMeshSurface,
 } from '@asha/renderer-host';
 import {
@@ -16,7 +15,6 @@ import {
   ResolvedPauseContextConsumer,
   buildRuntimeSessionAnimationControllerTargetFrame,
 } from '@asha/runtime-bridge';
-import { TINY_GENERATED_TUNNEL_READOUT } from '@asha/runtime-session';
 import { hudControlToIntent } from '../input/hud-controls.js';
 import { type DemoHudEventSource, type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
 import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
@@ -56,7 +54,6 @@ if (!contentStatus.valid) {
 
 const runtimeBackend = await createDemoRuntimeBackend(demoProjectContent);
 const runtimeGateway = createDemoRuntimeGateway(runtimeBackend);
-const ecrpProjectLoadReceipt = runtimeBackend.loadReceipt;
 
 let runtimeCamera = createRuntimeCamera();
 let enemyPolicyTick = 0;
@@ -67,23 +64,19 @@ let inputSettings = {
   lookSensitivityDegreesPerPixel: 0.1,
   moveSpeedUnitsPerSecond: 3,
 };
-const generatedTunnelReadout = TINY_GENERATED_TUNNEL_READOUT;
 const inputSession = runtimeGateway.inputSession();
 const pauseContextConsumer = inputSession === null
   ? null
   : new ResolvedPauseContextConsumer(inputSession);
 let lastProcessedInputSequence = -1;
 let pointerLockWasActive = false;
-const levelFrame = createAshaRendererGeneratedTunnelRoomSurfaceFrame({
-  tunnel: generatedTunnelReadout,
-  enemy: readEnemyRenderFrameTarget(),
-});
+const initialProjection = runtimeGateway.readProjection();
 
 const surface = await mountAshaRendererAnimatedMeshSurface(canvas, {
   animatedMeshManifest: demoProjectContent.catalogs.animatedMeshManifest,
   autoStart: true,
   clearColor: 0x101820,
-  frame: levelFrame,
+  ...(initialProjection === null ? {} : { frame: initialProjection.frame }),
   controls: {
     initialPosition: readPlayerTransform().position,
     mouseSensitivity: (inputSettings.lookSensitivityDegreesPerPixel * Math.PI) / 180,
@@ -165,9 +158,9 @@ function constrainCameraMovement(input) {
     };
   }
 
-  const generatedTunnelOperation = runtimeBackend.generatedTunnelOperation;
-  if (generatedTunnelOperation?.status !== 'applied') {
-    lastMovementEvent = 'Movement blocked: generated tunnel collision unavailable';
+  const storedEnvironment = runtimeBackend.storedEnvironment;
+  if (storedEnvironment?.status !== 'loaded') {
+    lastMovementEvent = 'Movement blocked: stored environment collision unavailable';
     lastEventSource = 'movement';
     return {
       blockedAxes: ['x', 'y', 'z'],
@@ -198,7 +191,7 @@ function constrainCameraMovement(input) {
     : input.pitchDeltaDegrees * (inputSettings.invertY ? -1 : 1) * lookScale;
   const receipt = runtimeGateway.applyCollisionConstrainedCameraInput({
     camera: readRuntimeCameraHandle(),
-    grid: generatedTunnelOperation.grid,
+    grid: storedEnvironment.grid,
     movementMode: 'grounded',
     input: {
       moveForward: inputForAuthority.moveForward,
@@ -584,9 +577,18 @@ async function projectPrefabPlacements() {
   if (billboardHost === null) {
     return { applied: 0, diagnostics: ['billboard host unavailable'] };
   }
-  const instances = demoProjectContent.prefabAuthoring.runtimeBootstrap.placements;
+  const instances = runtimeBackend.sceneDocument?.nodes.flatMap((node) => {
+    if (node.kind.kind !== 'entityInstance' || node.kind.instance.reference.kind !== 'prefab') {
+      return [];
+    }
+    return [{
+      id: node.kind.instance.instanceId,
+      variant: node.kind.instance.reference.variantId,
+      transform: node.transform,
+    }];
+  }) ?? [];
   if (instances.length !== 2) {
-    return { applied: 0, diagnostics: ['prefab placement authoring unavailable'] };
+    return { applied: 0, diagnostics: ['stored prefab placements unavailable'] };
   }
   const operations = instances.map((instance, index) => {
     return {
@@ -595,10 +597,10 @@ async function projectPrefabPlacements() {
         sequence: index,
         origin: {
           kind: 'ownerFact' as const,
-          id: `prefab-placement:${instance.instance}`,
+          id: `prefab-placement:${instance.id}`,
           authorityTick: 1,
-          causationId: runtimeBackend.prefabInteractionReceipt?.reactionFrameHash ?? null,
-          correlationId: runtimeBackend.prefabInteractionReceipt?.eventHash ?? null,
+          causationId: null,
+          correlationId: runtimeBackend.backendHash,
         },
       },
       op: {
@@ -615,13 +617,13 @@ async function projectPrefabPlacements() {
           },
           content: {
             kind: 'text' as const,
-            localizationKey: `demo.prefab.${instance.origin}`,
-            fallbackText: instance.origin === 'player' ? 'Player-placed console' : 'Authored console',
+            localizationKey: `demo.prefab.${instance.variant ?? 'base'}`,
+            fallbackText: instance.variant === 'red' ? 'Red console' : 'Blue console',
             arguments: [],
           },
           font: { kind: 'system' as const, family: 'sans-serif' },
           heightPixels: 20,
-          color: instance.origin === 'player' ? [1, 0.45, 0.35, 1] as const : [0.35, 0.7, 1, 1] as const,
+          color: instance.variant === 'red' ? [1, 0.45, 0.35, 1] as const : [0.35, 0.7, 1, 1] as const,
           background: [0.02, 0.04, 0.08, 0.82] as const,
           maxDistance: 30,
           layer: 'depthTested' as const,
@@ -972,15 +974,6 @@ function readAnimationHudPlayback() {
   };
 }
 
-function readEnemyRenderFrameTarget() {
-  const target = readEnemyRenderTarget(true);
-  return {
-    label: target.renderLabel,
-    position: target.position,
-    scale: target.scale ?? demoProjectContent.runtime.enemyRenderTarget.scale,
-  };
-}
-
 function readEnemyRenderTarget(visible) {
   const renderTarget = readActorCapability('actor/generated-tunnel-enemy', 'renderProjection')?.target ?? null;
   if (renderTarget !== null) {
@@ -1125,17 +1118,17 @@ function readGameplayChallenge() {
 }
 
 function readChallengeObjectivePoints() {
-  const bytes = demoProjectContent.projectBundle.gameplayModuleBindings
-    ?.configurations?.find((configuration) => configuration.configurationId === 'demo.primary-fire-effect.default')
-    ?.canonicalConfig;
-  if (!Array.isArray(bytes)) {
-    return 0;
-  }
-  try {
-    return Number(JSON.parse(new TextDecoder().decode(Uint8Array.from(bytes))).objectivePoints ?? 0);
-  } catch {
-    return 0;
-  }
+  const gameplayDocument = runtimeBackend.projectDocuments.find(
+    (document) => document.kind === 'gameplayConfiguration',
+  );
+  if (gameplayDocument?.kind !== 'gameplayConfiguration') return 0;
+  const configuration = gameplayDocument.document.configurations.find(
+    (candidate) => candidate.configurationId === 'demo.primary-fire-effect.default',
+  );
+  const value = configuration?.values.find(
+    (candidate) => candidate.fieldId === 'objectivePoints',
+  )?.value;
+  return value?.kind === 'integer' ? value.value : 0;
 }
 
 function readPlayableLoopState() {
@@ -1331,9 +1324,9 @@ function fallbackLifecycleStatus() {
     events: [],
     fixture: {
       seed: demoProjectContent.runtime.seed,
-      sceneId: demoProjectContent.projectBundle.runtimeRequest.sceneId,
-      bundleSchemaVersion: demoProjectContent.projectBundle.runtimeRequest.bundleSchemaVersion,
-      protocolVersion: demoProjectContent.projectBundle.runtimeRequest.protocolVersion,
+      sceneId: demoProjectContent.projectManifest.entryScene,
+      bundleSchemaVersion: demoProjectContent.projectManifest.bundleSchemaVersion,
+      protocolVersion: demoProjectContent.projectManifest.protocolVersion,
       resetHash: runtimeBackend.backendHash,
     },
     hashes: {
@@ -1391,16 +1384,19 @@ function readRuntimeTelemetry() {
 }
 
 function readAuthoredActorCapability(stableId, kind) {
-  const definition = demoProjectContent.entityDefinitions.find(
-    (candidate) => candidate.stableId === stableId,
+  const document = runtimeBackend.projectDocuments.find(
+    (candidate) => candidate.kind === 'entityDefinition'
+      && candidate.definition.stableId === stableId,
   );
-  const capability = definition?.capabilities.find((candidate) => candidate.kind === kind) ?? null;
+  const capability = document?.kind === 'entityDefinition'
+    ? document.definition.capabilities.find((candidate) => candidate.kind === kind) ?? null
+    : null;
   if (capability?.kind === 'transform') {
     return {
       kind: 'transform',
-      position: capability.initial.position,
-      yawDegrees: capability.initial.yawDegrees,
-      pitchDegrees: capability.initial.pitchDegrees,
+      position: capability.transform.translation,
+      yawDegrees: 0,
+      pitchDegrees: 0,
     };
   }
   if (capability?.kind === 'health') {

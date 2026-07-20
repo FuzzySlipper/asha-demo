@@ -1,4 +1,4 @@
 # Material Catalog
 
-`generated-tunnel.materials.json` names the material roles used by the generated
+`catalog.json` names the material roles used by the generated
 tunnel scene. Renderer implementations and render authority stay upstream.

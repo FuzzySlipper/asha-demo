@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "documentId": "asha-demo.catalog.generated-tunnel-assets",
+  "documentKind": "assetCatalog",
+  "document": {
+    "entries": [
+      {
+        "id": "voxel-volume/generated-tunnel",
+        "version": 1,
+        "hash": null,
+        "sourcePath": "assets/voxels/generated-tunnel.avxl.json",
+        "label": "Generated tunnel environment",
+        "dependencies": [],
+        "material": null
+      },
+      {
+        "id": "mesh/kenney-retro-character-medium",
+        "version": 1,
+        "hash": null,
+        "sourcePath": "assets/mesh-animation/kenney-retro-character-medium.glb",
+        "label": "Kenney Retro Character Medium",
+        "dependencies": [],
+        "material": null
+      }
+    ]
+  }
+}

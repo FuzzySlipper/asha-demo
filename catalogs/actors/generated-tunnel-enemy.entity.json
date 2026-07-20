@@ -1,48 +1,45 @@
 {
-  "kind": "EntityDefinition",
-  "stableId": "actor/generated-tunnel-enemy",
-  "displayName": "Generated Tunnel Enemy",
-  "source": {
-    "projectBundle": "asha-demo",
-    "relativePath": "catalogs/actors/generated-tunnel-enemy.entity.json"
-  },
-  "capabilities": [
-    {
-      "kind": "transform",
-      "initial": {
-        "position": [0, 0.5, -2.6],
-        "yawDegrees": 180,
-        "pitchDegrees": 0
-      }
+  "schemaVersion": 1,
+  "documentId": "asha-demo.entity.generated-tunnel-enemy",
+  "documentKind": "entityDefinition",
+  "document": {
+    "stableId": "actor/generated-tunnel-enemy",
+    "displayName": "Generated Tunnel Enemy",
+    "source": {
+      "projectBundle": "asha-demo",
+      "relativePath": "catalogs/actors/generated-tunnel-enemy.entity.json"
     },
-    {
-      "kind": "collisionBody",
-      "halfExtents": [0.25, 0.5, 0.25],
-      "policy": {
-        "mode": "runtime_collision_body"
-      }
-    },
-    {
-      "kind": "health",
-      "current": 45,
-      "max": 45
-    },
-    {
-      "kind": "renderProjection",
-      "projection": "target_cube"
-    },
-    {
-      "kind": "policyBinding",
-      "policyId": "policy.enemy.generated_tunnel.v0",
-      "policyLoopRef": "generated_tunnel_enemy_policy_loop.v0"
-    },
-    {
-      "kind": "spawnMarker",
-      "markerId": "spawn.enemy.primary"
-    },
-    {
-      "kind": "faction",
-      "factionId": "hostile"
-    }
-  ]
+    "tags": [],
+    "metadata": [],
+    "capabilities": [
+      {
+        "kind": "transform",
+        "transform": {
+          "translation": [0, 0, 0],
+          "rotation": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      { "kind": "bounds", "min": [-0.25, -0.5, -0.25], "max": [0.25, 0.5, 0.25] },
+      { "kind": "collision", "staticCollider": false },
+      { "kind": "render", "visible": true },
+      { "kind": "controller", "controllerId": "enemy_policy" },
+      { "kind": "health", "current": 45, "max": 45 },
+      { "kind": "renderProjection", "projectionId": "target_cube", "visible": true },
+      {
+        "kind": "policyBinding",
+        "bindingId": "actor/generated-tunnel-enemy:policy",
+        "policyId": "policy.enemy.generated_tunnel.v0",
+        "viewKind": "runtime_session.fps.policy_view.v0",
+        "viewVersion": "v0",
+        "allowedIntents": [
+          "runtime.intent.move_direct_nav.v0",
+          "runtime.intent.primary_fire.v0"
+        ],
+        "runtimeMoment": "autonomous_policy_tick"
+      },
+      { "kind": "spawnMarker", "markerId": "spawn.enemy.primary" },
+      { "kind": "faction", "factionId": "hostile" }
+    ]
+  }
 }

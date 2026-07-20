@@ -1,11 +1,11 @@
 # ASHA Demo Host Architecture
 
-Status: current one-cell RuntimeSession boundary after #5734.
+Status: canonical project/runtime boundary after #5950.
 
 `asha-demo` has one game content path and two host shapes:
 
 - **Browser-served mode** serves the compiled `dist/ui` surface through the
-  public `@asha/browser-host` dev host. It loads `project/project-bundle.json`
+  public `@asha/browser-host` dev host. It loads `asha.project-bundle.json`
   and installs a public native RuntimeBridge provider at
   `globalThis.ashaRuntimeBridge` before app boot. The compatibility alias
   `globalThis.ashaDemoRuntimeBridge` remains accepted for fail-closed spoof
@@ -44,17 +44,22 @@ Missing input/time operations fail closed with the normal runtime-backend
 diagnostic; there is no demo-local key-state or pause fallback. Replay and
 cross-provider conformance are tested outside this product repository.
 
-## Static gameplay composition
+## Stored project and static gameplay composition
 
 `demo-rs/crates/native-runtime-provider` builds the product-owned N-API provider
-from the public static RuntimeSession builder and the demo's real
-`primary-fire-effect` crate. Activation validates the compiled composition
-against the semantic digest in
-`ProjectBundle.gameplayRuntime.compositionRequirement`; exact artifact
-provenance remains a runtime advisory in compatible mode. The derived read-plan
-hash, `ProjectBundle.gameplayModuleBindings`, prefab placements, trigger
-definitions, and closed scheduler declaration are also validated before the
-provider is used.
+from the public deferred RuntimeSession builder and the Demo's real
+`primary-fire-effect` crate. The provider installs compiled behavior and the
+FPS domain adapter, but starts with no project authority. Both hosts then call
+`RuntimeSession.loadProject()` with a byte-only source adapter. Rust reads the
+root schema-v2 manifest, validates its complete hashed closure, resolves the
+compiled provider and typed configuration, activates the stored entry scene,
+and exposes the admitted content through the public active-project readout.
+
+The root manifest, ProjectContent documents, prefab registry, scene markers,
+entity/prefab instances, stored voxel asset, and presentation catalog are the
+only product topology. There is no Demo-specific bundle decoder, TS bootstrap
+registry, hard-coded Rust project input, runtime generator call, or startup
+interaction used to manufacture the playable state.
 
 The close-range rule is a typed gameplay-fabric Transform inside the ordinary
 authoritative primary-fire transaction. Rust derives range, target, and weapon

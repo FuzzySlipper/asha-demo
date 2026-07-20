@@ -8,9 +8,9 @@ const indexHtml = readFileSync(join(repoRoot, 'app/index.html'), 'utf8');
 const appTs = readFileSync(join(repoRoot, 'src/bootstrap/boot-game.ts'), 'utf8');
 const entrypointTs = readFileSync(join(repoRoot, 'src/app.ts'), 'utf8');
 const runtimeGatewayTs = readFileSync(join(repoRoot, 'src/runtime/demo-runtime-gateway.ts'), 'utf8');
-const projectSourceTs = readFileSync(join(repoRoot, 'src/content/project-source.ts'), 'utf8');
-const projectBundle = readJson('project/project-bundle.json');
-const sceneDocument = readJson(projectBundle.sourceFiles.sceneDocument);
+const projectBundle = readJson('asha.project-bundle.json');
+const entryScene = projectBundle.scenes.find((scene) => scene.id === projectBundle.entryScene);
+const sceneDocument = readJson(entryScene.artifact);
 const styles = readFileSync(join(repoRoot, 'app/styles.css'), 'utf8');
 const status = buildUiStatus(repoRoot);
 const errors = [];
@@ -20,32 +20,25 @@ requireText(indexHtml, '@asha/renderer-host');
 requireText(indexHtml, '"three/": "/vendor/asha-renderer-host/vendor/three/"');
 requireText(entrypointTs, 'bootGame');
 requireText(appTs, 'mountAshaRendererAnimatedMeshSurface');
-requireText(appTs, 'createAshaRendererGeneratedTunnelRoomSurfaceFrame');
 requireText(appTs, 'hudControlToIntent');
 requireText(appTs, 'loadDemoProjectContent');
-requireText(appTs, 'TINY_GENERATED_TUNNEL_READOUT');
 requireText(appTs, 'generated-tunnel-enemy');
 requireText(runtimeGatewayTs, 'createRuntimeSessionFacade');
 requireText(runtimeGatewayTs, 'createDemoRuntimeGateway');
 requireText(runtimeGatewayTs, 'readAnimationIntent');
-requireText(runtimeGatewayTs, 'session.decodeSceneDocument');
+requireText(runtimeGatewayTs, 'session.loadProject');
+requireText(runtimeGatewayTs, 'readActiveRuntimeProjectContent');
 requireText(styles, '#asha-render-surface');
-requireProjectFile('project/project-bundle.json');
-requireProjectFile(projectBundle.sourceFiles.sceneDocument);
-for (const path of projectBundle.sourceFiles.entityDefinitions) {
-  requireProjectFile(path);
-}
-for (const path of Object.values(projectBundle.sourceFiles.catalogRefs)) {
-  requireProjectFile(path);
-}
-requireProjectFile(projectBundle.sourceFiles.levelPreset);
-requireProjectFile(projectBundle.sourceFiles.animatedMeshManifest);
+requireProjectFile('asha.project-bundle.json');
+for (const artifact of projectBundle.artifacts) requireProjectFile(artifact.path);
 
-if (projectSourceTs.includes('decodeDemoSceneDocument') || projectSourceTs.includes('DemoSceneDocument')) {
-  errors.push('asha-demo must consume the generated canonical scene contract and Rust codec, not a parallel Demo scene type');
+if (sceneDocument.schemaVersion !== 4 || !Array.isArray(sceneDocument.nodes)) {
+  errors.push('the Demo product scene must be a canonical schema-v4 FlatSceneDocument');
 }
-if (sceneDocument.schemaVersion !== 3 || !Array.isArray(sceneDocument.nodes)) {
-  errors.push('the Demo product scene must be a canonical schema-v3 FlatSceneDocument');
+for (const forbidden of ['loadEcrpProject', 'requestGeneratedTunnelOperation']) {
+  if (runtimeGatewayTs.includes(forbidden)) {
+    errors.push(`Demo runtime gateway must not use removed manual bootstrap operation ${forbidden}`);
+  }
 }
 
 if (appTs.includes("from 'three'") || appTs.includes('from "three"')) {

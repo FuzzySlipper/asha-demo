@@ -50,11 +50,15 @@ refresh-only committed report.
 - Generic collision, combat, lifecycle, replay, serialization, and render
   authority remain upstream.
 
-Add authored content under `catalogs/`, `levels/`, `assets/`, `prefabs/`, or
-`project/`. Keep runtime calls in `src/runtime/`, browser composition in
+The root `asha.project-bundle.json` is the sole project manifest. Add its stored
+content under `catalogs/`, `levels/`, `assets/`, or `prefabs/`, then update the
+manifest closure. The same root project opens in Studio and is consumed by a
+fresh runtime; normal play does not generate or rewrite project source. Keep
+runtime calls in `src/runtime/`, browser composition in
 `src/bootstrap/`, non-authoritative view shaping in `src/projection/`, and DOM
 mutation in `src/shell/`.
 
 See [host architecture](docs/host-architecture.md), the
 [Studio-authored content pipeline map](docs/studio-authored-content-pipelines.md),
+the [Studio edit/save/run tutorial](docs/edit-in-studio.md),
 and the [proof disposition ledger](docs/proof-disposition.md).

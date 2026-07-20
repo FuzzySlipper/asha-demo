@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "documentId": "asha-demo.gameplay.primary-fire",
+  "documentKind": "gameplayConfiguration",
+  "document": {
+    "schemaVersion": 1,
+    "configurations": [
+      {
+        "configurationId": "demo.primary-fire-effect.default",
+        "module": {
+          "moduleId": "demo.primary-fire-effect",
+          "namespace": "demo.primary-fire-effect",
+          "version": "0.1.0",
+          "sdkHash": "fnv1a64:669691f614be751f",
+          "contractHash": "fnv1a64:1b614eb127c2cc3c",
+          "artifactHash": "fnv1a64:e330c0fa83ffc2b3",
+          "providerId": "provider.demo.primary-fire-effect"
+        },
+        "schemaId": "demo.primary-fire-effect.configuration.v1",
+        "values": [
+          { "fieldId": "closeRangeMillimeters", "value": { "kind": "integer", "value": 2500 } },
+          { "fieldId": "closeRangeBonus", "value": { "kind": "integer", "value": 5 } },
+          { "fieldId": "objectivePoints", "value": { "kind": "integer", "value": 6 } }
+        ]
+      },
+      {
+        "configurationId": "demo.primary-fire-effect.console-blue",
+        "module": {
+          "moduleId": "demo.primary-fire-effect",
+          "namespace": "demo.primary-fire-effect",
+          "version": "0.1.0",
+          "sdkHash": "fnv1a64:669691f614be751f",
+          "contractHash": "fnv1a64:1b614eb127c2cc3c",
+          "artifactHash": "fnv1a64:e330c0fa83ffc2b3",
+          "providerId": "provider.demo.primary-fire-effect"
+        },
+        "schemaId": "demo.primary-fire-effect.configuration.v1",
+        "values": [
+          { "fieldId": "closeRangeMillimeters", "value": { "kind": "integer", "value": 2000 } },
+          { "fieldId": "closeRangeBonus", "value": { "kind": "integer", "value": 2 } },
+          { "fieldId": "objectivePoints", "value": { "kind": "integer", "value": 3 } }
+        ]
+      },
+      {
+        "configurationId": "demo.primary-fire-effect.console-red",
+        "module": {
+          "moduleId": "demo.primary-fire-effect",
+          "namespace": "demo.primary-fire-effect",
+          "version": "0.1.0",
+          "sdkHash": "fnv1a64:669691f614be751f",
+          "contractHash": "fnv1a64:1b614eb127c2cc3c",
+          "artifactHash": "fnv1a64:e330c0fa83ffc2b3",
+          "providerId": "provider.demo.primary-fire-effect"
+        },
+        "schemaId": "demo.primary-fire-effect.configuration.v1",
+        "values": [
+          { "fieldId": "closeRangeMillimeters", "value": { "kind": "integer", "value": 3000 } },
+          { "fieldId": "closeRangeBonus", "value": { "kind": "integer", "value": 7 } },
+          { "fieldId": "objectivePoints", "value": { "kind": "integer", "value": 9 } }
+        ]
+      }
+    ],
+    "bindings": [
+      {
+        "bindingId": "demo.primary-fire-effect.session",
+        "moduleId": "demo.primary-fire-effect",
+        "configurationId": "demo.primary-fire-effect.default",
+        "stateSchema": {
+          "namespace": "demo.primary-fire-effect",
+          "name": "challenge-state",
+          "version": 1,
+          "schemaHash": "fnv1a64:b6c652e19102b5fc"
+        },
+        "target": { "kind": "session" },
+        "requiredReads": [],
+        "outputContracts": [
+          {
+            "namespace": "demo.primary-fire-effect",
+            "name": "challenge-progressed",
+            "version": 1,
+            "schemaHash": "fnv1a64:4661aac85763ccbe"
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "bindingId": "demo.primary-fire-effect.console-sensor",
+        "moduleId": "demo.primary-fire-effect",
+        "configurationId": "demo.primary-fire-effect.default",
+        "stateSchema": {
+          "namespace": "demo.primary-fire-effect",
+          "name": "challenge-state",
+          "version": 1,
+          "schemaHash": "fnv1a64:b6c652e19102b5fc"
+        },
+        "target": { "kind": "prefabPart", "part": { "prefab": 70, "role": "interaction/sensor" } },
+        "requiredReads": [],
+        "outputContracts": [
+          {
+            "namespace": "demo.primary-fire-effect",
+            "name": "challenge-progressed",
+            "version": 1,
+            "schemaHash": "fnv1a64:4661aac85763ccbe"
+          }
+        ],
+        "enabled": true
+      }
+    ],
+    "overrides": [
+      {
+        "bindingId": "demo.primary-fire-effect.console-sensor",
+        "sceneInstanceId": "asha-demo.console.blue",
+        "configurationId": "demo.primary-fire-effect.console-blue",
+        "enabled": null
+      },
+      {
+        "bindingId": "demo.primary-fire-effect.console-sensor",
+        "sceneInstanceId": "asha-demo.console.red",
+        "configurationId": "demo.primary-fire-effect.console-red",
+        "enabled": null
+      }
+    ],
+    "triggers": [
+      {
+        "schemaVersion": 2,
+        "sceneInstanceId": "asha-demo.trigger.close-range",
+        "scope": "encounter.close-range",
+        "tags": ["challenge", "close-range", "generated-tunnel"]
+      }
+    ]
+  }
+}

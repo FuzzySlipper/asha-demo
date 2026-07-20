@@ -3,6 +3,7 @@ import {
   type FlatSceneDocument,
   type GameplayContractRef,
   type InputActionPhase,
+  type ProjectContentDocument,
 } from '@asha/contracts';
 import {
   RuntimeBridgeError,
@@ -24,19 +25,20 @@ import type {
   ComposedGameplayReadout,
   ComposedRuntimeSessionReadout,
   GameplayModuleViewSnapshot,
-  GameplayPrefabPartInteractionReceipt,
   RuntimeActionIntentPhase,
   RuntimeActionIntentSource,
   RuntimeSessionActionIntentReceipt,
-  RuntimeSessionEcrpProjectDiagnostic,
-  RuntimeSessionEcrpProjectLoadReceipt,
   RuntimeSessionFacade,
-  RuntimeSessionGeneratedTunnelOperationReceipt,
+  RuntimeSessionProjectLoadReceipt,
 } from '@asha/runtime-session';
-import {
-  readSceneBootstrapBindings,
-  type DemoProjectContent,
-} from '../content/project-content.js';
+import type { DemoProjectContent } from '../content/project-content.js';
+
+const DEMO_CHALLENGE_VIEW: GameplayContractRef = {
+  namespace: 'demo.primary-fire-effect',
+  name: 'challenge-state-view',
+  version: 1,
+  schemaHash: 'fnv1a64:2dc6de6c7c6ee80d',
+};
 
 export interface DemoRuntimeDiagnostic {
   readonly code: string;
@@ -62,18 +64,22 @@ export interface DemoGameplayChallengeState {
 
 export type DemoRuntimeBackend = DemoAvailableRuntimeBackend | DemoUnavailableRuntimeBackend;
 
+export interface DemoStoredEnvironment {
+  readonly status: 'loaded';
+  readonly assetId: string;
+  readonly grid: number;
+}
+
 export interface DemoAvailableRuntimeBackend {
   readonly available: true;
   readonly status: 'rust_authority';
   readonly session: RuntimeSessionFacade;
-  readonly loadReceipt: RuntimeSessionEcrpProjectLoadReceipt;
+  readonly loadReceipt: RuntimeSessionProjectLoadReceipt;
   readonly sceneDocument: FlatSceneDocument;
-  readonly sceneDocumentCanonicalJson: string;
-  readonly sceneDocumentContentHash: string;
-  readonly generatedTunnelOperation: RuntimeSessionGeneratedTunnelOperationReceipt;
+  readonly projectDocuments: readonly ProjectContentDocument[];
+  readonly storedEnvironment: DemoStoredEnvironment;
   readonly bridge: RuntimeBridge;
   readonly composedRuntimeReadout: ComposedRuntimeSessionReadout;
-  readonly prefabInteractionReceipt: GameplayPrefabPartInteractionReceipt;
   readonly challengeView: DemoGameplayChallengeState;
   readonly challengeViewContract: GameplayContractRef;
   readonly diagnostics: readonly [];
@@ -85,14 +91,12 @@ export interface DemoUnavailableRuntimeBackend {
   readonly available: false;
   readonly status: 'missing_rust_backend' | 'rust_backend_failed';
   readonly session: null;
-  readonly loadReceipt: RuntimeSessionEcrpProjectLoadReceipt;
+  readonly loadReceipt: RuntimeSessionProjectLoadReceipt;
   readonly sceneDocument: null;
-  readonly sceneDocumentCanonicalJson: null;
-  readonly sceneDocumentContentHash: null;
-  readonly generatedTunnelOperation: null;
+  readonly projectDocuments: readonly [];
+  readonly storedEnvironment: null;
   readonly bridge: null;
   readonly composedRuntimeReadout: null;
-  readonly prefabInteractionReceipt: null;
   readonly challengeView: null;
   readonly challengeViewContract: null;
   readonly diagnostics: readonly DemoRuntimeDiagnostic[];
@@ -187,132 +191,37 @@ export async function createDemoRuntimeBackend(
     session.initialize({
       sessionId: content.runtime.sessionId,
       seed: content.runtime.seed,
-      project: content.projectBundle.project,
-      projectBundle: content.projectBundle.runtimeRequest,
+      project: {
+        gameId: 'asha-demo',
+        workspaceId: 'workspace.local',
+      },
     });
-    const sceneCodec = session.decodeSceneDocument({
-      sourceText: content.sceneDocumentSourceText,
-    });
-    if (
-      !sceneCodec.accepted
-      || sceneCodec.document === null
-      || sceneCodec.canonicalJson === null
-      || sceneCodec.contentHash === null
-    ) {
-      return unavailableRuntimeBackend(
-        profile,
-        'rust_scene_document_rejected',
-        `Rust rejected the committed Demo SceneDocument: ${formatSceneCodecDiagnostics(sceneCodec.diagnostics)}`,
-        null,
-        'rust_backend_failed',
-      );
-    }
-    const sceneDocument = sceneCodec.document;
-    const loadReceipt = session.loadEcrpProject({
-      kind: 'runtime_session.load_ecrp_project.v0',
-      projectBundle: content.projectBundle,
-      bootstrapResolutionRegistry: content.bootstrapResolutionRegistry,
-      entityDefinitions: content.entityDefinitions,
-      sceneDocument,
-    });
+    const loadReceipt = await session.loadProject({ source: content.projectSource });
 
-    if (!loadReceipt.accepted) {
+    if (!loadReceipt.accepted || loadReceipt.activeProject === null) {
       return unavailableRuntimeBackend(
         profile,
         'rust_runtime_rejected_project',
-        `Rust RuntimeSession rejected demo ECRP content: ${formatLoadDiagnostics(loadReceipt.diagnostics)}`,
+        `Rust RuntimeSession rejected the canonical Demo project: ${formatLoadDiagnostics(loadReceipt.diagnostics)}`,
         loadReceipt,
         'rust_backend_failed',
       );
     }
-    const generatorBinding = readSceneBootstrapBindings(sceneDocument)?.generator ?? null;
-    if (generatorBinding === null) {
+    const activeContent = bridge.readActiveRuntimeProjectContent();
+    const storedBinding = loadReceipt.activeProject.voxelBindings[0] ?? null;
+    if (storedBinding === null) {
       return unavailableRuntimeBackend(
         profile,
-        'missing_scene_generator_binding',
-        'The canonical Demo SceneDocument does not declare its generated-tunnel bootstrap input.',
+        'missing_stored_environment',
+        'The canonical Demo project did not activate its stored voxel environment.',
         loadReceipt,
         'rust_backend_failed',
       );
     }
-    if (
-      generatorBinding.providerId !== content.catalogs.levelPreset.providerId
-      || generatorBinding.presetId !== content.catalogs.levelPreset.presetId
-      || generatorBinding.seed !== content.catalogs.levelPreset.seed
-    ) {
-      return unavailableRuntimeBackend(
-        profile,
-        'scene_generator_binding_mismatch',
-        'The canonical scene generator binding does not match the selected Demo level preset.',
-        loadReceipt,
-        'rust_backend_failed',
-      );
-    }
-    const generatedTunnelOperation = session.requestGeneratedTunnelOperation({
-      operation: 'apply_to_runtime_world',
-      presetId: generatorBinding.presetId,
-      seed: generatorBinding.seed,
-    });
-    if (generatedTunnelOperation.status !== 'applied') {
-      return unavailableRuntimeBackend(
-        profile,
-        'generated_tunnel_collision_unavailable',
-        `Rust RuntimeSession did not apply the generated tunnel collision projection: ${generatedTunnelOperation.detail}`,
-        loadReceipt,
-        'rust_backend_failed',
-      );
-    }
-    if (
-      generatedTunnelOperation.presetId !== content.catalogs.levelPreset.presetId
-      || generatedTunnelOperation.seed !== content.catalogs.levelPreset.seed
-      || generatedTunnelOperation.outputHash !== content.catalogs.levelPreset.outputHash
-    ) {
-      return unavailableRuntimeBackend(
-        profile,
-        'generated_tunnel_collision_mismatch',
-        'Rust RuntimeSession applied a generated tunnel that does not match the durable demo level preset.',
-        loadReceipt,
-        'rust_backend_failed',
-      );
-    }
-    const composedBeforeInteraction = bridge.readComposedRuntimeSession();
-    const compositionRequirement = content.projectBundle.gameplayRuntime.compositionRequirement;
-    const explicitCompositionMismatch = compositionRequirement !== undefined
-      && composedBeforeInteraction.gameplay.semanticCompatibilityDigest
-        !== compositionRequirement.semanticCompatibilityDigest;
-    const legacyCompositionWasNotMigrated = compositionRequirement === undefined
-      && (
-        composedBeforeInteraction.gameplay.compositionLoadMode !== 'compatible'
-        || !composedBeforeInteraction.gameplay.compatibilityDiagnostics.some(
-          diagnostic => diagnostic.code === 'legacyCompatibilityDefaulted',
-        )
-      );
-    if (explicitCompositionMismatch || legacyCompositionWasNotMigrated) {
-      return unavailableRuntimeBackend(
-        profile,
-        'composed_runtime_contract_mismatch',
-        'The statically linked Rust RuntimeSession composition does not match the durable ProjectBundle contract.',
-        loadReceipt,
-        'rust_backend_failed',
-      );
-    }
-    const prefabInteractionReceipt = bridge.applyGameplayPrefabPartInteraction({
-      ...content.projectBundle.gameplayRuntime.prefabInteraction,
-      expectedRuntimeSessionHash: composedBeforeInteraction.runtimeSessionHash,
-    });
     const composedRuntimeReadout = bridge.readComposedRuntimeSession();
-    if (prefabInteractionReceipt.runtimeSessionHash !== composedRuntimeReadout.runtimeSessionHash) {
-      return unavailableRuntimeBackend(
-        profile,
-        'prefab_interaction_hash_mismatch',
-        'The prefab-part interaction did not return the current composed RuntimeSession hash.',
-        loadReceipt,
-        'rust_backend_failed',
-      );
-    }
     const challengeView = readChallengeState(
       bridge,
-      content.projectBundle.gameplayRuntime.challengeView,
+      DEMO_CHALLENGE_VIEW,
       composedRuntimeReadout.runtimeSessionHash,
     );
     const readout = session.readEcrpRuntimeReadout();
@@ -327,18 +236,20 @@ export async function createDemoRuntimeBackend(
       status: 'rust_authority',
       session,
       loadReceipt,
-      sceneDocument,
-      sceneDocumentCanonicalJson: sceneCodec.canonicalJson,
-      sceneDocumentContentHash: sceneCodec.contentHash,
-      generatedTunnelOperation,
+      sceneDocument: activeContent.entryScene,
+      projectDocuments: activeContent.content.documents,
+      storedEnvironment: {
+        status: 'loaded',
+        assetId: storedBinding.assetId,
+        grid: storedBinding.grid,
+      },
       bridge,
       composedRuntimeReadout,
-      prefabInteractionReceipt,
       challengeView,
       diagnostics: [],
       profile,
-      backendHash: loadReceipt.bootstrapHash ?? 'rust-authority:loaded',
-      challengeViewContract: content.projectBundle.gameplayRuntime.challengeView,
+      backendHash: loadReceipt.activeProject.admissionHash,
+      challengeViewContract: DEMO_CHALLENGE_VIEW,
     };
   } catch (error) {
     const diagnostic = errorToBackendDiagnostic(error);
@@ -559,7 +470,7 @@ function unavailableRuntimeBackend(
   profile: NativeRustRuntimeBridgeProviderProfile,
   code: string,
   message: string,
-  loadReceipt: RuntimeSessionEcrpProjectLoadReceipt | null = null,
+  loadReceipt: RuntimeSessionProjectLoadReceipt | null = null,
   status: DemoUnavailableRuntimeBackend['status'] = 'missing_rust_backend',
 ): DemoUnavailableRuntimeBackend {
   return {
@@ -567,23 +478,28 @@ function unavailableRuntimeBackend(
     status,
     session: null,
     loadReceipt: loadReceipt ?? {
-      kind: 'runtime_session.ecrp_project_load_receipt.v0',
-      sequenceId: 0,
       accepted: false,
-      diagnostics: [{ code: 'missingProjectBundle', path: 'runtime.backend', detail: `${code}:${message}` }],
-      entityCount: 0,
-      bootstrapHash: null,
-      sessionHashBefore: 'missing-rust-backend',
-      sessionHashAfter: 'missing-rust-backend',
+      source: {
+        kind: 'inMemory',
+        identity: 'missing-rust-backend',
+        materializationHash: 'missing-rust-backend',
+      },
+      activeProject: null,
+      lifecycle: { generation: 0, revision: 0 },
+      diagnostics: [{
+        phase: 'lifecycle',
+        code,
+        documentId: null,
+        path: null,
+        message,
+      }],
     },
     sceneDocument: null,
-    sceneDocumentCanonicalJson: null,
-    sceneDocumentContentHash: null,
+    projectDocuments: [],
     diagnostics: [{ code, severity: 'error', message }],
-    generatedTunnelOperation: null,
+    storedEnvironment: null,
     bridge: null,
     composedRuntimeReadout: null,
-    prefabInteractionReceipt: null,
     challengeView: null,
     challengeViewContract: null,
     profile,
@@ -604,16 +520,14 @@ function errorToBackendDiagnostic(error: unknown): { readonly code: string; read
   };
 }
 
-function formatLoadDiagnostics(diagnostics: readonly RuntimeSessionEcrpProjectDiagnostic[]): string {
-  return diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.path}`).join('; ');
-}
-
-function formatSceneCodecDiagnostics(
-  diagnostics: readonly { readonly code: string; readonly message: string }[],
+function formatLoadDiagnostics(
+  diagnostics: RuntimeSessionProjectLoadReceipt['diagnostics'],
 ): string {
   return diagnostics.length === 0
-    ? 'missing canonical scene document result'
-    : diagnostics.map((diagnostic) => `${diagnostic.code}:${diagnostic.message}`).join('; ');
+    ? 'project load returned no diagnostic'
+    : diagnostics.map((diagnostic) => (
+      `${diagnostic.phase}:${diagnostic.code}:${diagnostic.path ?? diagnostic.documentId ?? 'project'}:${diagnostic.message}`
+    )).join('; ');
 }
 
 function sourceObject(value: unknown, path: string): Readonly<Record<string, unknown>> {

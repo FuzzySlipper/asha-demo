@@ -2,7 +2,7 @@
   "kind": "asha_demo.host_config.v1",
   "mode": "standalone_compiled",
   "status": "native_provider_host_smoke_ready",
-  "projectBundle": "project/project-bundle.json",
+  "projectBundle": "asha.project-bundle.json",
   "contentRoot": "dist/ui",
   "hostBootstrap": "host/standalone-bootstrap.mjs",
   "runtimeProvider": {
