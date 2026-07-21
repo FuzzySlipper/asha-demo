@@ -3,19 +3,57 @@
   "documentId": "asha-demo.entity.console-red",
   "documentKind": "entityDefinition",
   "document": {
-    "stableId": "demo.console.body.red",
+    "capabilities": [
+      {
+        "kind": "bounds",
+        "max": [
+          0.35,
+          1.2,
+          0.25
+        ],
+        "min": [
+          -0.35,
+          0.0,
+          -0.25
+        ]
+      },
+      {
+        "kind": "collision",
+        "staticCollider": true
+      },
+      {
+        "kind": "render",
+        "visible": true
+      },
+      {
+        "kind": "transform",
+        "transform": {
+          "rotation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "translation": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    ],
     "displayName": "Red interaction console body",
+    "metadata": [],
     "source": {
       "projectBundle": "asha-demo",
       "relativePath": "catalogs/actors/console-red.entity.json"
     },
-    "tags": [],
-    "metadata": [],
-    "capabilities": [
-      { "kind": "transform", "transform": { "translation": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1] } },
-      { "kind": "bounds", "min": [-0.35, 0, -0.25], "max": [0.35, 1.2, 0.25] },
-      { "kind": "collision", "staticCollider": true },
-      { "kind": "render", "visible": true }
-    ]
+    "stableId": "demo.console.body.red",
+    "tags": []
   }
 }

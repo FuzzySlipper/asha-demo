@@ -78,7 +78,6 @@ dependencies = [
 name = "asha-runtime-session-composition"
 version = "0.1.0"
 dependencies = [
- "gameplay-runtime-host",
  "runtime-bridge-api",
 ]
 
@@ -591,6 +590,7 @@ dependencies = [
  "protocol-assets",
  "protocol-diagnostics",
  "protocol-game-extension",
+ "protocol-project-bundle",
  "protocol-render",
  "protocol-scene",
  "protocol-view",

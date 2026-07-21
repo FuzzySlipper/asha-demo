@@ -1,4 +1,18 @@
 {
-  "schemaVersion": 1,
-  "entries": []
+  "entries": [
+    {
+      "id": "mesh/kenney-retro-character-medium",
+      "kind": "mesh",
+      "version": 1,
+      "hash": null,
+      "dependencies": []
+    },
+    {
+      "id": "voxel-volume/generated-tunnel",
+      "kind": "voxel-volume",
+      "version": 1,
+      "hash": null,
+      "dependencies": []
+    }
+  ]
 }

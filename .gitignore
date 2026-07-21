@@ -4,3 +4,4 @@ demo-rs/target/
 playwright-report/
 test-results/
 artifacts/
+.asha/project-store.json

@@ -3,80 +3,124 @@
   "documentId": "asha-demo.prefabs.interaction-console",
   "documentKind": "prefabRegistry",
   "document": {
-    "schemaVersion": 1,
     "definitions": [
       {
-        "id": 70,
-        "schemaVersion": 1,
         "displayName": "Interaction console",
-        "parts": [
+        "id": 70,
+        "partRoles": [
           {
-            "id": 1,
-            "namespace": "body",
-            "displayName": "Body",
-            "parent": null,
-            "transform": {
-              "translation": [0, 0, 0],
-              "rotation": [0, 0, 0, 1],
-              "scale": [1, 1, 1]
-            },
-            "source": { "kind": "entityDefinition", "stableId": "demo.console.body" }
+            "part": 1,
+            "role": "console/body"
           },
           {
-            "id": 2,
-            "namespace": "sensor",
-            "displayName": "Sensor",
-            "parent": 1,
-            "transform": {
-              "translation": [0, 1, 0],
-              "rotation": [0, 0, 0, 1],
-              "scale": [1, 1, 1]
-            },
-            "source": { "kind": "entityDefinition", "stableId": "demo.console.sensor" }
+            "part": 2,
+            "role": "interaction/sensor"
           }
         ],
-        "partRoles": [
-          { "role": "console/body", "part": 1 },
-          { "role": "interaction/sensor", "part": 2 }
+        "parts": [
+          {
+            "displayName": "Body",
+            "id": 1,
+            "namespace": "body",
+            "parent": null,
+            "source": {
+              "kind": "entityDefinition",
+              "stableId": "demo.console.body"
+            },
+            "transform": {
+              "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "translation": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "displayName": "Sensor",
+            "id": 2,
+            "namespace": "sensor",
+            "parent": 1,
+            "source": {
+              "kind": "entityDefinition",
+              "stableId": "demo.console.sensor"
+            },
+            "transform": {
+              "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ],
+              "scale": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "translation": [
+                0.0,
+                1.0,
+                0.0
+              ]
+            }
+          }
         ],
+        "schemaVersion": 1,
         "variant": null
       },
       {
-        "id": 71,
-        "schemaVersion": 1,
         "displayName": "Blue interaction console",
-        "parts": [],
+        "id": 71,
         "partRoles": [],
+        "parts": [],
+        "schemaVersion": 1,
         "variant": {
-          "variantId": "blue",
           "base": 70,
-          "removedRoles": [],
           "overrides": [
             {
               "targetRole": "console/body",
-              "value": { "field": "entityDefinition", "stableId": "demo.console.body.blue" }
+              "value": {
+                "field": "entityDefinition",
+                "stableId": "demo.console.body.blue"
+              }
             }
-          ]
+          ],
+          "removedRoles": [],
+          "variantId": "blue"
         }
       },
       {
-        "id": 72,
-        "schemaVersion": 1,
         "displayName": "Red interaction console",
-        "parts": [],
+        "id": 72,
         "partRoles": [],
+        "parts": [],
+        "schemaVersion": 1,
         "variant": {
-          "variantId": "red",
           "base": 70,
-          "removedRoles": [],
           "overrides": [
             {
               "targetRole": "console/body",
-              "value": { "field": "entityDefinition", "stableId": "demo.console.body.red" }
+              "value": {
+                "field": "entityDefinition",
+                "stableId": "demo.console.body.red"
+              }
             }
-          ]
+          ],
+          "removedRoles": [],
+          "variantId": "red"
         }
       }
-    ]
+    ],
+    "schemaVersion": 1
   }
 }

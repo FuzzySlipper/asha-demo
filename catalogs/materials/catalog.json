@@ -5,22 +5,22 @@
   "document": {
     "entries": [
       {
-        "id": "voxel-volume/generated-tunnel",
-        "version": 1,
-        "hash": null,
-        "sourcePath": "assets/voxels/generated-tunnel.avxl.json",
-        "label": "Generated tunnel environment",
         "dependencies": [],
-        "material": null
+        "hash": null,
+        "id": "mesh/kenney-retro-character-medium",
+        "label": "Kenney Retro Character Medium",
+        "material": null,
+        "sourcePath": "assets/mesh-animation/kenney-retro-character-medium.glb",
+        "version": 1
       },
       {
-        "id": "mesh/kenney-retro-character-medium",
-        "version": 1,
-        "hash": null,
-        "sourcePath": "assets/mesh-animation/kenney-retro-character-medium.glb",
-        "label": "Kenney Retro Character Medium",
         "dependencies": [],
-        "material": null
+        "hash": null,
+        "id": "voxel-volume/generated-tunnel",
+        "label": "Generated tunnel environment",
+        "material": null,
+        "sourcePath": "assets/voxels/generated-tunnel.avxl.json",
+        "version": 1
       }
     ]
   }
