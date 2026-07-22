@@ -34,3 +34,16 @@ export function readDemoHudElements(): any {
     targetState: document.querySelector('#target-state'),
   };
 }
+
+export function reportDemoBootFailure(message: string): void {
+  const eventState = document.querySelector<HTMLElement>('#event-state');
+  if (eventState !== null) {
+    eventState.textContent = `Startup failed: ${message}`;
+    eventState.dataset.status = 'failed';
+  }
+  const fireButton = document.querySelector<HTMLButtonElement>('#fire-button');
+  if (fireButton !== null) {
+    fireButton.disabled = true;
+    fireButton.dataset.blocked = 'true';
+  }
+}

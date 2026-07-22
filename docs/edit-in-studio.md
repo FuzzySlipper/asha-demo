@@ -57,6 +57,14 @@ identities and are not authored here.
   versus free-flight movement, camera collision extents, and solver iterations.
   Change `fovYDegrees` and use **Save Accepted Change** to exercise the complete
   typed launch-settings path.
+- Select the material catalog, then edit the bounded color, roughness, or
+  emission fields under **Typed Stored Fields**. The accepted edit updates the
+  voxel material in the viewport without replacing the voxel asset. A voxel
+  palette's **Open material** action navigates back to the same catalog entry.
+- Select the presentation catalog to inspect and edit sampled animation time,
+  audio gain, or particle scale. The GLB, WAV, and SVG are ordinary
+  manifest-closed resources under `assets/`; Studio edits typed references and
+  cue metadata rather than embedding bytes or a raw JSON proof panel.
 
 Use **File > Save Scene** for scene changes. Studio validates changes through
 Rust and updates the canonical project write set; do not hand-edit content
@@ -77,8 +85,9 @@ npm run dev -- --port 5173
 
 Open `http://127.0.0.1:5173`. A fresh RuntimeSession loads the same canonical
 project closure. Geometry, lights, actor spawn poses, prefab variants, typed
-gameplay configuration, and camera/controller settings therefore come from the
-state inspected in Studio. The transient camera starts at the Rust-materialized
+gameplay configuration, materials, presentation resources, and
+camera/controller settings therefore come from the state inspected in Studio.
+The transient camera starts at the Rust-materialized
 transform for the EntityDefinition selected by `playerEntityDefinition`; the
 browser host does not keep a second spawn or projection literal.
 Normal play, death/restart, and pause never write to project files.

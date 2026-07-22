@@ -1,9 +1,6 @@
-import type { AshaRendererAnimatedMeshResourceManifest } from '@asha/renderer-host';
 import type { RuntimeSessionProjectSource } from '@asha/runtime-session';
 
 export const DEMO_PROJECT_MANIFEST_PATH = 'asha.project-bundle.json';
-const ANIMATED_MESH_MANIFEST_PATH =
-  'assets/mesh-animation/kenney-retro-character-medium.manifest.json';
 
 export type DemoJsonReader = (path: string) => Promise<unknown>;
 export type DemoByteReader = (path: string) => Promise<Uint8Array>;
@@ -25,9 +22,6 @@ export interface DemoProjectContent {
   readonly kind: 'asha_demo.canonical_project.v2';
   readonly projectSource: RuntimeSessionProjectSource;
   readonly projectManifest: DemoProjectManifestSummary;
-  readonly catalogs: {
-    readonly animatedMeshManifest: AshaRendererAnimatedMeshResourceManifest;
-  };
   readonly runtime: {
     readonly sessionId: string;
     readonly seed: number;
@@ -48,13 +42,8 @@ export async function loadDemoProjectContent(
   fetchJson: DemoJsonReader = readJson,
   fetchBytes: DemoByteReader = readBytes,
 ): Promise<DemoProjectContent> {
-  const [manifestSource, animatedMeshManifestSource] = await Promise.all([
-    fetchJson(`/${DEMO_PROJECT_MANIFEST_PATH}`),
-    fetchJson(`/${ANIMATED_MESH_MANIFEST_PATH}`),
-  ]);
+  const manifestSource = await fetchJson(`/${DEMO_PROJECT_MANIFEST_PATH}`);
   const projectManifest = decodeProjectManifestSummary(manifestSource);
-  const animatedMeshManifest =
-    decodeAnimatedMeshManifest(animatedMeshManifestSource);
   const projectSource: RuntimeSessionProjectSource = {
     kind: 'development-directory',
     identity: 'development-directory:asha-demo',
@@ -65,7 +54,6 @@ export async function loadDemoProjectContent(
     kind: 'asha_demo.canonical_project.v2',
     projectSource,
     projectManifest,
-    catalogs: { animatedMeshManifest },
     runtime: {
       sessionId: 'asha-demo.playable.canonical',
       seed: 4103,
@@ -155,20 +143,6 @@ function decodeProjectManifestSummary(value: unknown): DemoProjectManifestSummar
     entryScene: integer(source['entryScene'], 'ProjectBundle.entryScene'),
     artifacts,
   };
-}
-
-function decodeAnimatedMeshManifest(
-  value: unknown,
-): AshaRendererAnimatedMeshResourceManifest {
-  const source = object(value, 'animatedMeshManifest');
-  if (source['kind'] !== 'asha_renderer_animated_mesh_resources.v0') {
-    throw new Error('animated mesh manifest kind is unsupported');
-  }
-  const resources = array(source['resources'], 'animatedMeshManifest.resources');
-  if (resources.length === 0) {
-    throw new Error('animated mesh manifest must contain a resource');
-  }
-  return value as AshaRendererAnimatedMeshResourceManifest;
 }
 
 function object(value: unknown, path: string): Record<string, unknown> {

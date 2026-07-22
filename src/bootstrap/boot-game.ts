@@ -25,12 +25,7 @@ import {
   loadDemoProjectContent,
   readDemoProjectContentStatus,
 } from '../content/project-content.js';
-import { resolveDemoAudioResource } from '../content/audio-resources.js';
-import {
-  PRIMARY_FIRE_SPRITE_ASSET,
-  PRIMARY_FIRE_SPRITE_CONTENT_HASH,
-  resolveDemoParticleResource,
-} from '../content/particle-resources.js';
+import { createDemoPresentationResources } from '../content/presentation-resources.js';
 import { createDemoParticleBillboardSink } from '../projection/particle-billboard-sink.js';
 
 export async function bootGame() {
@@ -53,8 +48,16 @@ if (!contentStatus.valid) {
 }
 
 const runtimeBackend = await createDemoRuntimeBackend(demoProjectContent);
+if (!runtimeBackend.available) {
+  const message = runtimeBackend.diagnostics[0]?.message ?? 'Rust runtime project activation failed';
+  throw new Error(message);
+}
 const runtimeGateway = createDemoRuntimeGateway(runtimeBackend);
-const launchSettings = runtimeBackend.available ? runtimeBackend.launchSettings : null;
+const launchSettings = runtimeBackend.launchSettings;
+const presentationResources = createDemoPresentationResources(
+  runtimeBackend.projectDocuments,
+  demoProjectContent.projectSource,
+);
 
 let runtimeCamera = createRuntimeCamera();
 let enemyPolicyTick = 0;
@@ -74,7 +77,7 @@ let pointerLockWasActive = false;
 const initialProjection = runtimeGateway.readProjection();
 
 const surface = await mountAshaRendererAnimatedMeshSurface(canvas, {
-  animatedMeshManifest: demoProjectContent.catalogs.animatedMeshManifest,
+  animatedMeshManifest: presentationResources.animatedMeshManifest,
   autoStart: true,
   clearColor: 0x101820,
   ...(initialProjection === null ? {} : { frame: initialProjection.frame }),
@@ -110,7 +113,10 @@ let lastAppliedRuntimeProjectionFingerprint: string | null = null;
 const animationIntent = runtimeGateway.readAnimationIntent();
 const animationTargetFrame = animationIntent === null
   ? null
-  : buildRuntimeSessionAnimationControllerTargetFrame(animationIntent);
+  : buildRuntimeSessionAnimationControllerTargetFrame(
+      animationIntent,
+      presentationResources.animatedMeshTarget,
+    );
 const animationFrameReceipt = animationTargetFrame === null ? null : surface.applyFrame(animationTargetFrame);
 if (animationIntent !== null && animationFrameReceipt?.applied !== true) {
   throw new Error(
@@ -453,6 +459,22 @@ async function realizeAnimationSampledCue(cue: AshaAnimationSampledCue) {
     renderHud();
     return;
   }
+  const particleCue = presentationResources.particleCue(cue.signal.id);
+  if (particleCue === null) {
+    lastAnimationSampledCueStatus = {
+      status: 'degraded',
+      cue,
+      realization: {
+        applied: 0,
+        diagnostics: [{
+          code: 'missingCatalogCue',
+          message: `No admitted particle cue is bound to ${cue.signal.id}`,
+        }],
+      },
+    };
+    renderHud();
+    return;
+  }
   const camera = surface.cameraPose();
   const cameraForward = readAudioForward(camera);
   const cuePosition: [number, number, number] = [
@@ -471,8 +493,8 @@ async function realizeAnimationSampledCue(cue: AshaAnimationSampledCue) {
         descriptor: {
           anchor: { kind: 'world', position: cuePosition },
           sprite: {
-            asset: PRIMARY_FIRE_SPRITE_ASSET,
-            contentHash: PRIMARY_FIRE_SPRITE_CONTENT_HASH,
+            asset: particleCue.asset,
+            contentHash: particleCue.contentHash,
             frameCount: 1,
           },
           ratePerSecond: 0,
@@ -482,7 +504,7 @@ async function realizeAnimationSampledCue(cue: AshaAnimationSampledCue) {
           velocityMax: [0.7, 1.2, 0.4],
           acceleration: [0, -1.5, 0],
           sizeCurve: [
-            { age: 0, value: 0.38 },
+            { age: 0, value: 0.38 * particleCue.scale },
             { age: 1, value: 0 },
           ],
           colorCurve: [
@@ -514,25 +536,17 @@ function createDemoAudioHost() {
     return null;
   }
   try {
-    return new AshaAudioHost({ resolveResource: resolveDemoAudioResource });
+    return new AshaAudioHost({
+      resolveResource: presentationResources.resolveAudioResource,
+    });
   } catch {
     return null;
   }
 }
 
 function createDemoAnimationHost() {
-  const asset = demoProjectContent.catalogs.animatedMeshManifest.resources[0]?.asset;
-  if (asset === undefined) {
-    throw new Error('ASHA demo animation cue asset is unavailable');
-  }
   return new AshaAnimationHost(surface.animationProjection, {
-    cues: [{
-      cueId: 'demo.primary-fire.jump-impact',
-      asset,
-      clip: 'jump',
-      atSeconds: 0.05,
-      signal: { domain: 'particle', id: 'demo.primary-fire.jump-impact.local-vfx' },
-    }],
+    cues: presentationResources.animationCues,
   });
 }
 
@@ -564,7 +578,7 @@ function createDemoParticleHost() {
       maxActiveEmitters: 32,
       maxParticles: 512,
       resolveEntityPosition: resolveBillboardEntityPosition,
-      resolveResource: resolveDemoParticleResource,
+      resolveResource: presentationResources.resolveParticleResource,
       sink: createDemoParticleBillboardSink(billboardLayer, projectBillboardWorldPoint),
     });
   } catch {

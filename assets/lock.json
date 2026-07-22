@@ -4,7 +4,7 @@
       "id": "mesh/kenney-retro-character-medium",
       "kind": "mesh",
       "version": 1,
-      "hash": null,
+      "hash": "bd44b76d0424bd16",
       "dependencies": []
     },
     {
@@ -12,6 +12,41 @@
       "kind": "voxel-volume",
       "version": 1,
       "hash": null,
+      "dependencies": []
+    },
+    {
+      "id": "material/tunnel-floor",
+      "kind": "material",
+      "version": 1,
+      "hash": null,
+      "dependencies": []
+    },
+    {
+      "id": "material/tunnel-wall",
+      "kind": "material",
+      "version": 1,
+      "hash": null,
+      "dependencies": []
+    },
+    {
+      "id": "material/tunnel-highlight",
+      "kind": "material",
+      "version": 1,
+      "hash": null,
+      "dependencies": []
+    },
+    {
+      "id": "audio/asha-primary-fire-pulse",
+      "kind": "audio",
+      "version": 1,
+      "hash": "ce2ca87dbdbe6004",
+      "dependencies": []
+    },
+    {
+      "id": "sprite/asha-primary-fire-spark",
+      "kind": "sprite",
+      "version": 1,
+      "hash": "1f89380b5326d5ee",
       "dependencies": []
     }
   ]

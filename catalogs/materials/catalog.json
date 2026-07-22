@@ -6,7 +6,7 @@
     "entries": [
       {
         "dependencies": [],
-        "hash": null,
+        "hash": "bd44b76d0424bd16",
         "id": "mesh/kenney-retro-character-medium",
         "label": "Kenney Retro Character Medium",
         "material": null,
@@ -20,6 +20,99 @@
         "label": "Generated tunnel environment",
         "material": null,
         "sourcePath": "assets/voxels/generated-tunnel.avxl.json",
+        "version": 1
+      },
+      {
+        "dependencies": [],
+        "hash": null,
+        "id": "material/tunnel-floor",
+        "label": "Tunnel floor",
+        "material": {
+          "authority": {
+            "collidable": true,
+            "occludes": true,
+            "solid": true,
+            "structuralClass": "structural"
+          },
+          "style": {
+            "color": [0.16, 0.2, 0.24, 1],
+            "emissionColor": [0.02, 0.03, 0.04, 1],
+            "emissive": 0,
+            "roughness": 0.88,
+            "texture": null,
+            "textureTint": [1, 1, 1, 1],
+            "uvStrategy": "flat"
+          }
+        },
+        "sourcePath": null,
+        "version": 1
+      },
+      {
+        "dependencies": [],
+        "hash": null,
+        "id": "material/tunnel-wall",
+        "label": "Tunnel wall",
+        "material": {
+          "authority": {
+            "collidable": true,
+            "occludes": true,
+            "solid": true,
+            "structuralClass": "structural"
+          },
+          "style": {
+            "color": [0.44, 0.39, 0.32, 1],
+            "emissionColor": [0.03, 0.025, 0.02, 1],
+            "emissive": 0,
+            "roughness": 0.78,
+            "texture": null,
+            "textureTint": [1, 1, 1, 1],
+            "uvStrategy": "flat"
+          }
+        },
+        "sourcePath": null,
+        "version": 1
+      },
+      {
+        "dependencies": [],
+        "hash": null,
+        "id": "material/tunnel-highlight",
+        "label": "Tunnel highlight",
+        "material": {
+          "authority": {
+            "collidable": true,
+            "occludes": true,
+            "solid": true,
+            "structuralClass": "structural"
+          },
+          "style": {
+            "color": [0.08, 0.52, 0.62, 1],
+            "emissionColor": [0.1, 0.9, 1, 1],
+            "emissive": 0.7,
+            "roughness": 0.32,
+            "texture": null,
+            "textureTint": [1, 1, 1, 1],
+            "uvStrategy": "flat"
+          }
+        },
+        "sourcePath": null,
+        "version": 1
+      },
+      {
+        "dependencies": [],
+        "hash": "ce2ca87dbdbe6004",
+        "id": "audio/asha-primary-fire-pulse",
+        "label": "Primary fire pulse",
+        "material": null,
+        "sourcePath": "assets/presentation/primary-fire-pulse.wav",
+        "version": 1
+      },
+      {
+        "dependencies": [],
+        "hash": "1f89380b5326d5ee",
+        "id": "sprite/asha-primary-fire-spark",
+        "label": "Primary fire spark",
+        "material": null,
+        "sourcePath": "assets/presentation/primary-fire-spark.svg",
         "version": 1
       }
     ]

@@ -6,13 +6,14 @@
   "scenes": [
     { "id": 4103, "schemaVersion": 4, "artifact": "levels/scenes/generated-tunnel-room.scene.json" }
   ],
-  "assetLock": { "artifact": "assets/lock.json", "assetCount": 2 },
+  "assetLock": { "artifact": "assets/lock.json", "assetCount": 7 },
   "generationProvenance": { "provider": "asha.tunnel.enclosed.v2", "seed": 24, "version": 2, "params": "fnv1a64:df54f585b8ea912e" },
   "artifacts": [
-    { "path": "assets/lock.json", "class": "durable", "role": "assetLock", "contentHash": "f3c2bb309c496d02" },
+    { "path": "assets/lock.json", "class": "durable", "role": "assetLock", "contentHash": "da358883b612c193" },
     { "path": "assets/mesh-animation/LICENSE.Kenney-Animated-Characters-Retro.txt", "class": "durable", "role": "resource:license", "contentHash": "1e0784b4aae9cde1" },
     { "path": "assets/mesh-animation/kenney-retro-character-medium.glb", "class": "durable", "role": "resource:animatedMesh", "contentHash": "bd44b76d0424bd16" },
-    { "path": "assets/mesh-animation/kenney-retro-character-medium.manifest.json", "class": "durable", "role": "resource:animatedMeshManifest", "contentHash": "116d4c044b4ad51f" },
+    { "path": "assets/presentation/primary-fire-pulse.wav", "class": "durable", "role": "resource:audio", "contentHash": "ce2ca87dbdbe6004" },
+    { "path": "assets/presentation/primary-fire-spark.svg", "class": "durable", "role": "resource:particle", "contentHash": "1f89380b5326d5ee" },
     { "path": "assets/voxels/generated-tunnel.avxl.json", "class": "durable", "role": "voxelVolumeAsset", "contentHash": "1bf09f2f4d352471" },
     { "path": "catalogs/actors/close-range-trigger.entity.json", "class": "durable", "role": "projectContent", "contentHash": "77396a636b793474" },
     { "path": "catalogs/actors/console-blue.entity.json", "class": "durable", "role": "projectContent", "contentHash": "3ee35b7af91f0a4b" },
@@ -22,8 +23,8 @@
     { "path": "catalogs/actors/demo-player.entity.json", "class": "durable", "role": "projectContent", "contentHash": "744c6e3fc39356b4" },
     { "path": "catalogs/actors/generated-tunnel-enemy.entity.json", "class": "durable", "role": "projectContent", "contentHash": "a31ad95a2d857237" },
     { "path": "catalogs/gameplay/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "bba8a8c5dbb2e7cb" },
-    { "path": "catalogs/materials/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "68548522517d0423" },
-    { "path": "catalogs/presentation/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "ba9c0937880bb1a0" },
+    { "path": "catalogs/materials/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "5e7c408857127207" },
+    { "path": "catalogs/presentation/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "8117b3206b9c39f4" },
     { "path": "levels/scenes/generated-tunnel-room.scene.json", "class": "durable", "role": "sceneDocument", "contentHash": "a90ef04fd9f1310d" },
     { "path": "prefabs/registry.json", "class": "durable", "role": "projectContent", "contentHash": "87d51da6d22ac06a" }
   ]

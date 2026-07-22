@@ -46,3 +46,23 @@ test('a no-op fire control would fail visible acceptance', async ({ page }) => {
   await fire.click();
   await expect.poll(() => shots.textContent()).not.toBe(before);
 });
+
+test('missing presentation resources fail visibly without inline fallbacks', async ({ browser }) => {
+  const resources = [
+    'assets/mesh-animation/kenney-retro-character-medium.glb',
+    'assets/presentation/primary-fire-pulse.wav',
+    'assets/presentation/primary-fire-spark.svg',
+  ];
+  for (const resource of resources) {
+    const page = await browser.newPage();
+    const pageErrors = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.route(`**/${resource}`, (route) => route.fulfill({ status: 404, body: 'missing' }));
+    await page.goto('/');
+    await expect(page.locator('#event-state')).toContainText('Startup failed', { timeout: 30_000 });
+    await expect(page.locator('#event-state')).toContainText(resource);
+    await expect(page.locator('#fire-button')).toBeDisabled();
+    expect(pageErrors.some((message) => message.includes(resource))).toBe(true);
+    await page.close();
+  }
+});

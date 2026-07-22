@@ -5,11 +5,37 @@
   "document": {
     "cues": [
       {
+        "atSeconds": 0.05,
         "clipId": "jump",
-        "cueId": "demo.primary-fire.jump-impact",
+        "cueId": "fps.primary-fire.animation",
         "kind": "animation",
         "looped": false,
-        "resourceId": "asha-demo.character.medium"
+        "resourceId": "asha-demo.character.medium",
+        "signal": {
+          "domain": "particle",
+          "signalId": "demo.primary-fire.jump-impact.local-vfx"
+        }
+      },
+      {
+        "cueId": "asha-demo.primary-fire.audio",
+        "gain": 0.72,
+        "kind": "audio",
+        "resourceId": "asha-demo.primary-fire.audio",
+        "signalId": "fps.primary-fire.accepted"
+      },
+      {
+        "cueId": "asha-demo.primary-fire.particle",
+        "kind": "particle",
+        "resourceId": "asha-demo.primary-fire.particle",
+        "scale": 1,
+        "signalId": "fps.primary-fire.accepted"
+      },
+      {
+        "cueId": "asha-demo.primary-fire.jump-impact",
+        "kind": "particle",
+        "resourceId": "asha-demo.primary-fire.particle",
+        "scale": 0.8,
+        "signalId": "demo.primary-fire.jump-impact.local-vfx"
       }
     ],
     "resources": [
@@ -20,11 +46,29 @@
           "run",
           "jump"
         ],
-        "contentHash": "sha256:c71255a41c0373f0d2ef52593369d5fd9d2f6220ae548aff8cd6bf5edb403674",
+        "contentHash": "bd44b76d0424bd16",
         "kind": "animatedMesh",
         "licensePath": "assets/mesh-animation/LICENSE.Kenney-Animated-Characters-Retro.txt",
         "resourceId": "asha-demo.character.medium",
         "sourcePath": "assets/mesh-animation/kenney-retro-character-medium.glb"
+      },
+      {
+        "assetId": "audio/asha-primary-fire-pulse",
+        "clipIds": [],
+        "contentHash": "ce2ca87dbdbe6004",
+        "kind": "audio",
+        "licensePath": null,
+        "resourceId": "asha-demo.primary-fire.audio",
+        "sourcePath": "assets/presentation/primary-fire-pulse.wav"
+      },
+      {
+        "assetId": "sprite/asha-primary-fire-spark",
+        "clipIds": [],
+        "contentHash": "1f89380b5326d5ee",
+        "kind": "particle",
+        "licensePath": null,
+        "resourceId": "asha-demo.primary-fire.particle",
+        "sourcePath": "assets/presentation/primary-fire-spark.svg"
       }
     ],
     "schemaVersion": 1
