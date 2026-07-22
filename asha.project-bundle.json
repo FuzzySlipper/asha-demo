@@ -22,7 +22,7 @@
     { "path": "catalogs/actors/console-sensor.entity.json", "class": "durable", "role": "projectContent", "contentHash": "fe92d9c0b17fad89" },
     { "path": "catalogs/actors/demo-player.entity.json", "class": "durable", "role": "projectContent", "contentHash": "744c6e3fc39356b4" },
     { "path": "catalogs/actors/generated-tunnel-enemy.entity.json", "class": "durable", "role": "projectContent", "contentHash": "a31ad95a2d857237" },
-    { "path": "catalogs/gameplay/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "abae88ff4737ec2f" },
+    { "path": "catalogs/gameplay/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "72a456b5ee37099a" },
     { "path": "catalogs/materials/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "5e7c408857127207" },
     { "path": "catalogs/presentation/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "8117b3206b9c39f4" },
     { "path": "levels/scenes/generated-tunnel-room.scene.json", "class": "durable", "role": "sceneDocument", "contentHash": "a90ef04fd9f1310d" },

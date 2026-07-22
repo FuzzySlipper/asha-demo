@@ -110,7 +110,7 @@
             "fieldId": "playerEntityDefinition",
             "value": {
               "kind": "reference",
-              "referenceKind": "instantiatedBoundedEntityDefinition",
+              "referenceKind": "entrySceneFpsPlayerEntityDefinition",
               "targetId": "actor/demo-player"
             }
           }

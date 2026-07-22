@@ -44,6 +44,12 @@ await assertInvalidPlayerBoundsRejectBeforePublication(content, 'zero-width-boun
     ? { ...capability, max: [capability.min[0], capability.max[1], capability.max[2]] }
     : capability)
 ));
+await assertInvalidPlayerSelectionRejectBeforePublication(
+  content,
+  'enemy-selection',
+  'actor/generated-tunnel-enemy',
+);
+await assertPlayerOutsideEntrySceneRejectBeforePublication(content);
 
 const runtimeGateway = await createRuntimeGateway(runtimeBackend);
 const readout = runtimeGateway.readEcrpRuntimeReadout();
@@ -222,6 +228,124 @@ async function assertInvalidPlayerBoundsRejectBeforePublication(content, label, 
   ) {
     throw new Error(
       `Standalone host published invalid ${label} player bounds: ${JSON.stringify(rejected.loadReceipt)}`,
+    );
+  }
+  const diagnostics = JSON.stringify(rejected.loadReceipt.diagnostics);
+  if (!diagnostics.includes('playerEntityDefinition')) {
+    throw new Error(`Invalid ${label} rejection lost player field context: ${diagnostics}`);
+  }
+}
+
+async function assertInvalidPlayerSelectionRejectBeforePublication(content, label, targetId) {
+  const manifestPath = 'asha.project-bundle.json';
+  const gameplayPath = 'catalogs/gameplay/catalog.json';
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  const manifest = JSON.parse(decoder.decode(await content.projectSource.read(manifestPath)));
+  const gameplayDocument = JSON.parse(decoder.decode(await content.projectSource.read(gameplayPath)));
+  const launchConfiguration = gameplayDocument.document.configurations.find(
+    configuration => configuration.configurationId === 'demo.launch-settings.default',
+  );
+  const playerField = launchConfiguration?.values.find(
+    field => field.fieldId === 'playerEntityDefinition',
+  );
+  if (playerField?.value?.kind !== 'reference') {
+    throw new Error('Standalone host could not find the typed player launch reference.');
+  }
+  playerField.value.targetId = targetId;
+  const gameplayBytes = encoder.encode(JSON.stringify(gameplayDocument));
+  const gameplayArtifact = manifest.artifacts.find(artifact => artifact.path === gameplayPath);
+  if (gameplayArtifact === undefined) {
+    throw new Error('Standalone host could not find the gameplay configuration artifact.');
+  }
+  gameplayArtifact.contentHash = fnv1a64(gameplayBytes);
+  await assertProjectOverlayRejectsPlayerField(content, label, manifest, new Map([
+    [gameplayPath, gameplayBytes],
+  ]));
+}
+
+async function assertPlayerOutsideEntrySceneRejectBeforePublication(content) {
+  const manifestPath = 'asha.project-bundle.json';
+  const entryScenePath = 'levels/scenes/generated-tunnel-room.scene.json';
+  const secondaryScenePath = 'levels/scenes/player-only.scene.json';
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  const manifest = JSON.parse(decoder.decode(await content.projectSource.read(manifestPath)));
+  const entryScene = JSON.parse(decoder.decode(await content.projectSource.read(entryScenePath)));
+  const playerNodeIndex = entryScene.nodes.findIndex(node => (
+    node.kind?.kind === 'entityInstance'
+    && node.kind.instance?.reference?.kind === 'entityDefinition'
+    && node.kind.instance.reference.stableId === 'actor/demo-player'
+  ));
+  if (playerNodeIndex < 0) {
+    throw new Error('Standalone host could not find the entry-scene player instance.');
+  }
+  const [playerNode] = entryScene.nodes.splice(playerNodeIndex, 1);
+  playerNode.parent = null;
+  playerNode.childOrder = 0;
+  playerNode.kind.instance.spawnMarkerId = null;
+  const secondaryScene = {
+    schemaVersion: 4,
+    id: 4104,
+    metadata: { name: 'Player only', authoringFormatVersion: 4 },
+    dependencies: [],
+    nodes: [playerNode],
+  };
+  const entrySceneBytes = encoder.encode(JSON.stringify(entryScene));
+  const secondarySceneBytes = encoder.encode(JSON.stringify(secondaryScene));
+  manifest.scenes.push({
+    id: secondaryScene.id,
+    schemaVersion: secondaryScene.schemaVersion,
+    artifact: secondaryScenePath,
+  });
+  const entrySceneArtifact = manifest.artifacts.find(artifact => artifact.path === entryScenePath);
+  if (entrySceneArtifact === undefined) {
+    throw new Error('Standalone host could not find the entry-scene artifact.');
+  }
+  entrySceneArtifact.contentHash = fnv1a64(entrySceneBytes);
+  manifest.artifacts.push({
+    path: secondaryScenePath,
+    class: 'durable',
+    role: 'sceneDocument',
+    contentHash: fnv1a64(secondarySceneBytes),
+  });
+  await assertProjectOverlayRejectsPlayerField(
+    content,
+    'player-outside-entry-scene',
+    manifest,
+    new Map([
+      [entryScenePath, entrySceneBytes],
+      [secondaryScenePath, secondarySceneBytes],
+    ]),
+  );
+}
+
+async function assertProjectOverlayRejectsPlayerField(content, label, manifest, overlay) {
+  const manifestPath = 'asha.project-bundle.json';
+  const encoder = new TextEncoder();
+  const manifestBytes = encoder.encode(JSON.stringify(manifest));
+  const rejected = await createRuntimeBackend({
+    ...content,
+    projectSource: {
+      kind: 'development-directory',
+      identity: `development-directory:asha-demo-invalid-${label}`,
+      read: async relativePath => {
+        if (relativePath === manifestPath) return manifestBytes;
+        return overlay.get(relativePath) ?? content.projectSource.read(relativePath);
+      },
+    },
+    runtime: {
+      ...content.runtime,
+      sessionId: `${content.runtime.sessionId}.${label}`,
+    },
+  });
+  if (
+    rejected.available
+    || rejected.loadReceipt.accepted
+    || rejected.loadReceipt.activeProject !== null
+  ) {
+    throw new Error(
+      `Standalone host published invalid ${label} player selection: ${JSON.stringify(rejected.loadReceipt)}`,
     );
   }
   const diagnostics = JSON.stringify(rejected.loadReceipt.diagnostics);
