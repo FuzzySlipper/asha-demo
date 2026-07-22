@@ -50,6 +50,7 @@ await assertInvalidPlayerSelectionRejectBeforePublication(
   'actor/generated-tunnel-enemy',
 );
 await assertPlayerOutsideEntrySceneRejectBeforePublication(content);
+await assertMultipleEntryScenePlayersRejectBeforePublication(content);
 
 const runtimeGateway = await createRuntimeGateway(runtimeBackend);
 const readout = runtimeGateway.readEcrpRuntimeReadout();
@@ -316,6 +317,80 @@ async function assertPlayerOutsideEntrySceneRejectBeforePublication(content) {
     new Map([
       [entryScenePath, entrySceneBytes],
       [secondaryScenePath, secondarySceneBytes],
+    ]),
+  );
+}
+
+async function assertMultipleEntryScenePlayersRejectBeforePublication(content) {
+  const manifestPath = 'asha.project-bundle.json';
+  const playerPath = 'catalogs/actors/demo-player.entity.json';
+  const secondPlayerPath = 'catalogs/actors/demo-player-two.entity.json';
+  const entryScenePath = 'levels/scenes/generated-tunnel-room.scene.json';
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  const manifest = JSON.parse(decoder.decode(await content.projectSource.read(manifestPath)));
+  const secondPlayer = JSON.parse(decoder.decode(await content.projectSource.read(playerPath)));
+  const entryScene = JSON.parse(decoder.decode(await content.projectSource.read(entryScenePath)));
+
+  secondPlayer.documentId = 'asha-demo.entity.demo-player-two';
+  secondPlayer.document.stableId = 'actor/demo-player-two';
+  secondPlayer.document.displayName = 'Demo Player Two';
+  secondPlayer.document.source.relativePath = secondPlayerPath;
+  const spawnMarker = secondPlayer.document.capabilities.find(
+    capability => capability.kind === 'spawnMarker',
+  );
+  if (spawnMarker === undefined) {
+    throw new Error('Standalone host could not find the player spawn-marker capability.');
+  }
+  spawnMarker.markerId = 'spawn.player.second';
+
+  entryScene.nodes.push({
+    id: 50,
+    parent: 2,
+    childOrder: 2,
+    label: 'Demo Player Two',
+    tags: [],
+    transform: { translation: [0, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1] },
+    kind: {
+      kind: 'entityInstance',
+      instance: {
+        instanceId: 'asha-demo.player.second',
+        reference: { kind: 'entityDefinition', stableId: 'actor/demo-player-two' },
+        spawnMarkerId: 'spawn.player.second',
+      },
+    },
+  });
+  entryScene.nodes.push({
+    id: 51,
+    parent: 4,
+    childOrder: 3,
+    label: 'Second player start',
+    tags: [],
+    transform: { translation: [1.25, 1.62, 1.5], rotation: [0, 0, 0, 1], scale: [1, 1, 1] },
+    kind: { kind: 'marker', markerId: 'spawn.player.second' },
+  });
+
+  const secondPlayerBytes = encoder.encode(JSON.stringify(secondPlayer));
+  const entrySceneBytes = encoder.encode(JSON.stringify(entryScene));
+  manifest.artifacts.push({
+    path: secondPlayerPath,
+    class: 'durable',
+    role: 'projectContent',
+    contentHash: fnv1a64(secondPlayerBytes),
+  });
+  const entrySceneArtifact = manifest.artifacts.find(artifact => artifact.path === entryScenePath);
+  if (entrySceneArtifact === undefined) {
+    throw new Error('Standalone host could not find the entry-scene artifact.');
+  }
+  entrySceneArtifact.contentHash = fnv1a64(entrySceneBytes);
+
+  await assertProjectOverlayRejectsPlayerField(
+    content,
+    'multiple-entry-scene-players',
+    manifest,
+    new Map([
+      [secondPlayerPath, secondPlayerBytes],
+      [entryScenePath, entrySceneBytes],
     ]),
   );
 }
