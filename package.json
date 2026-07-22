@@ -14,7 +14,7 @@
     "check:host": "node scripts/check-host-parity.mjs",
     "check:standalone": "node scripts/standalone-host.mjs",
     "check:strict-boundary": "tsc -p tsconfig.strict-boundary.json",
-    "check:ui": "node scripts/check-ui-assets.mjs",
+    "check:ui": "node scripts/check-ui-assets.mjs && node --test tests/presentation-resources.test.mjs",
     "dev": "node scripts/serve-ui.mjs",
     "dev:static": "node scripts/serve-static-ui.mjs",
     "standalone": "node scripts/standalone-host.mjs",

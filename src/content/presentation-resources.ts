@@ -66,9 +66,26 @@ export function createDemoPresentationResources(
       licenseUrl: resource.licensePath === null ? null : projectUrl(resource.licensePath),
     })),
   };
-  const animationResource = animatedResources[0];
-  if (animationResource === undefined) {
-    throw new Error('Admitted project content has no animated-mesh presentation resource');
+  const animationCueById = uniqueBy(
+    cues.filter((cue): cue is Extract<ProjectPresentationCue, { readonly kind: 'animation' }> => (
+      cue.kind === 'animation'
+    )),
+    (cue) => cue.cueId,
+    'animation cue',
+  );
+  const primaryFireAnimationCue = animationCueById.get('fps.primary-fire.animation');
+  if (primaryFireAnimationCue === undefined) {
+    throw new Error('Admitted project content has no fps.primary-fire.animation cue');
+  }
+  const animationResource = requireResource(
+    resourceById,
+    primaryFireAnimationCue.resourceId,
+    'fps.primary-fire.animation cue',
+  );
+  if (animationResource.kind !== 'animatedMesh') {
+    throw new Error(
+      `fps.primary-fire.animation resolved a ${animationResource.kind} resource`,
+    );
   }
 
   const animationCues: AshaAnimationClipCueDefinition[] = cues.flatMap((cue) => {
