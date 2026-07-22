@@ -35,6 +35,13 @@ export function readDemoHudElements(): any {
   };
 }
 
+export function reportDemoRendererProjection(
+  canvas: HTMLCanvasElement,
+  fovYDegrees: number,
+): void {
+  canvas.dataset.cameraFovYDegrees = String(fovYDegrees);
+}
+
 export function reportDemoBootFailure(message: string): void {
   const eventState = document.querySelector<HTMLElement>('#event-state');
   if (eventState !== null) {

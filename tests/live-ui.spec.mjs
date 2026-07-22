@@ -14,6 +14,7 @@ test('the visible Game Project starts with Rust authority and responds to player
   const reset = page.locator('#reset-button');
 
   await expect(canvas).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-camera-fov-y-degrees', '58');
   await expect(fire).toBeEnabled({ timeout: 30_000 });
   await expect(event).not.toContainText(/backend missing|failed|unavailable/i);
   await expect(targets).toHaveText(/\d+\/\d+/);

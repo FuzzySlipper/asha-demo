@@ -45,6 +45,11 @@ if (readout?.entityCount !== 3 || runtimeBackend.loadReceipt.activeProject.entit
   );
 }
 assertStoredSceneRuntimeTransforms(readout, runtimeBackend.sceneDocument);
+if (JSON.stringify(runtimeBackend.launchSettings.collisionShape.halfExtents) !== JSON.stringify([0.25, 0.7, 0.25])) {
+  throw new Error(
+    `Standalone host collision envelope did not derive from Demo Player bounds: ${JSON.stringify(runtimeBackend.launchSettings.collisionShape.halfExtents)}`,
+  );
+}
 
 const playerPose = readRuntimeTransform(
   readout,
@@ -118,6 +123,7 @@ console.log(JSON.stringify({
   gameplayReactionFrameCount: gameplayReadout.reactionFrameCount,
   challengeRevision: challengeState.revision,
   launchFovYDegrees: cameraReceipt.snapshot.projection.fovYDegrees,
+  collisionHalfExtents: runtimeBackend.launchSettings.collisionShape.halfExtents,
   playerStartPosition: cameraReceipt.snapshot.pose.position,
   storedSourcesUnchanged: true,
 }, null, 2));

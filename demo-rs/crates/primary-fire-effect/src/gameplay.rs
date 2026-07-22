@@ -25,9 +25,6 @@ pub struct DemoLaunchSettings {
     pub near_clip: f64,
     pub far_clip: f64,
     pub grounded_movement: bool,
-    pub collision_half_extent_x: f64,
-    pub collision_half_extent_y: f64,
-    pub collision_half_extent_z: f64,
     pub collision_max_iterations: u8,
 }
 
@@ -39,9 +36,6 @@ struct DemoLaunchSettingsWire {
     near_clip: f64,
     far_clip: f64,
     grounded_movement: bool,
-    collision_half_extent_x: f64,
-    collision_half_extent_y: f64,
-    collision_half_extent_z: f64,
     collision_max_iterations: u8,
 }
 
@@ -55,11 +49,8 @@ impl TryFrom<DemoLaunchSettingsWire> for DemoLaunchSettings {
         if !value.fov_y_degrees.is_finite()
             || !value.near_clip.is_finite()
             || !value.far_clip.is_finite()
-            || !value.collision_half_extent_x.is_finite()
-            || !value.collision_half_extent_y.is_finite()
-            || !value.collision_half_extent_z.is_finite()
         {
-            return Err("launch camera and collision values must be finite".to_owned());
+            return Err("launch camera values must be finite".to_owned());
         }
         if value.far_clip <= value.near_clip {
             return Err("farClip must be greater than nearClip".to_owned());
@@ -70,9 +61,6 @@ impl TryFrom<DemoLaunchSettingsWire> for DemoLaunchSettings {
             near_clip: value.near_clip,
             far_clip: value.far_clip,
             grounded_movement: value.grounded_movement,
-            collision_half_extent_x: value.collision_half_extent_x,
-            collision_half_extent_y: value.collision_half_extent_y,
-            collision_half_extent_z: value.collision_half_extent_z,
             collision_max_iterations: value.collision_max_iterations,
         })
     }
@@ -533,30 +521,12 @@ fn launch_settings_provider() -> GameplayStaticModuleProvider {
             launch_reference_field(
                 "playerEntityDefinition",
                 "Player entity definition",
-                GameplayConfigurationReferenceKind::EntityDefinition,
+                GameplayConfigurationReferenceKind::InstantiatedEntityDefinition,
             ),
             launch_number_field("fovYDegrees", "Vertical field of view", 1.0, 179.0),
             launch_number_field("nearClip", "Near clipping plane", 0.001, 1_000.0),
             launch_number_field("farClip", "Far clipping plane", 0.01, 1_000_000.0),
             launch_boolean_field("groundedMovement", "Grounded movement"),
-            launch_number_field(
-                "collisionHalfExtentX",
-                "Collision half extent X",
-                0.001,
-                100.0,
-            ),
-            launch_number_field(
-                "collisionHalfExtentY",
-                "Collision half extent Y",
-                0.001,
-                100.0,
-            ),
-            launch_number_field(
-                "collisionHalfExtentZ",
-                "Collision half extent Z",
-                0.001,
-                100.0,
-            ),
             launch_integer_field(
                 "collisionMaxIterations",
                 "Collision solver iterations",

@@ -45,19 +45,39 @@ fn linked_provider_composes_without_downstream_runtime_bootstrap() {
         schema_modules,
         vec!["demo.launch-settings", "demo.primary-fire-effect"]
     );
+    let launch_schema = project_configuration
+        .schemas()
+        .iter()
+        .find(|schema| schema.module_id == "demo.launch-settings")
+        .expect("launch schema");
+    let player_reference = launch_schema
+        .fields
+        .iter()
+        .find(|field| field.name == "playerEntityDefinition")
+        .expect("player reference field");
+    assert_eq!(
+        player_reference.reference_kind,
+        Some(
+            asha_gameplay_module_sdk::GameplayConfigurationReferenceKind::InstantiatedEntityDefinition
+        )
+    );
+    assert!(!launch_schema
+        .fields
+        .iter()
+        .any(|field| field.name.starts_with("collisionHalfExtent")));
 
     let launch_codec = project_configuration
         .codecs()
         .iter()
         .find(|codec| codec.metadata().module_id == "demo.launch-settings")
         .expect("Demo launch settings install a provider-owned typed codec");
-    let valid = br#"{"playerEntityDefinition":"actor/demo-player","fovYDegrees":55.0,"nearClip":0.1,"farClip":100.0,"groundedMovement":true,"collisionHalfExtentX":0.25,"collisionHalfExtentY":0.25,"collisionHalfExtentZ":0.25,"collisionMaxIterations":3}"#;
+    let valid = br#"{"playerEntityDefinition":"actor/demo-player","fovYDegrees":55.0,"nearClip":0.1,"farClip":100.0,"groundedMovement":true,"collisionMaxIterations":3}"#;
     assert!(launch_codec.canonicalize(valid).is_ok());
 
-    let inverted_clip_planes = br#"{"playerEntityDefinition":"actor/demo-player","fovYDegrees":55.0,"nearClip":100.0,"farClip":0.1,"groundedMovement":true,"collisionHalfExtentX":0.25,"collisionHalfExtentY":0.25,"collisionHalfExtentZ":0.25,"collisionMaxIterations":3}"#;
+    let inverted_clip_planes = br#"{"playerEntityDefinition":"actor/demo-player","fovYDegrees":55.0,"nearClip":100.0,"farClip":0.1,"groundedMovement":true,"collisionMaxIterations":3}"#;
     assert!(launch_codec.canonicalize(inverted_clip_planes).is_err());
 
-    let unknown_field = br#"{"playerEntityDefinition":"actor/demo-player","fovYDegrees":55.0,"nearClip":0.1,"farClip":100.0,"groundedMovement":true,"collisionHalfExtentX":0.25,"collisionHalfExtentY":0.25,"collisionHalfExtentZ":0.25,"collisionMaxIterations":3,"cameraOwner":"typescript"}"#;
+    let unknown_field = br#"{"playerEntityDefinition":"actor/demo-player","fovYDegrees":55.0,"nearClip":0.1,"farClip":100.0,"groundedMovement":true,"collisionMaxIterations":3,"cameraOwner":"typescript"}"#;
     assert!(launch_codec.canonicalize(unknown_field).is_err());
     assert!(!gameplay_declared_reads().is_empty());
 }

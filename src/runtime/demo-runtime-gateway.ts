@@ -554,25 +554,51 @@ function readAcceptedLaunchSettings(
   const near = launchNumber(values, 'nearClip');
   const far = launchNumber(values, 'farClip');
   const groundedMovement = launchBoolean(values, 'groundedMovement');
+  const playerEntityDefinition = launchInstantiatedEntityDefinitionReference(
+    values,
+    'playerEntityDefinition',
+  );
   return {
-    playerEntityDefinition: launchEntityDefinitionReference(
-      values,
-      'playerEntityDefinition',
-    ),
+    playerEntityDefinition,
     cameraProjection: { fovYDegrees, near, far },
     movementMode: groundedMovement ? 'grounded' : 'freeFlight',
     collisionShape: {
-      halfExtents: [
-        launchNumber(values, 'collisionHalfExtentX'),
-        launchNumber(values, 'collisionHalfExtentY'),
-        launchNumber(values, 'collisionHalfExtentZ'),
-      ],
+      halfExtents: entityBoundsHalfExtents(documents, playerEntityDefinition),
     },
     collisionPolicy: {
       mode: 'axis_separable_slide',
       maxIterations: launchInteger(values, 'collisionMaxIterations'),
     },
   };
+}
+
+function entityBoundsHalfExtents(
+  documents: readonly ProjectContentDocument[],
+  stableId: string,
+): readonly [number, number, number] {
+  const entity = documents.find(
+    (document) => document.kind === 'entityDefinition'
+      && document.definition.stableId === stableId,
+  );
+  const bounds = entity?.kind === 'entityDefinition'
+    ? entity.definition.capabilities.find((capability) => capability.kind === 'bounds')
+    : undefined;
+  if (bounds?.kind !== 'bounds') {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      `Rust-admitted player entity definition ${stableId} has no bounds capability.`,
+    );
+  }
+  const halfExtents = bounds.min.map(
+    (minimum, axis) => (bounds.max[axis] - minimum) / 2,
+  ) as [number, number, number];
+  if (halfExtents.some((extent) => !Number.isFinite(extent) || extent <= 0)) {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      `Rust-admitted player entity definition ${stableId} has unusable bounds.`,
+    );
+  }
+  return halfExtents;
 }
 
 function launchValue(
@@ -631,19 +657,19 @@ function launchBoolean(
   return value.value;
 }
 
-function launchEntityDefinitionReference(
+function launchInstantiatedEntityDefinitionReference(
   values: ReadonlyMap<string, ProjectConfigurationValue>,
   fieldId: string,
 ): string {
   const value = launchValue(values, fieldId);
   if (
     value.kind !== 'reference'
-    || value.referenceKind !== 'entityDefinition'
+    || value.referenceKind !== 'instantiatedEntityDefinition'
     || value.targetId.trim().length === 0
   ) {
     throw new RuntimeBridgeError(
       'invalid_input',
-      `Rust-admitted ${DEMO_LAUNCH_CONFIGURATION_ID}.${fieldId} is not an entity definition reference.`,
+      `Rust-admitted ${DEMO_LAUNCH_CONFIGURATION_ID}.${fieldId} is not an instantiated entity definition reference.`,
     );
   }
   return value.targetId;

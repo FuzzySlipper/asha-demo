@@ -18,7 +18,7 @@ import {
 import { hudControlToIntent } from '../input/hud-controls.js';
 import { type DemoHudEventSource, type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
 import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
-import { readDemoHudElements } from '../shell/hud-elements.js';
+import { readDemoHudElements, reportDemoRendererProjection } from '../shell/hud-elements.js';
 import { renderHudElements } from '../shell/hud-renderer.js';
 import { pulseReticleElement } from '../shell/reticle-renderer.js';
 import {
@@ -80,6 +80,7 @@ const surface = await mountAshaRendererAnimatedMeshSurface(canvas, {
   animatedMeshManifest: presentationResources.animatedMeshManifest,
   autoStart: true,
   clearColor: 0x101820,
+  projection: launchSettings.cameraProjection,
   ...(initialProjection === null ? {} : { frame: initialProjection.frame }),
   controls: {
     initialPosition: readPlayerTransform().position,
@@ -89,6 +90,15 @@ const surface = await mountAshaRendererAnimatedMeshSurface(canvas, {
     ...(inputSession === null ? {} : { inputSession }),
   },
 });
+const rendererProjection = surface.cameraProjection();
+if (
+  rendererProjection.fovYDegrees !== launchSettings.cameraProjection.fovYDegrees
+  || rendererProjection.near !== launchSettings.cameraProjection.near
+  || rendererProjection.far !== launchSettings.cameraProjection.far
+) {
+  throw new Error('Engine renderer did not retain the Rust-admitted camera projection');
+}
+reportDemoRendererProjection(canvas, rendererProjection.fovYDegrees);
 
 let audioHost = createDemoAudioHost();
 let animationHost = createDemoAnimationHost();
@@ -661,64 +671,7 @@ function resolveBillboardEntityPosition(entityId) {
 }
 
 function projectBillboardWorldPoint(position) {
-  const camera = surface.cameraPose();
-  const viewport = readViewport();
-  const relative = [
-    position[0] - camera.position[0],
-    position[1] - camera.position[1],
-    position[2] - camera.position[2],
-  ];
-  const distance = Math.hypot(relative[0], relative[1], relative[2]);
-  const horizontalDistance = Math.hypot(relative[0], relative[2]);
-  if (horizontalDistance < 0.5 && Math.abs(relative[1]) < 3) {
-    return {
-      xPixels: viewport.width / 2,
-      yPixels: viewport.height - 72,
-      depth: 0,
-      distance,
-      insideViewport: true,
-      occluded: false,
-    };
-  }
-  if (launchSettings === null) {
-    return {
-      xPixels: 0,
-      yPixels: 0,
-      depth: 1,
-      distance,
-      insideViewport: false,
-      occluded: false,
-    };
-  }
-  const forward = readAudioForward(camera);
-  const right = [forward[2] * -1, 0, forward[0]];
-  const rightLength = Math.hypot(right[0], right[2]) || 1;
-  right[0] /= rightLength;
-  right[2] /= rightLength;
-  const up = [
-    right[1] * forward[2] - right[2] * forward[1],
-    right[2] * forward[0] - right[0] * forward[2],
-    right[0] * forward[1] - right[1] * forward[0],
-  ];
-  const depth = dot3(relative, forward);
-  const fovYDegrees = launchSettings.cameraProjection.fovYDegrees;
-  const farClip = launchSettings.cameraProjection.far;
-  const halfHeight = Math.max(depth, 0.001) * Math.tan((fovYDegrees * Math.PI) / 360);
-  const halfWidth = halfHeight * (viewport.width / viewport.height);
-  const ndcX = dot3(relative, right) / halfWidth;
-  const ndcY = dot3(relative, up) / halfHeight;
-  return {
-    xPixels: ((ndcX + 1) / 2) * viewport.width,
-    yPixels: ((1 - ndcY) / 2) * viewport.height,
-    depth: Math.max(0, Math.min(1, depth / farClip)),
-    distance,
-    insideViewport: depth > 0 && Math.abs(ndcX) <= 1 && Math.abs(ndcY) <= 1,
-    occluded: false,
-  };
-}
-
-function dot3(left, right) {
-  return left[0] * right[0] + left[1] * right[1] + left[2] * right[2];
+  return surface.projectWorldPoint(position);
 }
 
 function readAudioForward(pose) {
@@ -1219,24 +1172,17 @@ function readEnemyTransform() {
 function readPlayerTransform() {
   const playerDefinition = launchSettings?.playerEntityDefinition;
   if (playerDefinition === undefined) {
-    return {
-      position: [0, 0, 0],
-      yawDegrees: 0,
-      pitchDegrees: 0,
-    };
+    throw new Error('Rust-admitted Demo launch settings have no player entity definition');
   }
   const transform = readActorCapability(playerDefinition, 'transform');
-  return transform === null
-    ? {
-        position: [0, 0, 0],
-        yawDegrees: 0,
-        pitchDegrees: 0,
-      }
-    : {
-        position: transform.position,
-        yawDegrees: transform.yawDegrees,
-        pitchDegrees: transform.pitchDegrees,
-      };
+  if (transform === null) {
+    throw new Error(`Rust-admitted player entity definition ${playerDefinition} was not instantiated`);
+  }
+  return {
+    position: transform.position,
+    yawDegrees: transform.yawDegrees,
+    pitchDegrees: transform.pitchDegrees,
+  };
 }
 
 function readEnemyHealth() {

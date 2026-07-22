@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use asha_demo_primary_fire_effect::{
     gameplay_challenge_view_contract, gameplay_composition, gameplay_module_ref,
+    launch_settings_module_ref,
 };
 use serde_json::Value as JsonValue;
 
@@ -37,6 +38,7 @@ fn main() {
 fn print_linked_contract() {
     let value = serde_json::json!({
         "module": gameplay_module_ref(),
+        "launchSettingsModule": launch_settings_module_ref(),
         "challengeView": gameplay_challenge_view_contract(),
     });
     println!(

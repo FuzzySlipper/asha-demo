@@ -61,7 +61,7 @@
       {
         "configurationId": "demo.launch-settings.default",
         "module": {
-          "artifactHash": "fnv1a64:16c8db0de914b845",
+          "artifactHash": "fnv1a64:19e60675c74c39f8",
           "contractHash": "fnv1a64:e9ce96a5aed84540",
           "moduleId": "demo.launch-settings",
           "namespace": "demo.launch-settings",
@@ -71,27 +71,6 @@
         },
         "schemaId": "demo.launch-settings.configuration.v1",
         "values": [
-          {
-            "fieldId": "collisionHalfExtentX",
-            "value": {
-              "kind": "number",
-              "value": 0.25
-            }
-          },
-          {
-            "fieldId": "collisionHalfExtentY",
-            "value": {
-              "kind": "number",
-              "value": 0.25
-            }
-          },
-          {
-            "fieldId": "collisionHalfExtentZ",
-            "value": {
-              "kind": "number",
-              "value": 0.25
-            }
-          },
           {
             "fieldId": "collisionMaxIterations",
             "value": {
@@ -131,7 +110,7 @@
             "fieldId": "playerEntityDefinition",
             "value": {
               "kind": "reference",
-              "referenceKind": "entityDefinition",
+              "referenceKind": "instantiatedEntityDefinition",
               "targetId": "actor/demo-player"
             }
           }
@@ -140,7 +119,7 @@
       {
         "configurationId": "demo.primary-fire-effect.console-blue",
         "module": {
-          "artifactHash": "fnv1a64:6afa3e274623b725",
+          "artifactHash": "fnv1a64:6e6e124856df9d3a",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
@@ -176,7 +155,7 @@
       {
         "configurationId": "demo.primary-fire-effect.console-red",
         "module": {
-          "artifactHash": "fnv1a64:6afa3e274623b725",
+          "artifactHash": "fnv1a64:6e6e124856df9d3a",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
@@ -212,7 +191,7 @@
       {
         "configurationId": "demo.primary-fire-effect.default",
         "module": {
-          "artifactHash": "fnv1a64:6afa3e274623b725",
+          "artifactHash": "fnv1a64:6e6e124856df9d3a",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
