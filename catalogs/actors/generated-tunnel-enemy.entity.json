@@ -51,6 +51,15 @@
         "visible": true
       },
       {
+        "appearance": {
+          "resourceId": "asha-demo.character.medium",
+          "initialClipId": "idle",
+          "modelScale": [
+            0.8,
+            0.8,
+            0.8
+          ]
+        },
         "kind": "renderProjection",
         "projectionId": "target_cube",
         "visible": true

@@ -21,11 +21,6 @@ export interface DemoParticleCueBinding {
 
 export interface DemoPresentationResources {
   readonly animatedMeshManifest: AshaRendererAnimatedMeshResourceManifest;
-  readonly animatedMeshTarget: {
-    readonly asset: string;
-    readonly contentHash: string;
-    readonly clipIds: readonly string[];
-  };
   readonly animationCues: readonly AshaAnimationClipCueDefinition[];
   resolveAudioResource(clip: AudioClipRef): Promise<AshaAudioResource>;
   resolveParticleResource(sprite: ParticleSpriteRef): Promise<AshaParticleResource | null>;
@@ -58,13 +53,16 @@ export function createDemoPresentationResources(
   }
   const animatedMeshManifest: AshaRendererAnimatedMeshResourceManifest = {
     kind: 'asha_renderer_animated_mesh_resources.v0',
-    resources: animatedResources.map((resource) => ({
-      asset: resource.assetId,
-      resourceUrl: projectUrl(resource.sourcePath),
-      contentHash: resource.contentHash,
-      clipIds: resource.clipIds,
-      licenseUrl: resource.licensePath === null ? null : projectUrl(resource.licensePath),
-    })),
+    resources: animatedResources.map((resource) => {
+      const descriptor = requireAnimatedMeshDescriptor(resource, `resource ${resource.resourceId}`);
+      return {
+        asset: descriptor.asset,
+        resourceUrl: projectUrl(resource.sourcePath),
+        contentHash: resource.contentHash,
+        clipIds: descriptor.clips.map((clip) => clip.id),
+        licenseUrl: resource.licensePath === null ? null : projectUrl(resource.licensePath),
+      };
+    }),
   };
   const animationCueById = uniqueBy(
     cues.filter((cue): cue is Extract<ProjectPresentationCue, { readonly kind: 'animation' }> => (
@@ -87,12 +85,17 @@ export function createDemoPresentationResources(
       `fps.primary-fire.animation resolved a ${animationResource.kind} resource`,
     );
   }
+  requireAnimatedMeshDescriptor(animationResource, 'fps.primary-fire.animation cue');
 
   const animationCues: AshaAnimationClipCueDefinition[] = cues.flatMap((cue) => {
     if (cue.kind !== 'animation') return [];
     const resource = requireResource(resourceById, cue.resourceId, 'animation cue');
     if (resource.kind !== 'animatedMesh') {
       throw new Error(`Animation cue ${cue.cueId} resolved a ${resource.kind} resource`);
+    }
+    const descriptor = requireAnimatedMeshDescriptor(resource, `animation cue ${cue.cueId}`);
+    if (!descriptor.clips.some((clip) => clip.id === cue.clipId)) {
+      throw new Error(`Animation cue ${cue.cueId} references missing clip ${cue.clipId}`);
     }
     return [{
       cueId: cue.cueId,
@@ -105,11 +108,6 @@ export function createDemoPresentationResources(
 
   return {
     animatedMeshManifest,
-    animatedMeshTarget: {
-      asset: animationResource.assetId,
-      contentHash: animationResource.contentHash,
-      clipIds: animationResource.clipIds,
-    },
     animationCues,
     async resolveAudioResource(clip) {
       const resource = requireMatchingResource(resourceByAsset, clip.asset, clip.contentHash, 'audio');
@@ -148,6 +146,16 @@ export function createDemoPresentationResources(
       };
     },
   };
+}
+
+function requireAnimatedMeshDescriptor(
+  resource: ProjectPresentationResource,
+  context: string,
+) {
+  if (resource.kind !== 'animatedMesh' || resource.animatedMesh === null) {
+    throw new Error(`${context} requires renderer-neutral animated-mesh metadata`);
+  }
+  return resource.animatedMesh;
 }
 
 function uniqueBy<T>(

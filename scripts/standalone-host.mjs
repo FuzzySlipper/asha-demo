@@ -54,9 +54,9 @@ await assertMultipleEntryScenePlayersRejectBeforePublication(content);
 
 const runtimeGateway = await createRuntimeGateway(runtimeBackend);
 const readout = runtimeGateway.readEcrpRuntimeReadout();
-if (readout?.entityCount !== 3 || runtimeBackend.loadReceipt.activeProject.entityCount !== 7) {
+if (readout?.entityCount !== 3 || runtimeBackend.loadReceipt.activeProject.entityCount !== 3) {
   throw new Error(
-    `Standalone host expected seven active entities and three FPS role entities, saw ${runtimeBackend.loadReceipt.activeProject.entityCount}/${readout?.entityCount ?? 'none'}`,
+    `Standalone host expected three active entry-scene entities and three FPS role entities, saw ${runtimeBackend.loadReceipt.activeProject.entityCount}/${readout?.entityCount ?? 'none'}`,
   );
 }
 assertStoredSceneRuntimeTransforms(readout, runtimeBackend.sceneDocument);

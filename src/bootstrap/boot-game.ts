@@ -8,12 +8,10 @@ import {
   mountAshaRendererAnimatedMeshSurface,
 } from '@asha/renderer-host';
 import {
-  billboardHandle,
   cameraHandle,
 } from '@asha/contracts';
 import {
   ResolvedPauseContextConsumer,
-  buildRuntimeSessionAnimationControllerTargetFrame,
 } from '@asha/runtime-bridge';
 import { hudControlToIntent } from '../input/hud-controls.js';
 import { type DemoHudEventSource, type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
@@ -61,7 +59,7 @@ const presentationResources = createDemoPresentationResources(
 
 let runtimeCamera = createRuntimeCamera();
 let enemyPolicyTick = 0;
-let menuMode: DemoMenuMode = 'closed';
+let menuMode: DemoMenuMode = 'title';
 let lastMenuIntent = null;
 let inputSettings = {
   invertY: false,
@@ -104,7 +102,6 @@ let audioHost = createDemoAudioHost();
 let animationHost = createDemoAnimationHost();
 let billboardHost = createDemoBillboardHost();
 let particleHost = createDemoParticleHost();
-let prefabPlacementProjection = await projectPrefabPlacements();
 let lastAnimationProjectionStatus = {
   status: 'ready',
   authorityTick: null,
@@ -121,18 +118,6 @@ let lastAnimationSampledCueStatus = {
 let lastAppliedRuntimeProjectionFingerprint: string | null = null;
 
 const animationIntent = runtimeGateway.readAnimationIntent();
-const animationTargetFrame = animationIntent === null
-  ? null
-  : buildRuntimeSessionAnimationControllerTargetFrame(
-      animationIntent,
-      presentationResources.animatedMeshTarget,
-    );
-const animationFrameReceipt = animationTargetFrame === null ? null : surface.applyFrame(animationTargetFrame);
-if (animationIntent !== null && animationFrameReceipt?.applied !== true) {
-  throw new Error(
-    `ASHA animated mesh frame was rejected: ${animationFrameReceipt?.diagnostics?.map((diagnostic) => diagnostic.message).join('; ') ?? 'unknown renderer-host error'}`,
-  );
-}
 
 let animationFrame = null;
 let enemyLoopTimer = null;
@@ -267,7 +252,7 @@ elements.fireButton?.addEventListener('click', () => {
 });
 
 elements.resetButton?.addEventListener('click', () => {
-  resetLoop();
+  handleHudControl('hud-restart');
 });
 
 elements.pauseButton?.addEventListener('click', () => {
@@ -334,13 +319,19 @@ function firePrimary() {
   };
 
   if (actionReceipt.accepted && actionReceipt.combatReadout?.outcome.kind === 'hit') {
-    lastRuntimeEvent = lastGameplayTransform === null
-      ? 'Fire hit'
-      : `Fire hit - ${lastGameplayTransform.moduleRef.moduleId}`;
+    const enemyHealth = readEnemyHealth();
+    lastRuntimeEvent = enemyHealth.dead
+      ? 'Tunnel sentinel defeated — objective complete'
+      : `Hit confirmed — sentinel at ${enemyHealth.current}/${enemyHealth.max} health`;
     lastEventSource = 'runtime';
     pulseReticle('hit');
+    if (enemyHealth.dead) {
+      stopEnemyLoopCadence();
+    }
   } else {
-    lastRuntimeEvent = actionReceipt.accepted ? 'Fire missed' : 'Fire rejected';
+    lastRuntimeEvent = actionReceipt.accepted
+      ? 'Shot missed — the sentinel is still advancing'
+      : 'Fire rejected by runtime authority';
     lastEventSource = 'runtime';
     pulseReticle('miss');
   }
@@ -596,71 +587,6 @@ function createDemoParticleHost() {
   }
 }
 
-async function projectPrefabPlacements() {
-  if (billboardHost === null) {
-    return { applied: 0, diagnostics: ['billboard host unavailable'] };
-  }
-  const instances = runtimeBackend.sceneDocument?.nodes.flatMap((node) => {
-    if (node.kind.kind !== 'entityInstance' || node.kind.instance.reference.kind !== 'prefab') {
-      return [];
-    }
-    return [{
-      id: node.kind.instance.instanceId,
-      variant: node.kind.instance.reference.variantId,
-      transform: node.transform,
-    }];
-  }) ?? [];
-  if (instances.length !== 2) {
-    return { applied: 0, diagnostics: ['stored prefab placements unavailable'] };
-  }
-  const operations = instances.map((instance, index) => {
-    return {
-      domain: 'billboard' as const,
-      meta: {
-        sequence: index,
-        origin: {
-          kind: 'ownerFact' as const,
-          id: `prefab-placement:${instance.id}`,
-          authorityTick: 1,
-          causationId: null,
-          correlationId: runtimeBackend.backendHash,
-        },
-      },
-      op: {
-        op: 'create' as const,
-        handle: billboardHandle(7_000 + index),
-        descriptor: {
-          anchor: {
-            kind: 'world' as const,
-            position: [
-              instance.transform.translation[0],
-              instance.transform.translation[1] + 1.45,
-              instance.transform.translation[2],
-            ] as const,
-          },
-          content: {
-            kind: 'text' as const,
-            localizationKey: `demo.prefab.${instance.variant ?? 'base'}`,
-            fallbackText: instance.variant === 'red' ? 'Red console' : 'Blue console',
-            arguments: [],
-          },
-          font: { kind: 'system' as const, family: 'sans-serif' },
-          heightPixels: 20,
-          color: instance.variant === 'red' ? [1, 0.45, 0.35, 1] as const : [0.35, 0.7, 1, 1] as const,
-          background: [0.02, 0.04, 0.08, 0.82] as const,
-          maxDistance: 30,
-          layer: 'depthTested' as const,
-          visible: true,
-        },
-      },
-    };
-  });
-  return billboardHost.applyPresentation({
-    replayScope: 'excludedFromReplayTruth',
-    ops: operations,
-  });
-}
-
 function resolveBillboardEntityPosition(entityId) {
   const entity = readEcrpRuntimeReadout().entities.find((candidate) => candidate.entity === entityId);
   const transform = entity?.capabilities.find((capability) => capability.kind === 'transform') ?? null;
@@ -701,48 +627,53 @@ function readFireBlockedEvent(blockedReasons) {
 }
 
 function resetLoop() {
+  stopEnemyLoopCadence();
   if (!runtimeGateway.available()) {
     runtimeCamera = createRuntimeCamera();
     enemyPolicyTick = 0;
     lastEnemyPolicyReadout = null;
-    restartEnemyLoopCadence();
     lastCollisionReceipt = null;
-    menuMode = 'closed';
+    menuMode = 'title';
     lastMovementEvent = 'Reset unavailable: Rust runtime backend missing';
     lastRuntimeEvent = lastMovementEvent;
     lastEventSource = 'runtime';
     resetPresentationHostsForRuntimeRestart();
     surface.resetCamera();
     void applyLatestRuntimeProjection();
-    void projectPrefabPlacements();
     pulseReticle('miss');
     renderHud();
     return;
   }
 
   const statusBefore = readLifecycleStatus();
-  if (readAuthorityPaused()) {
-    consumePauseAction('runtime.time.resume', 'shellControl', false);
-  }
   const restartReceipt = runtimeGateway.requestSessionRestart({
     kind: 'runtime.restart_session_intent',
     source: 'hud_menu',
     requireTerminal: false,
     expectedSessionHash: statusBefore.sessionHash,
   });
+  if (restartReceipt?.accepted !== true) {
+    lastRuntimeEvent = 'Restart rejected by runtime authority';
+    lastEventSource = 'runtime';
+    renderHud();
+    return;
+  }
+  if (readAuthorityPaused()) {
+    consumePauseAction('runtime.time.resume', 'shellControl', false);
+  }
   runtimeCamera = createRuntimeCamera();
   enemyPolicyTick = 0;
   lastEnemyPolicyReadout = null;
-  restartEnemyLoopCadence();
   lastCollisionReceipt = null;
   menuMode = 'closed';
   lastMovementEvent = 'Reset';
-  lastRuntimeEvent = restartReceipt.accepted ? 'Runtime reset' : 'Reset rejected';
+  lastRuntimeEvent = 'Encounter started — defeat the tunnel sentinel';
   lastEventSource = 'runtime';
   resetPresentationHostsForRuntimeRestart();
   surface.resetCamera();
-  void applyLatestRuntimeProjection();
-  void projectPrefabPlacements();
+  void applyLatestRuntimeProjection().then(() => {
+    restartEnemyLoopCadence();
+  });
   pulseReticle('reset');
   renderHud();
 }
@@ -764,6 +695,7 @@ function resetPresentationHostsForRuntimeRestart() {
 }
 
 function openPauseMenu(mode: DemoMenuMode) {
+  stopEnemyLoopCadence();
   menuMode = mode;
   document.exitPointerLock?.();
   lastRuntimeEvent = mode === 'title' ? 'Returned to title' : 'Paused';
@@ -776,6 +708,9 @@ function closePauseMenu() {
   menuMode = 'closed';
   lastRuntimeEvent = 'Resumed';
   lastEventSource = 'runtime';
+  if (!readLifecycleStatus().player.dead && !readLifecycleStatus().enemy.dead) {
+    restartEnemyLoopCadence();
+  }
   renderHud();
   return readRuntimeInteractionState();
 }
@@ -836,6 +771,15 @@ function drainResolvedInputDeliveries() {
     }
     if (action.actionId === 'runtime.time.pause' || action.actionId === 'runtime.time.resume') {
       consumePauseAction(action, 'browserResolvedAction');
+      continue;
+    }
+    if (
+      action.actionId === 'runtime.session.restart'
+      && action.phase === 'pressed'
+      && action.value.kind === 'button'
+      && action.value.pressed
+    ) {
+      handleHudControl('hud-restart');
       continue;
     }
     if (
@@ -952,21 +896,6 @@ function readAnimationHudPlayback() {
   };
 }
 
-function readEnemyRenderTarget(visible) {
-  const renderTarget = readActorCapability('actor/generated-tunnel-enemy', 'renderProjection')?.target ?? null;
-  if (renderTarget !== null) {
-    return renderTarget;
-  }
-  const enemyTransform = readEnemyTransform();
-  return {
-    kind: 'runtime_session.ecrp_render_target.v0',
-    renderLabel: 'runtime-entity-without-render-projection',
-    visible,
-    position: enemyTransform.position,
-    scale: [1, 1, 1],
-  };
-}
-
 function tickEnemyPolicy() {
   if (!runtimeGateway.available()) {
     lastRuntimeEvent = 'Enemy loop blocked: Rust runtime backend missing';
@@ -976,6 +905,14 @@ function tickEnemyPolicy() {
   }
 
   const paused = readAuthorityPaused();
+  if (paused || menuMode !== 'closed') {
+    stopEnemyLoopCadence();
+    lastRuntimeEvent = menuMode === 'title' ? 'Choose Start when ready' : 'Encounter paused';
+    lastEventSource = 'runtime';
+    renderHud();
+    return lastEnemyPolicyReadout;
+  }
+  const playerHealthBefore = readPlayerHealth();
   const encounterTick = runtimeGateway.readPlayableEncounterTick({
     targetCamera: readRuntimeCameraHandle(),
     targetPosition: runtimeCamera.pose.position,
@@ -989,6 +926,9 @@ function tickEnemyPolicy() {
       ? `Enemy defeated - ${lastGameplayTransform.moduleRef.moduleId}`
       : encounterTickBlockedEvent(encounterTick.blockedReason);
     lastEventSource = 'runtime';
+    if (encounterTick.blockedReason === 'enemy_dead' || encounterTick.blockedReason === 'player_dead') {
+      stopEnemyLoopCadence();
+    }
     renderHud();
     return lastEnemyPolicyReadout;
   }
@@ -998,15 +938,18 @@ function tickEnemyPolicy() {
   lastEnemyPolicyReadout = readout;
 
   if (encounterTick.combatSummary?.status === 'accepted') {
-    lastRuntimeEvent = 'Enemy hit';
+    const playerHealthAfter = readPlayerHealth();
+    const damage = Math.max(0, playerHealthBefore.current - playerHealthAfter.current);
+    lastRuntimeEvent = `Sentinel attacks — ${damage} damage, ${playerHealthAfter.current}/${playerHealthAfter.max} health remaining`;
     lastEventSource = 'runtime';
   } else if (encounterTick.movementSummary?.status === 'accepted') {
-    lastRuntimeEvent = 'Enemy moved';
+    lastRuntimeEvent = 'The tunnel sentinel is advancing';
     lastEventSource = 'runtime';
   }
   if (encounterTick.lifecycleAfter?.player.dead) {
-    lastRuntimeEvent = 'Player defeated';
+    lastRuntimeEvent = 'Player defeated — press R or choose Restart';
     lastEventSource = 'runtime';
+    stopEnemyLoopCadence();
   }
   void applyLatestRuntimeProjection();
   renderHud();
@@ -1014,12 +957,21 @@ function tickEnemyPolicy() {
 }
 
 function restartEnemyLoopCadence() {
-  if (enemyLoopTimer !== null) {
-    window.clearInterval(enemyLoopTimer);
+  stopEnemyLoopCadence();
+  if (menuMode !== 'closed' || readAuthorityPaused()) {
+    return;
   }
   enemyLoopTimer = window.setInterval(() => {
     tickEnemyPolicy();
   }, 750);
+}
+
+function stopEnemyLoopCadence() {
+  if (enemyLoopTimer === null) {
+    return;
+  }
+  window.clearInterval(enemyLoopTimer);
+  enemyLoopTimer = null;
 }
 
 function readRuntimeCameraHandle() {
@@ -1235,8 +1187,11 @@ function tickHud() {
   animationFrame = window.requestAnimationFrame(tickHud);
 }
 
+consumePauseAction('runtime.time.pause', 'startup', false);
+menuMode = 'title';
+lastRuntimeEvent = 'Choose Start when ready';
+lastEventSource = 'runtime';
 renderHud();
-restartEnemyLoopCadence();
 tickHud();
 
 function readViewport() {

@@ -44,38 +44,22 @@
       aria-label="ASHA world-space billboard projection"
     ></div>
     <div id="reticle" class="reticle" data-state="idle" data-demo-readout="reticle"></div>
-    <section class="hud-panel" aria-label="ASHA demo status">
+    <section class="hud-panel" aria-label="Tunnel sentinel encounter status">
       <div class="hud-row">
-        <span>Lock</span>
-        <strong id="lock-state" data-locked="false">UNLOCKED</strong>
+        <span>Objective</span>
+        <strong id="challenge-state" data-status="ready">DEFEAT THE TUNNEL SENTINEL</strong>
       </div>
       <div class="hud-row">
-        <span>Targets</span>
-        <strong id="target-state">0/0</strong>
+        <span>Sentinel</span>
+        <strong id="target-state">45/45</strong>
       </div>
       <div class="hud-row">
-        <span>Hits</span>
-        <strong id="shot-state">0/0</strong>
-      </div>
-      <div class="hud-row">
-        <span>Challenge</span>
-        <strong id="challenge-state" data-status="armed">ARMED 0/6</strong>
+        <span>Shots</span>
+        <strong id="shot-state">0 hits · 0 misses</strong>
       </div>
       <div class="hud-row">
         <span>Player</span>
         <strong id="player-health-state">100/100</strong>
-      </div>
-      <div class="hud-row">
-        <span>Pose</span>
-        <strong id="pose-state">0, 0 | 0</strong>
-      </div>
-      <div class="hud-row">
-        <span>Animation</span>
-        <strong id="animation-state">UNAVAILABLE</strong>
-      </div>
-      <div class="hud-row hud-row-wide">
-        <span>Anim cue</span>
-        <strong id="animation-cue-state" data-status="waiting">WAITING</strong>
       </div>
       <div class="health-meter" aria-label="Enemy health">
         <span id="health-fill"></span>
@@ -90,7 +74,7 @@
       <p id="event-state" class="event-state">Ready</p>
     </section>
     <nav class="command-bar" aria-label="ASHA demo commands">
-      <button id="lock-button" type="button">Lock</button>
+      <button id="lock-button" type="button">Capture Mouse</button>
       <button id="fire-button" type="button" disabled>Fire</button>
       <button id="pause-button" type="button">Pause</button>
       <button id="reset-button" type="button">Reset</button>
@@ -100,10 +84,10 @@
         <h1 id="pause-menu-title">Paused</h1>
         <p id="pause-menu-status">Runtime paused. Resume or restart through typed HUD intents.</p>
         <div class="pause-actions">
-          <button id="resume-button" type="button" data-control-id="hud-resume">Resume</button>
+          <button id="resume-button" type="button" data-control-id="hud-resume" hidden>Resume</button>
           <button id="menu-reset-button" type="button" data-control-id="hud-restart">Restart</button>
           <button id="options-button" type="button" data-control-id="hud-options">Options</button>
-          <button id="exit-button" type="button" data-control-id="hud-exit">Exit</button>
+          <button id="exit-button" type="button" data-control-id="hud-exit" hidden>Exit</button>
         </div>
         <div id="options-pane" class="menu-pane" hidden>
           <strong>Options</strong>
@@ -115,7 +99,7 @@
             <input id="invert-y-input" type="checkbox">
             Invert Y look
           </label>
-          <span>Runtime collision and combat authority remain enabled.</span>
+          <span>These controls shape input before it is submitted to runtime authority.</span>
         </div>
       </div>
     </section>

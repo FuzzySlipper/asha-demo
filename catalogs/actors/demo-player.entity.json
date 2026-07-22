@@ -39,6 +39,7 @@
         "visible": true
       },
       {
+        "appearance": null,
         "kind": "renderProjection",
         "projectionId": "first_person_camera",
         "visible": true

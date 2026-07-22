@@ -41,11 +41,22 @@
     "resources": [
       {
         "assetId": "mesh/kenney-retro-character-medium",
-        "clipIds": [
-          "idle",
-          "run",
-          "jump"
-        ],
+        "animatedMesh": {
+          "asset": "mesh/kenney-retro-character-medium",
+          "runtimeFormat": "glb",
+          "contentHash": "bd44b76d0424bd16",
+          "clips": [
+            { "id": "idle", "name": "Idle", "durationSeconds": null },
+            { "id": "run", "name": "Run", "durationSeconds": null },
+            { "id": "jump", "name": "Jump", "durationSeconds": null }
+          ],
+          "defaultClip": "idle",
+          "materialSlots": [],
+          "bounds": {
+            "min": [-0.7, -0.9, -0.7],
+            "max": [0.7, 0.9, 0.7]
+          }
+        },
         "contentHash": "bd44b76d0424bd16",
         "kind": "animatedMesh",
         "licensePath": "assets/mesh-animation/LICENSE.Kenney-Animated-Characters-Retro.txt",
@@ -54,7 +65,7 @@
       },
       {
         "assetId": "audio/asha-primary-fire-pulse",
-        "clipIds": [],
+        "animatedMesh": null,
         "contentHash": "ce2ca87dbdbe6004",
         "kind": "audio",
         "licensePath": null,
@@ -63,7 +74,7 @@
       },
       {
         "assetId": "sprite/asha-primary-fire-spark",
-        "clipIds": [],
+        "animatedMesh": null,
         "contentHash": "1f89380b5326d5ee",
         "kind": "particle",
         "licensePath": null,

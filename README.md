@@ -30,10 +30,11 @@ BASE_URL=http://127.0.0.1:5173 npm run test:live-ui
 ```
 
 `npm test` runs local dependency, authority-boundary, content, Rust provider,
-host, and build checks. `test:live-ui` uses only visible DOM/browser behavior:
-it requires successful startup, observes the HUD change after Fire, checks the
-pause/resume controls, and verifies Reset restores the visible counters. A
-no-op Fire control fails even if manifests and diagnostic hashes still exist.
+host, and build checks. `test:live-ui` uses visible DOM/browser behavior: it
+proves the title state takes no damage before Start, observes Fire, freezes
+health while paused, and verifies the declared `KeyR` action restores health
+and combat state. A no-op Fire control fails even if manifests and diagnostic
+hashes still exist.
 
 Playwright output is ephemeral under ignored result/artifact directories. Exact
 engine and Demo revisions belong in the CI or Den review record, not a
@@ -51,7 +52,7 @@ refresh-only committed report.
   authority remain upstream.
 
 The root `asha.project-bundle.json` is the sole project manifest. Add its stored
-content under `catalogs/`, `levels/`, `assets/`, or `prefabs/`, then update the
+content under `catalogs/`, `levels/`, or `assets/`, then update the
 manifest closure. The same root project opens in Studio and is consumed by a
 fresh runtime; normal play does not generate or rewrite project source. Keep
 runtime calls in `src/runtime/`, browser composition in

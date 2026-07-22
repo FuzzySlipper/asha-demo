@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test('the visible Game Project starts with Rust authority and responds to player controls', async ({ page }) => {
+test('the visible encounter waits for Start, pauses hostile authority, and restarts through KeyR', async ({ page }) => {
+  test.setTimeout(30_000);
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
@@ -12,12 +13,25 @@ test('the visible Game Project starts with Rust authority and responds to player
   const targets = page.locator('#target-state');
   const fire = page.locator('#fire-button');
   const reset = page.locator('#reset-button');
+  const playerHealth = page.locator('#player-health-state');
+  const pauseMenu = page.locator('#pause-menu');
 
   await expect(canvas).toBeVisible();
   await expect(canvas).toHaveAttribute('data-camera-fov-y-degrees', '58');
-  await expect(fire).toBeEnabled({ timeout: 30_000 });
+  await expect(pauseMenu).toBeVisible();
+  await expect(pauseMenu).toHaveAttribute('data-mode', 'title');
+  await expect(page.locator('#pause-menu-title')).toHaveText('ASHA Demo');
+  await expect(fire).toBeDisabled();
   await expect(event).not.toContainText(/backend missing|failed|unavailable/i);
-  await expect(targets).toHaveText(/\d+\/\d+/);
+  await expect(targets).toHaveText('45/45');
+  const healthBeforeStart = await playerHealth.textContent();
+  await page.waitForTimeout(1_600);
+  await expect(playerHealth).toHaveText(healthBeforeStart ?? '100/100');
+
+  await page.locator('#menu-reset-button').click();
+  await expect(pauseMenu).toBeHidden();
+  await expect(fire).toBeEnabled({ timeout: 30_000 });
+  await expect(event).toContainText(/encounter started|sentinel/i);
 
   const shotsBefore = await shots.textContent();
   const eventBefore = await event.textContent();
@@ -26,20 +40,27 @@ test('the visible Game Project starts with Rust authority and responds to player
   await expect.poll(() => event.textContent()).not.toBe(eventBefore);
 
   await page.locator('#pause-button').click();
-  await expect(page.locator('#pause-menu')).toBeVisible();
+  await expect(pauseMenu).toBeVisible();
   await expect(fire).toBeDisabled();
+  const healthWhilePaused = await playerHealth.textContent();
+  await page.waitForTimeout(1_600);
+  await expect(playerHealth).toHaveText(healthWhilePaused ?? '100/100');
   await page.locator('#resume-button').click();
-  await expect(page.locator('#pause-menu')).toBeHidden();
+  await expect(pauseMenu).toBeHidden();
   await expect(fire).toBeEnabled();
 
-  await reset.click();
-  await expect(shots).toHaveText('0/0');
-  await expect(event).toContainText(/reset|ready/i);
+  await canvas.focus();
+  await page.keyboard.press('KeyR');
+  await expect(shots).toHaveText('0 hits · 0 misses');
+  await expect(event).toContainText(/encounter started|sentinel/i);
+  await expect(playerHealth).toHaveText('100/100');
+  await expect(reset).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
 
 test('a no-op fire control would fail visible acceptance', async ({ page }) => {
   await page.goto('/');
+  await page.locator('#menu-reset-button').click();
   const fire = page.locator('#fire-button');
   const shots = page.locator('#shot-state');
   await expect(fire).toBeEnabled({ timeout: 30_000 });

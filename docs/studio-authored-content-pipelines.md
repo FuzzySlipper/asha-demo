@@ -101,14 +101,12 @@ project identity; the prefab reference owns `prefabId`, optional `variantId`,
 and a bounded `instantiationSeed` extension needed for deterministic expansion.
 There is no second prefab-placement document.
 
-Reusable prefab structure and overrides live in `prefabs/registry.json`. The
-current blue and red console body overrides become named prefab variants and
-the two scene nodes select those variants. This campaign does not add a scene
-per-instance override list. Authored gameplay-configuration overrides remain
-in the gameplay binding registry, but their persisted target becomes the
-stable scene `instanceId`; Rust resolves that identity to a live
-`PrefabInstanceId` during bootstrap. Runtime numeric prefab-instance ids are
-not authored project identities.
+Reusable prefab structure and overrides live in a project's canonical prefab
+registry. The generic contract remains available to projects that need reusable structures,
+but the Demo no longer carries the blue/red console registry, instances, or
+configuration overrides. They existed only to exercise plumbing and never
+became understandable gameplay. A future Demo prefab must earn its place as a
+visible authored object with a real typed interaction.
 
 Once a player-created prefab is explicitly accepted and saved, it is ordinary
 authored scene content. `authored` versus `player` is authoring history, not a
@@ -182,12 +180,12 @@ The map uses these labels:
 | Render mesh/projection | `createAshaRendererGeneratedTunnelRoomSurfaceFrame` consumes an upstream constant rather than the saved scene | **Runtime/editor projection:** mesh chunks derive from saved voxel data and palette | Rust renderer-neutral projection; ordinary Studio viewport | Renderer host consumes projections only. #5947, #5949, #5950 |
 | Lights and clear/environment presentation | No light nodes; `boot-game.ts` hardcodes a clear color and relies on renderer defaults | **Stored:** light scene nodes and typed scene/environment settings | Existing Rust scene-light authority; existing Studio light tools, extended only where project settings are missing | Renderer host consumes scene projection. #5949 and #5950 |
 | Materials and voxel palette | `catalogs/materials/catalog.json` stores complete floor, wall, and highlight material definitions; the voxel asset palette binds compact slots to those ids | **Stored:** generic material assets/catalog entries; voxel material ids bind through the `VoxelVolumeAsset` palette | Rust asset/catalog/palette validation; Studio metadata-driven material fields and voxel-palette navigation | Rust projects stable voxel-slot descriptors and the renderer applies live accepted edits. #6060 |
-| Entity definitions | Two actor JSON files are stored, but console definitions exist only as allowed string ids | **Stored:** every referenced actor/console definition is a canonical typed `EntityDefinition` | Rust capability/reference validation; Studio EntityDefinition inspector | Scene/prefab bootstrap resolves definitions. #5946, #5948, #5950 |
+| Entity definitions | Player, enemy, and trigger definitions are stored as canonical project content | **Stored:** every referenced actor/trigger definition is a canonical typed `EntityDefinition` | Rust capability/reference validation; Studio EntityDefinition inspector | Scene bootstrap resolves definitions. #5946, #5948, #5950 |
 | Actor placement | Player/enemy absolute transforms are repeated in entity definitions, the scene, and the spawn catalog | **Stored:** a referenced scene marker owns the base pose and the actor scene node owns only a local offset; current actor offsets are identity. Entity definitions own reusable capabilities, not per-scene positions | Rust scene/marker/reference validation; Studio hierarchy, marker, and entity navigation | Runtime composes marker plus local offset when materializing the scene instance. #5946, #5948, #5950 |
 | Spawn/navigation markers | `catalogs/spawns/generated-tunnel.spawns.json`, scene `spawnMarkerId` values, and generator markers overlap | **Stored:** one `SceneNodeKind::Marker` per typed identity; its transform is the only marker pose and generated markers are materialized as normal scene nodes | Rust marker-id/reference validation; Studio marker hierarchy/gizmo and navigation | Encounter/spawn/navigation owners resolve stored scene markers. #5946, #5947, #5948, #5949, #5950 |
 | Trigger region | Runtime entity `30`, bounds, tags, and scope are split between `project-bundle.json` and Rust `gameplay_runtime_project_input()` | **Stored:** EntityDefinition collision bounds + scene entity-instance placement + gameplay trigger binding by stable scene `instanceId`, exactly as specified above | Rust cross-document trigger/reference validation; Studio linked definition/scene/binding inspector and gizmo | Runtime allocates the entity and registers one resolved overlap volume. #5946, #5948, #5950 |
-| Prefab definitions and variants | `prefabs/registry.json` is stored and validated | **Stored:** canonical prefab registry remains the single definition/variant source | Existing Rust/public prefab validation; Studio prefab/variant inspector | Runtime prefab resolution. #5946, #5948, #5950 |
-| Prefab instances and overrides | Two console placements are separately hardcoded in `src/content/prefab-authoring.ts` and Rust `gameplay_runtime_prefab_bootstrap()` | **Stored:** scene `entityInstance` prefab nodes are the only placements; named registry variants own the blue/red structural overrides; gameplay bindings target stable scene instance ids | Rust scene/prefab/variant/binding reference validation; Studio scene placement, variant, and configuration inspector | Runtime resolves the same stored scene instances and derives live prefab-instance ids. #5946, #5948, #5950 |
+| Prefab definitions and variants | The proof-only console registry was removed | **Stored when used:** a project's canonical prefab registry remains its single definition/variant source | Existing Rust/public prefab validation; Studio prefab/variant inspector | No current Demo runtime prefab dependency. #6078 |
+| Prefab instances and overrides | The proof-only blue/red placements and overrides were removed | **Stored when used:** scene `entityInstance` prefab nodes are the only placement source and gameplay bindings target stable scene instance ids | Rust scene/prefab/variant/binding reference validation; Studio scene placement, variant, and configuration inspector | No current Demo runtime prefab dependency. #6078 |
 | Gameplay implementation | `demo-rs/crates/primary-fire-effect` owns challenge reactions and primary-fire transform semantics | **Stored compiled artifact:** provider/module binary and generated manifest; not project JSON and not an `asha-rpg` migration requirement | Rust provider owns codecs, schemas, events, reads, proposals, and state adapters; Studio shows provider identity/metadata read-only | Runtime invokes the statically composed provider. Retained by #5950 |
 | Gameplay configuration and bindings | Human values become opaque `canonicalConfig` byte arrays in the bundle and are also rebuilt as Rust literals | **Stored:** provider-owned typed values, bindings, and per-instance overrides; hashes/bytes are derived canonical encoding | Provider codec plus Rust binding registry validation; Studio metadata-driven typed fields/reference pickers | Runtime admits canonical validated configuration. #5946, #5948, #5950 |
 | Weapon tuning | Repeated in player `weaponMount`, `primary-fire.weapon.json`, and the upstream default preset | **Stored:** one provider-owned typed configuration selected by the player/weapon binding; definitions contain references rather than copies | Rust/provider codec validation; Studio typed configuration inspector | Combat authority reads the admitted config. #5946, #5948, #5950 |
@@ -216,8 +214,8 @@ parallel paths:
 - the cross-file bootstrap registry assembly in
   `src/content/project-content.ts` where canonical project loading can resolve
   the same references;
-- both copies of console placements in `src/content/prefab-authoring.ts` and
-  `demo-rs/crates/primary-fire-effect/src/gameplay.rs`;
+- proof-only console definitions, variants, placements, bindings, and
+  configuration overrides;
 - the dummy embedded scene, trigger bounds, and project-input artifact assembly
   in `gameplay_runtime_project_input()`;
 - runtime tunnel generation and the upstream constant render frame in

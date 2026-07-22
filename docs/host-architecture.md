@@ -55,8 +55,8 @@ root schema-v2 manifest, validates its complete hashed closure, resolves the
 compiled provider and typed configuration, activates the stored entry scene,
 and exposes the admitted content through the public active-project readout.
 
-The root manifest, ProjectContent documents, prefab registry, scene markers,
-entity/prefab instances, stored voxel asset, and presentation catalog are the
+The root manifest, ProjectContent documents, scene markers, entity instances,
+stored voxel asset, and presentation catalog are the
 only product topology. There is no Demo-specific bundle decoder, TS bootstrap
 registry, hard-coded Rust project input, runtime generator call, or startup
 interaction used to manufacture the playable state.
@@ -64,8 +64,8 @@ interaction used to manufacture the playable state.
 The close-range rule is a typed gameplay-fabric Transform inside the ordinary
 authoritative primary-fire transaction. Rust derives range, target, and weapon
 facts from the current Session, runs Guard -> Transform -> React, revalidates the
-  final Workspace, and commits through the existing combat/lifecycle owners.
-Accepted combat, trigger, and prefab-part facts then enter the same wave-frozen
+final Workspace, and commits through the existing combat/lifecycle owners.
+Accepted combat and trigger facts then enter the same wave-frozen
 fabric and update module-owned challenge state. The browser only submits camera
 bound RuntimeSession intents and reads combat projection, composed evidence, and
 the provider-owned challenge view.

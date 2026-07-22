@@ -30,7 +30,6 @@ cpSync(join(repoRoot, 'asha.project-bundle.json'), join(outputRoot, 'asha.projec
 cpSync(join(repoRoot, 'assets'), join(outputRoot, 'assets'), { recursive: true });
 cpSync(join(repoRoot, 'catalogs'), join(outputRoot, 'catalogs'), { recursive: true });
 cpSync(join(repoRoot, 'levels'), join(outputRoot, 'levels'), { recursive: true });
-cpSync(join(repoRoot, 'prefabs'), join(outputRoot, 'prefabs'), { recursive: true });
 runTypeScriptBuild();
 mkdirSync(catalogCoreVendorRoot, { recursive: true });
 cpSync(join(repoRoot, 'node_modules', '@asha', 'catalog-core', 'dist'), catalogCoreVendorRoot, { recursive: true });

@@ -28,15 +28,16 @@ dialogs always refer to files on the computer running Studio, including when
 the browser is on another LAN machine.
 
 Open **Project Content**. The browser shows the manifest-authorized scene,
-stored voxel asset, actor definitions, prefab registry, material/presentation
+stored voxel asset, actor definitions, material/presentation
 catalogs, and the typed `demo.primary-fire-effect` and `demo.launch-settings`
 configurations. Select the
 Generated tunnel room and choose **Open Stored Scene**. The hierarchy and
 viewport should show the stored tunnel environment, player/enemy placements,
-challenge trigger, blue/red console prefab instances, and the two scene lights.
+challenge trigger, and the two scene lights. The old blue/red console proof
+placements are intentionally absent because they had no player interaction.
 
 Use the relationship links in Project Content to move between a scene instance,
-its entity or prefab definition, material/presentation resources, gameplay
+its entity definition, material/presentation resources, gameplay
 binding, and configuration. Runtime numeric entity/prefab ids are not project
 identities and are not authored here.
 
@@ -84,7 +85,7 @@ npm run dev -- --port 5173
 ```
 
 Open `http://127.0.0.1:5173`. A fresh RuntimeSession loads the same canonical
-project closure. Geometry, lights, actor spawn poses, prefab variants, typed
+project closure. Geometry, lights, actor spawn poses, typed
 gameplay configuration, materials, presentation resources, and
 camera/controller settings therefore come from the state inspected in Studio.
 The transient camera starts at the Rust-materialized

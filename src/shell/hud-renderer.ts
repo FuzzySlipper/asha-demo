@@ -55,6 +55,7 @@ export function renderHudElements(elements: any, view: any): void {
   }
   if (elements.resumeButton instanceof HTMLButtonElement) {
     const resumeControl = view.pauseMenuControls.find((control) => control.id === 'hud-resume');
+    elements.resumeButton.hidden = view.menuMode === 'title';
     elements.resumeButton.disabled = Boolean(resumeControl?.disabled) || view.menuMode === 'title';
     elements.resumeButton.textContent = view.resumeLabel;
   }
@@ -63,6 +64,9 @@ export function renderHudElements(elements: any, view: any): void {
   }
   if (elements.menuTitle instanceof HTMLElement) {
     elements.menuTitle.textContent = view.menuTitle;
+  }
+  if (elements.exitButton instanceof HTMLButtonElement) {
+    elements.exitButton.hidden = view.menuMode === 'title';
   }
   if (elements.optionsPane instanceof HTMLElement) {
     elements.optionsPane.hidden = view.menuMode !== 'options';

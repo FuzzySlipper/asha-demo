@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 import { createDemoPresentationResources } from '../dist/ui/content/presentation-resources.js';
 
-test('the FPS animation target follows the required cue instead of resource ordering', () => {
+test('the animated-mesh manifest follows renderer-neutral admitted descriptors', () => {
   const resources = createDemoPresentationResources(
     [{
       kind: 'presentationCatalog',
@@ -17,7 +17,15 @@ test('the FPS animation target follows the required cue instead of resource orde
           sourcePath: 'assets/unrelated.glb',
           contentHash: '1111111111111111',
           licensePath: null,
-          clipIds: ['idle'],
+          animatedMesh: {
+            asset: 'mesh/unrelated',
+            runtimeFormat: 'glb',
+            contentHash: '1111111111111111',
+            clips: [{ id: 'idle', name: null, durationSeconds: null }],
+            defaultClip: 'idle',
+            materialSlots: [],
+            bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+          },
         }, {
           resourceId: 'animated.weapon',
           kind: 'animatedMesh',
@@ -25,7 +33,15 @@ test('the FPS animation target follows the required cue instead of resource orde
           sourcePath: 'assets/weapon.glb',
           contentHash: '2222222222222222',
           licensePath: null,
-          clipIds: ['idle', 'run', 'jump'],
+          animatedMesh: {
+            asset: 'mesh/weapon',
+            runtimeFormat: 'glb',
+            contentHash: '2222222222222222',
+            clips: ['idle', 'run', 'jump'].map((id) => ({ id, name: null, durationSeconds: null })),
+            defaultClip: 'idle',
+            materialSlots: [],
+            bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+          },
         }],
         cues: [{
           kind: 'animation',
@@ -42,9 +58,11 @@ test('the FPS animation target follows the required cue instead of resource orde
   );
 
   assert.equal(resources.animatedMeshManifest.resources.length, 2);
-  assert.deepEqual(resources.animatedMeshTarget, {
+  assert.deepEqual(resources.animatedMeshManifest.resources[1], {
     asset: 'mesh/weapon',
+    resourceUrl: '/assets/weapon.glb',
     contentHash: '2222222222222222',
     clipIds: ['idle', 'run', 'jump'],
+    licenseUrl: null,
   });
 });

@@ -130,8 +130,8 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
 
   return {
     canFire: interaction.canFire,
-    challengeLabel: `${gameplayChallenge.status.toUpperCase()} ${gameplayChallenge.score}/${gameplayChallenge.objectivePoints} · ${gameplayChallenge.closeRangeHits} CLOSE`,
-    challengeStatus: gameplayChallenge.status,
+    challengeLabel: projectEncounterObjective(menuMode, lifecycle, paused),
+    challengeStatus: projectEncounterStatus(menuMode, lifecycle, paused),
     gameHud,
     enemyHealthPercent: enemyHealthBar.ratio * 100,
     eventLabel,
@@ -140,7 +140,7 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     animationCueStatus: animationSampledCue?.status ?? 'waiting',
     inputSettings,
     locked,
-    lockLabel: locked ? 'LOCKED' : 'UNLOCKED',
+    lockLabel: locked ? 'MOUSE CAPTURED' : 'MOUSE FREE',
     menuTitle: projectMenuTitle(menuMode),
     menuMode,
     pauseLabel: paused ? 'Resume' : 'Pause',
@@ -152,9 +152,24 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     poseLabel: `${pose.position[0].toFixed(1)}, ${pose.position[2].toFixed(1)} | ${Math.round(pose.yawDegrees)}`,
     restartLabel: menuMode === 'title' ? 'Start' : 'Restart',
     resumeLabel: menuMode === 'title' ? 'Resume' : 'Resume',
-    shotLabel: `${gameHud.combat.hits}/${gameHud.combat.shotsFired}`,
-    targetLabel: `${interaction.remainingTargets}/${interaction.totalTargets}`,
+    shotLabel: `${gameHud.combat.hits} hits · ${gameHud.combat.misses} misses`,
+    targetLabel: `${enemyHealth.current}/${enemyHealth.max}`,
   };
+}
+
+function projectEncounterObjective(menuMode: DemoMenuMode, lifecycle: any, paused: boolean): string {
+  if (lifecycle.enemy.dead) return 'OBJECTIVE COMPLETE';
+  if (lifecycle.player.dead) return 'PLAYER DEFEATED';
+  if (menuMode === 'title') return 'DEFEAT THE TUNNEL SENTINEL';
+  if (paused) return 'ENCOUNTER PAUSED';
+  return 'SENTINEL ENGAGED';
+}
+
+function projectEncounterStatus(menuMode: DemoMenuMode, lifecycle: any, paused: boolean): string {
+  if (lifecycle.enemy.dead) return 'complete';
+  if (lifecycle.player.dead) return 'failed';
+  if (menuMode === 'title') return 'ready';
+  return paused ? 'paused' : 'active';
 }
 
 function projectAnimationCueLabel(status: any): string {
@@ -265,12 +280,12 @@ function requireHealthBar(gameHud: GameHudProjection, id: string) {
 
 function projectPauseMenuStatus(menuMode: DemoMenuMode): string {
   if (menuMode === 'title') {
-    return 'Runtime paused. Start a fresh session when ready.';
+    return 'Defeat the tunnel sentinel. Move with WASD, aim with the mouse, and fire before it closes the distance.';
   }
   if (menuMode === 'options') {
     return 'Input settings apply before browser input is submitted to ASHA authority.';
   }
-  return 'Runtime paused. Resume or restart through typed HUD intents.';
+  return 'The encounter is frozen. Resume or restart through runtime authority.';
 }
 
 function projectMenuTitle(menuMode: DemoMenuMode): string {
