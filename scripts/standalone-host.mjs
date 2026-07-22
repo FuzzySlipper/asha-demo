@@ -36,6 +36,14 @@ if (runtimeBackend.sceneDocument.id !== content.projectManifest.entryScene) {
 if (runtimeBackend.storedEnvironment?.status !== 'loaded') {
   throw new Error('Standalone host did not activate the stored voxel environment.');
 }
+await assertInvalidPlayerBoundsRejectBeforePublication(content, 'missing-bounds', capabilities => (
+  capabilities.filter(capability => capability.kind !== 'bounds')
+));
+await assertInvalidPlayerBoundsRejectBeforePublication(content, 'zero-width-bounds', capabilities => (
+  capabilities.map(capability => capability.kind === 'bounds'
+    ? { ...capability, max: [capability.min[0], capability.max[1], capability.max[2]] }
+    : capability)
+));
 
 const runtimeGateway = await createRuntimeGateway(runtimeBackend);
 const readout = runtimeGateway.readEcrpRuntimeReadout();
@@ -174,6 +182,61 @@ function hashManifestClosure(manifest) {
     hash.update(readFileSync(join(repoRoot, artifact.path)));
   }
   return hash.digest('hex');
+}
+
+async function assertInvalidPlayerBoundsRejectBeforePublication(content, label, mutateCapabilities) {
+  const manifestPath = 'asha.project-bundle.json';
+  const playerPath = 'catalogs/actors/demo-player.entity.json';
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  const manifest = JSON.parse(decoder.decode(await content.projectSource.read(manifestPath)));
+  const playerDocument = JSON.parse(decoder.decode(await content.projectSource.read(playerPath)));
+  playerDocument.document.capabilities = mutateCapabilities(playerDocument.document.capabilities);
+  const playerBytes = encoder.encode(JSON.stringify(playerDocument));
+  const playerArtifact = manifest.artifacts.find(artifact => artifact.path === playerPath);
+  if (playerArtifact === undefined) {
+    throw new Error('Standalone host could not find the player EntityDefinition artifact.');
+  }
+  playerArtifact.contentHash = fnv1a64(playerBytes);
+  const manifestBytes = encoder.encode(JSON.stringify(manifest));
+  const rejected = await createRuntimeBackend({
+    ...content,
+    projectSource: {
+      kind: 'development-directory',
+      identity: `development-directory:asha-demo-invalid-${label}`,
+      read: async relativePath => {
+        if (relativePath === manifestPath) return manifestBytes;
+        if (relativePath === playerPath) return playerBytes;
+        return content.projectSource.read(relativePath);
+      },
+    },
+    runtime: {
+      ...content.runtime,
+      sessionId: `${content.runtime.sessionId}.${label}`,
+    },
+  });
+  if (
+    rejected.available
+    || rejected.loadReceipt.accepted
+    || rejected.loadReceipt.activeProject !== null
+  ) {
+    throw new Error(
+      `Standalone host published invalid ${label} player bounds: ${JSON.stringify(rejected.loadReceipt)}`,
+    );
+  }
+  const diagnostics = JSON.stringify(rejected.loadReceipt.diagnostics);
+  if (!diagnostics.includes('playerEntityDefinition')) {
+    throw new Error(`Invalid ${label} rejection lost player field context: ${diagnostics}`);
+  }
+}
+
+function fnv1a64(bytes) {
+  let hash = 0xcbf29ce484222325n;
+  for (const byte of bytes) {
+    hash ^= BigInt(byte);
+    hash = BigInt.asUintN(64, hash * 0x100000001b3n);
+  }
+  return hash.toString(16).padStart(16, '0');
 }
 
 function assertStoredSceneRuntimeTransforms(readout, sceneDocument) {

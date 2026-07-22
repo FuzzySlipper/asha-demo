@@ -554,7 +554,7 @@ function readAcceptedLaunchSettings(
   const near = launchNumber(values, 'nearClip');
   const far = launchNumber(values, 'farClip');
   const groundedMovement = launchBoolean(values, 'groundedMovement');
-  const playerEntityDefinition = launchInstantiatedEntityDefinitionReference(
+  const playerEntityDefinition = launchInstantiatedBoundedEntityDefinitionReference(
     values,
     'playerEntityDefinition',
   );
@@ -657,19 +657,19 @@ function launchBoolean(
   return value.value;
 }
 
-function launchInstantiatedEntityDefinitionReference(
+function launchInstantiatedBoundedEntityDefinitionReference(
   values: ReadonlyMap<string, ProjectConfigurationValue>,
   fieldId: string,
 ): string {
   const value = launchValue(values, fieldId);
   if (
     value.kind !== 'reference'
-    || value.referenceKind !== 'instantiatedEntityDefinition'
+    || value.referenceKind !== 'instantiatedBoundedEntityDefinition'
     || value.targetId.trim().length === 0
   ) {
     throw new RuntimeBridgeError(
       'invalid_input',
-      `Rust-admitted ${DEMO_LAUNCH_CONFIGURATION_ID}.${fieldId} is not an instantiated entity definition reference.`,
+      `Rust-admitted ${DEMO_LAUNCH_CONFIGURATION_ID}.${fieldId} is not an instantiated bounded entity definition reference.`,
     );
   }
   return value.targetId;

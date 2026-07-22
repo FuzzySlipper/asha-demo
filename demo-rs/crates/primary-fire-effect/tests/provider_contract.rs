@@ -58,7 +58,7 @@ fn linked_provider_composes_without_downstream_runtime_bootstrap() {
     assert_eq!(
         player_reference.reference_kind,
         Some(
-            asha_gameplay_module_sdk::GameplayConfigurationReferenceKind::InstantiatedEntityDefinition
+            asha_gameplay_module_sdk::GameplayConfigurationReferenceKind::InstantiatedBoundedEntityDefinition
         )
     );
     assert!(!launch_schema

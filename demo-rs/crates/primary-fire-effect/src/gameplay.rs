@@ -521,7 +521,7 @@ fn launch_settings_provider() -> GameplayStaticModuleProvider {
             launch_reference_field(
                 "playerEntityDefinition",
                 "Player entity definition",
-                GameplayConfigurationReferenceKind::InstantiatedEntityDefinition,
+                GameplayConfigurationReferenceKind::InstantiatedBoundedEntityDefinition,
             ),
             launch_number_field("fovYDegrees", "Vertical field of view", 1.0, 179.0),
             launch_number_field("nearClip", "Near clipping plane", 0.001, 1_000.0),
