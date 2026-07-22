@@ -21,10 +21,10 @@
     { "path": "catalogs/actors/console-sensor.entity.json", "class": "durable", "role": "projectContent", "contentHash": "fe92d9c0b17fad89" },
     { "path": "catalogs/actors/demo-player.entity.json", "class": "durable", "role": "projectContent", "contentHash": "744c6e3fc39356b4" },
     { "path": "catalogs/actors/generated-tunnel-enemy.entity.json", "class": "durable", "role": "projectContent", "contentHash": "a31ad95a2d857237" },
-    { "path": "catalogs/gameplay/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "b620229abea85e36" },
+    { "path": "catalogs/gameplay/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "bba8a8c5dbb2e7cb" },
     { "path": "catalogs/materials/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "68548522517d0423" },
     { "path": "catalogs/presentation/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "ba9c0937880bb1a0" },
-    { "path": "levels/scenes/generated-tunnel-room.scene.json", "class": "durable", "role": "sceneDocument", "contentHash": "ee836441af61e048" },
+    { "path": "levels/scenes/generated-tunnel-room.scene.json", "class": "durable", "role": "sceneDocument", "contentHash": "a90ef04fd9f1310d" },
     { "path": "prefabs/registry.json", "class": "durable", "role": "projectContent", "contentHash": "87d51da6d22ac06a" }
   ]
 }

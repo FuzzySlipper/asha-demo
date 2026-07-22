@@ -59,9 +59,88 @@
     ],
     "configurations": [
       {
+        "configurationId": "demo.launch-settings.default",
+        "module": {
+          "artifactHash": "fnv1a64:16c8db0de914b845",
+          "contractHash": "fnv1a64:e9ce96a5aed84540",
+          "moduleId": "demo.launch-settings",
+          "namespace": "demo.launch-settings",
+          "providerId": "provider.demo.launch-settings",
+          "sdkHash": "fnv1a64:669691f614be751f",
+          "version": "0.1.0"
+        },
+        "schemaId": "demo.launch-settings.configuration.v1",
+        "values": [
+          {
+            "fieldId": "collisionHalfExtentX",
+            "value": {
+              "kind": "number",
+              "value": 0.25
+            }
+          },
+          {
+            "fieldId": "collisionHalfExtentY",
+            "value": {
+              "kind": "number",
+              "value": 0.25
+            }
+          },
+          {
+            "fieldId": "collisionHalfExtentZ",
+            "value": {
+              "kind": "number",
+              "value": 0.25
+            }
+          },
+          {
+            "fieldId": "collisionMaxIterations",
+            "value": {
+              "kind": "integer",
+              "value": 3
+            }
+          },
+          {
+            "fieldId": "farClip",
+            "value": {
+              "kind": "number",
+              "value": 100.0
+            }
+          },
+          {
+            "fieldId": "fovYDegrees",
+            "value": {
+              "kind": "number",
+              "value": 58.0
+            }
+          },
+          {
+            "fieldId": "groundedMovement",
+            "value": {
+              "kind": "boolean",
+              "value": true
+            }
+          },
+          {
+            "fieldId": "nearClip",
+            "value": {
+              "kind": "number",
+              "value": 0.1
+            }
+          },
+          {
+            "fieldId": "playerEntityDefinition",
+            "value": {
+              "kind": "reference",
+              "referenceKind": "entityDefinition",
+              "targetId": "actor/demo-player"
+            }
+          }
+        ]
+      },
+      {
         "configurationId": "demo.primary-fire-effect.console-blue",
         "module": {
-          "artifactHash": "fnv1a64:e330c0fa83ffc2b3",
+          "artifactHash": "fnv1a64:6afa3e274623b725",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
@@ -97,7 +176,7 @@
       {
         "configurationId": "demo.primary-fire-effect.console-red",
         "module": {
-          "artifactHash": "fnv1a64:e330c0fa83ffc2b3",
+          "artifactHash": "fnv1a64:6afa3e274623b725",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
@@ -133,7 +212,7 @@
       {
         "configurationId": "demo.primary-fire-effect.default",
         "module": {
-          "artifactHash": "fnv1a64:e330c0fa83ffc2b3",
+          "artifactHash": "fnv1a64:6afa3e274623b725",
           "contractHash": "fnv1a64:1b614eb127c2cc3c",
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",

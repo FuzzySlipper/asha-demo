@@ -1,7 +1,10 @@
 import {
   cameraHandle,
+  type CameraCollisionPolicy,
   type FlatSceneDocument,
   type GameplayContractRef,
+  type PerspectiveProjection,
+  type ProjectConfigurationValue,
   type InputActionPhase,
   type ProjectContentDocument,
 } from '@asha/contracts';
@@ -39,6 +42,17 @@ const DEMO_CHALLENGE_VIEW: GameplayContractRef = {
   version: 1,
   schemaHash: 'fnv1a64:2dc6de6c7c6ee80d',
 };
+const DEMO_LAUNCH_CONFIGURATION_ID = 'demo.launch-settings.default';
+
+export interface DemoAcceptedLaunchSettings {
+  readonly playerEntityDefinition: string;
+  readonly cameraProjection: PerspectiveProjection;
+  readonly movementMode: 'grounded' | 'freeFlight';
+  readonly collisionShape: {
+    readonly halfExtents: readonly [number, number, number];
+  };
+  readonly collisionPolicy: CameraCollisionPolicy;
+}
 
 export interface DemoRuntimeDiagnostic {
   readonly code: string;
@@ -77,6 +91,7 @@ export interface DemoAvailableRuntimeBackend {
   readonly loadReceipt: RuntimeSessionProjectLoadReceipt;
   readonly sceneDocument: FlatSceneDocument;
   readonly projectDocuments: readonly ProjectContentDocument[];
+  readonly launchSettings: DemoAcceptedLaunchSettings;
   readonly storedEnvironment: DemoStoredEnvironment;
   readonly bridge: RuntimeBridge;
   readonly composedRuntimeReadout: ComposedRuntimeSessionReadout;
@@ -94,6 +109,7 @@ export interface DemoUnavailableRuntimeBackend {
   readonly loadReceipt: RuntimeSessionProjectLoadReceipt;
   readonly sceneDocument: null;
   readonly projectDocuments: readonly [];
+  readonly launchSettings: null;
   readonly storedEnvironment: null;
   readonly bridge: null;
   readonly composedRuntimeReadout: null;
@@ -208,6 +224,7 @@ export async function createDemoRuntimeBackend(
       );
     }
     const activeContent = bridge.readActiveRuntimeProjectContent();
+    const launchSettings = readAcceptedLaunchSettings(activeContent.content.documents);
     const storedBinding = loadReceipt.activeProject.voxelBindings[0] ?? null;
     if (storedBinding === null) {
       return unavailableRuntimeBackend(
@@ -238,6 +255,7 @@ export async function createDemoRuntimeBackend(
       loadReceipt,
       sceneDocument: activeContent.entryScene,
       projectDocuments: activeContent.content.documents,
+      launchSettings,
       storedEnvironment: {
         status: 'loaded',
         assetId: storedBinding.assetId,
@@ -496,6 +514,7 @@ function unavailableRuntimeBackend(
     },
     sceneDocument: null,
     projectDocuments: [],
+    launchSettings: null,
     diagnostics: [{ code, severity: 'error', message }],
     storedEnvironment: null,
     bridge: null,
@@ -505,6 +524,129 @@ function unavailableRuntimeBackend(
     profile,
     backendHash: `missing-rust-backend:${code}`,
   };
+}
+
+function readAcceptedLaunchSettings(
+  documents: readonly ProjectContentDocument[],
+): DemoAcceptedLaunchSettings {
+  const gameplayDocument = documents.find(
+    (document) => document.kind === 'gameplayConfiguration',
+  );
+  if (gameplayDocument?.kind !== 'gameplayConfiguration') {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      'Rust-admitted Demo project content has no gameplay configuration document.',
+    );
+  }
+  const configuration = gameplayDocument.document.configurations.find(
+    (candidate) => candidate.configurationId === DEMO_LAUNCH_CONFIGURATION_ID,
+  );
+  if (configuration === undefined) {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      `Rust-admitted Demo project content has no ${DEMO_LAUNCH_CONFIGURATION_ID} configuration.`,
+    );
+  }
+  const values = new Map(
+    configuration.values.map((field) => [field.fieldId, field.value] as const),
+  );
+  const fovYDegrees = launchNumber(values, 'fovYDegrees');
+  const near = launchNumber(values, 'nearClip');
+  const far = launchNumber(values, 'farClip');
+  const groundedMovement = launchBoolean(values, 'groundedMovement');
+  return {
+    playerEntityDefinition: launchEntityDefinitionReference(
+      values,
+      'playerEntityDefinition',
+    ),
+    cameraProjection: { fovYDegrees, near, far },
+    movementMode: groundedMovement ? 'grounded' : 'freeFlight',
+    collisionShape: {
+      halfExtents: [
+        launchNumber(values, 'collisionHalfExtentX'),
+        launchNumber(values, 'collisionHalfExtentY'),
+        launchNumber(values, 'collisionHalfExtentZ'),
+      ],
+    },
+    collisionPolicy: {
+      mode: 'axis_separable_slide',
+      maxIterations: launchInteger(values, 'collisionMaxIterations'),
+    },
+  };
+}
+
+function launchValue(
+  values: ReadonlyMap<string, ProjectConfigurationValue>,
+  fieldId: string,
+): ProjectConfigurationValue {
+  const value = values.get(fieldId);
+  if (value === undefined) {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      `Rust-admitted ${DEMO_LAUNCH_CONFIGURATION_ID} is missing ${fieldId}.`,
+    );
+  }
+  return value;
+}
+
+function launchNumber(
+  values: ReadonlyMap<string, ProjectConfigurationValue>,
+  fieldId: string,
+): number {
+  const value = launchValue(values, fieldId);
+  if (value.kind !== 'number' || !Number.isFinite(value.value)) {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      `Rust-admitted ${DEMO_LAUNCH_CONFIGURATION_ID}.${fieldId} is not a finite number.`,
+    );
+  }
+  return value.value;
+}
+
+function launchInteger(
+  values: ReadonlyMap<string, ProjectConfigurationValue>,
+  fieldId: string,
+): number {
+  const value = launchValue(values, fieldId);
+  if (value.kind !== 'integer' || !Number.isSafeInteger(value.value)) {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      `Rust-admitted ${DEMO_LAUNCH_CONFIGURATION_ID}.${fieldId} is not an integer.`,
+    );
+  }
+  return value.value;
+}
+
+function launchBoolean(
+  values: ReadonlyMap<string, ProjectConfigurationValue>,
+  fieldId: string,
+): boolean {
+  const value = launchValue(values, fieldId);
+  if (value.kind !== 'boolean') {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      `Rust-admitted ${DEMO_LAUNCH_CONFIGURATION_ID}.${fieldId} is not a boolean.`,
+    );
+  }
+  return value.value;
+}
+
+function launchEntityDefinitionReference(
+  values: ReadonlyMap<string, ProjectConfigurationValue>,
+  fieldId: string,
+): string {
+  const value = launchValue(values, fieldId);
+  if (
+    value.kind !== 'reference'
+    || value.referenceKind !== 'entityDefinition'
+    || value.targetId.trim().length === 0
+  ) {
+    throw new RuntimeBridgeError(
+      'invalid_input',
+      `Rust-admitted ${DEMO_LAUNCH_CONFIGURATION_ID}.${fieldId} is not an entity definition reference.`,
+    );
+  }
+  return value.targetId;
 }
 
 function errorToBackendDiagnostic(error: unknown): { readonly code: string; readonly message: string } {

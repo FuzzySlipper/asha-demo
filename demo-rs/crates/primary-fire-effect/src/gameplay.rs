@@ -5,6 +5,9 @@ const MODULE_ID: &str = "demo.primary-fire-effect";
 const MODULE_NAMESPACE: &str = "demo.primary-fire-effect";
 const PROVIDER_ID: &str = "provider.demo.primary-fire-effect";
 const PRIMARY_FIRE_TRANSFORM_INVOCATION: &str = "demo.primary-fire-effect.primary-fire.transform";
+const LAUNCH_MODULE_ID: &str = "demo.launch-settings";
+const LAUNCH_MODULE_NAMESPACE: &str = "demo.launch-settings";
+const LAUNCH_PROVIDER_ID: &str = "provider.demo.launch-settings";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -12,6 +15,67 @@ pub struct CloseRangeChallengeConfig {
     pub close_range_millimeters: u32,
     pub close_range_bonus: u32,
     pub objective_points: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", try_from = "DemoLaunchSettingsWire")]
+pub struct DemoLaunchSettings {
+    pub player_entity_definition: String,
+    pub fov_y_degrees: f64,
+    pub near_clip: f64,
+    pub far_clip: f64,
+    pub grounded_movement: bool,
+    pub collision_half_extent_x: f64,
+    pub collision_half_extent_y: f64,
+    pub collision_half_extent_z: f64,
+    pub collision_max_iterations: u8,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct DemoLaunchSettingsWire {
+    player_entity_definition: String,
+    fov_y_degrees: f64,
+    near_clip: f64,
+    far_clip: f64,
+    grounded_movement: bool,
+    collision_half_extent_x: f64,
+    collision_half_extent_y: f64,
+    collision_half_extent_z: f64,
+    collision_max_iterations: u8,
+}
+
+impl TryFrom<DemoLaunchSettingsWire> for DemoLaunchSettings {
+    type Error = String;
+
+    fn try_from(value: DemoLaunchSettingsWire) -> Result<Self, Self::Error> {
+        if value.player_entity_definition.trim().is_empty() {
+            return Err("playerEntityDefinition must be a non-empty stored reference".to_owned());
+        }
+        if !value.fov_y_degrees.is_finite()
+            || !value.near_clip.is_finite()
+            || !value.far_clip.is_finite()
+            || !value.collision_half_extent_x.is_finite()
+            || !value.collision_half_extent_y.is_finite()
+            || !value.collision_half_extent_z.is_finite()
+        {
+            return Err("launch camera and collision values must be finite".to_owned());
+        }
+        if value.far_clip <= value.near_clip {
+            return Err("farClip must be greater than nearClip".to_owned());
+        }
+        Ok(Self {
+            player_entity_definition: value.player_entity_definition,
+            fov_y_degrees: value.fov_y_degrees,
+            near_clip: value.near_clip,
+            far_clip: value.far_clip,
+            grounded_movement: value.grounded_movement,
+            collision_half_extent_x: value.collision_half_extent_x,
+            collision_half_extent_y: value.collision_half_extent_y,
+            collision_half_extent_z: value.collision_half_extent_z,
+            collision_max_iterations: value.collision_max_iterations,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -63,6 +127,17 @@ struct PrefabInteractionPayload {
 }
 
 struct CloseRangeChallengeBehavior;
+
+struct DemoLaunchSettingsBehavior;
+
+impl GameplayModuleBehavior for DemoLaunchSettingsBehavior {
+    fn invoke(
+        &self,
+        context: &GameplayModuleContext<'_>,
+    ) -> Result<GameplayModuleActions, GameplayModuleError> {
+        Ok(context.actions())
+    }
+}
 
 impl GameplayModuleBehavior for CloseRangeChallengeBehavior {
     fn invoke(
@@ -420,7 +495,164 @@ pub fn gameplay_composition() -> Result<GameplayStaticComposition, GameplayStati
     let mut builder = GameplayStaticCompositionBuilder::new();
     builder.include_standard_owner_events();
     builder.add_provider(provider());
+    builder.add_provider(launch_settings_provider());
     builder.build()
+}
+
+pub fn launch_settings_module_ref() -> GameplayModuleRef {
+    launch_settings_provider().manifest.module_ref
+}
+
+fn launch_settings_provider() -> GameplayStaticModuleProvider {
+    let provenance = build_provenance();
+    let mut manifest = GameplayModuleManifest {
+        module_ref: launch_settings_base_module_ref(),
+        published_events: Vec::new(),
+        subscriptions: Vec::new(),
+        invocations: Vec::new(),
+        read_views: Vec::new(),
+        proposal_kinds: Vec::new(),
+        state_schemas: Vec::new(),
+        fact_schemas: Vec::new(),
+        ordering: Vec::new(),
+        budget: GameplayExecutionBudget {
+            max_waves: 1,
+            max_events_per_root: 1,
+            max_proposals_per_root: 1,
+            max_invocations_per_root: 1,
+            max_payload_bytes_per_root: 1_024,
+        },
+        deterministic_requirements: vec!["canonical-json".to_owned()],
+        source_hash: "unbuilt".to_owned(),
+    };
+    provenance.apply_to_manifest::<DemoLaunchSettingsBehavior>(&mut manifest);
+    let configuration = GameplaySerdeConfiguration::<DemoLaunchSettings>::new(
+        LAUNCH_MODULE_ID,
+        launch_contract("configuration"),
+        vec![
+            launch_reference_field(
+                "playerEntityDefinition",
+                "Player entity definition",
+                GameplayConfigurationReferenceKind::EntityDefinition,
+            ),
+            launch_number_field("fovYDegrees", "Vertical field of view", 1.0, 179.0),
+            launch_number_field("nearClip", "Near clipping plane", 0.001, 1_000.0),
+            launch_number_field("farClip", "Far clipping plane", 0.01, 1_000_000.0),
+            launch_boolean_field("groundedMovement", "Grounded movement"),
+            launch_number_field(
+                "collisionHalfExtentX",
+                "Collision half extent X",
+                0.001,
+                100.0,
+            ),
+            launch_number_field(
+                "collisionHalfExtentY",
+                "Collision half extent Y",
+                0.001,
+                100.0,
+            ),
+            launch_number_field(
+                "collisionHalfExtentZ",
+                "Collision half extent Z",
+                0.001,
+                100.0,
+            ),
+            launch_integer_field(
+                "collisionMaxIterations",
+                "Collision solver iterations",
+                1,
+                32,
+            ),
+        ],
+    );
+    GameplayStaticModuleProvider::linked_from_manifest(
+        manifest,
+        &provenance,
+        DemoLaunchSettingsBehavior,
+    )
+    .serde_configuration(configuration)
+}
+
+fn launch_settings_base_module_ref() -> GameplayModuleRef {
+    GameplayModuleRef {
+        module_id: LAUNCH_MODULE_ID.to_owned(),
+        namespace: LAUNCH_MODULE_NAMESPACE.to_owned(),
+        version: env!("CARGO_PKG_VERSION").to_owned(),
+        sdk_hash: "unbuilt".to_owned(),
+        contract_hash: "unbuilt".to_owned(),
+        artifact_hash: "unbuilt".to_owned(),
+        provider_id: LAUNCH_PROVIDER_ID.to_owned(),
+    }
+}
+
+fn launch_boolean_field(name: &str, label: &str) -> GameplayConfigurationFieldMetadata {
+    GameplayConfigurationFieldMetadata {
+        name: name.to_owned(),
+        label: label.to_owned(),
+        value_kind: GameplayConfigurationValueKind::Boolean,
+        required: true,
+        reference_kind: None,
+        integer_min: None,
+        integer_max: None,
+        number_min: None,
+        number_max: None,
+    }
+}
+
+fn launch_integer_field(
+    name: &str,
+    label: &str,
+    minimum: i64,
+    maximum: i64,
+) -> GameplayConfigurationFieldMetadata {
+    GameplayConfigurationFieldMetadata {
+        name: name.to_owned(),
+        label: label.to_owned(),
+        value_kind: GameplayConfigurationValueKind::Integer,
+        required: true,
+        reference_kind: None,
+        integer_min: Some(minimum),
+        integer_max: Some(maximum),
+        number_min: None,
+        number_max: None,
+    }
+}
+
+fn launch_number_field(
+    name: &str,
+    label: &str,
+    minimum: f64,
+    maximum: f64,
+) -> GameplayConfigurationFieldMetadata {
+    GameplayConfigurationFieldMetadata {
+        name: name.to_owned(),
+        label: label.to_owned(),
+        value_kind: GameplayConfigurationValueKind::Number,
+        required: true,
+        reference_kind: None,
+        integer_min: None,
+        integer_max: None,
+        number_min: Some(minimum),
+        number_max: Some(maximum),
+    }
+}
+
+fn launch_reference_field(
+    name: &str,
+    label: &str,
+    reference_kind: GameplayConfigurationReferenceKind,
+) -> GameplayConfigurationFieldMetadata {
+    GameplayConfigurationFieldMetadata {
+        name: name.to_owned(),
+        label: label.to_owned(),
+        value_kind: GameplayConfigurationValueKind::Reference,
+        required: true,
+        reference_kind: Some(reference_kind),
+        integer_min: None,
+        integer_max: None,
+        number_min: None,
+        number_max: None,
+    }
 }
 
 fn provider() -> GameplayStaticModuleProvider {
@@ -681,6 +913,19 @@ fn capability_activation_codec() -> TypedGameplayEventCodec<CapabilityActivation
 
 fn contract(name: &str) -> GameplayContractRef {
     gameplay_contract(MODULE_NAMESPACE, name, 1, &schema_descriptor(name))
+}
+
+fn launch_contract(name: &str) -> GameplayContractRef {
+    gameplay_contract(
+        LAUNCH_MODULE_NAMESPACE,
+        name,
+        1,
+        &launch_schema_descriptor(name),
+    )
+}
+
+fn launch_schema_descriptor(name: &str) -> String {
+    format!("asha-demo:{LAUNCH_MODULE_NAMESPACE}.{name};canonical-json-v1")
 }
 
 fn owner() -> GameplayOwnerRef {

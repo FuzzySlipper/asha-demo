@@ -29,7 +29,8 @@ the browser is on another LAN machine.
 
 Open **Project Content**. The browser shows the manifest-authorized scene,
 stored voxel asset, actor definitions, prefab registry, material/presentation
-catalogs, and the typed `demo.primary-fire-effect` configurations. Select the
+catalogs, and the typed `demo.primary-fire-effect` and `demo.launch-settings`
+configurations. Select the
 Generated tunnel room and choose **Open Stored Scene**. The hierarchy and
 viewport should show the stored tunnel environment, player/enemy placements,
 challenge trigger, blue/red console prefab instances, and the two scene lights.
@@ -51,6 +52,11 @@ identities and are not authored here.
 - In **Project Content**, select the gameplay configuration document and edit a
   provider-described field such as `objectivePoints` or
   `closeRangeMillimeters`. Use **Save Accepted Change**.
+- In that same document, select `demo.launch-settings.default`. Its fields
+  choose the player EntityDefinition and control camera projection, grounded
+  versus free-flight movement, camera collision extents, and solver iterations.
+  Change `fovYDegrees` and use **Save Accepted Change** to exercise the complete
+  typed launch-settings path.
 
 Use **File > Save Scene** for scene changes. Studio validates changes through
 Rust and updates the canonical project write set; do not hand-edit content
@@ -70,8 +76,11 @@ npm run dev -- --port 5173
 ```
 
 Open `http://127.0.0.1:5173`. A fresh RuntimeSession loads the same canonical
-project closure. Geometry, lights, actor spawn poses, prefab variants, and typed
-gameplay configuration therefore come from the state inspected in Studio.
+project closure. Geometry, lights, actor spawn poses, prefab variants, typed
+gameplay configuration, and camera/controller settings therefore come from the
+state inspected in Studio. The transient camera starts at the Rust-materialized
+transform for the EntityDefinition selected by `playerEntityDefinition`; the
+browser host does not keep a second spawn or projection literal.
 Normal play, death/restart, and pause never write to project files.
 
 Continue editing by reopening the project normally. Before saving, use Studio's

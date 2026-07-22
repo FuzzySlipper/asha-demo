@@ -1,7 +1,3 @@
-import type {
-  CameraCollisionPolicy,
-  PerspectiveProjection,
-} from '@asha/contracts';
 import type { AshaRendererAnimatedMeshResourceManifest } from '@asha/renderer-host';
 import type { RuntimeSessionProjectSource } from '@asha/runtime-session';
 
@@ -35,21 +31,6 @@ export interface DemoProjectContent {
   readonly runtime: {
     readonly sessionId: string;
     readonly seed: number;
-    readonly initialCameraPose: {
-      readonly position: readonly [number, number, number];
-      readonly yawDegrees: number;
-      readonly pitchDegrees: number;
-    };
-    readonly collisionShape: {
-      readonly halfExtents: readonly [number, number, number];
-    };
-    readonly collisionPolicy: CameraCollisionPolicy;
-    readonly cameraProjection: PerspectiveProjection;
-    readonly enemyRenderTarget: {
-      readonly label: string;
-      readonly position: readonly [number, number, number];
-      readonly scale: readonly [number, number, number];
-    };
   };
 }
 
@@ -88,22 +69,6 @@ export async function loadDemoProjectContent(
     runtime: {
       sessionId: 'asha-demo.playable.canonical',
       seed: 4103,
-      initialCameraPose: {
-        position: [0, 1.62, 1.5],
-        yawDegrees: 0,
-        pitchDegrees: 0,
-      },
-      collisionShape: { halfExtents: [0.25, 0.25, 0.25] },
-      collisionPolicy: {
-        mode: 'axis_separable_slide',
-        maxIterations: 3,
-      },
-      cameraProjection: { fovYDegrees: 55, near: 0.1, far: 100 },
-      enemyRenderTarget: {
-        label: 'actor/generated-tunnel-enemy',
-        position: [0, 0.5, -2.6],
-        scale: [0.5, 1, 0.5],
-      },
     },
   };
 }

@@ -44,15 +44,36 @@ if (readout?.entityCount !== 3 || runtimeBackend.loadReceipt.activeProject.entit
     `Standalone host expected seven active entities and three FPS role entities, saw ${runtimeBackend.loadReceipt.activeProject.entityCount}/${readout?.entityCount ?? 'none'}`,
   );
 }
-assertStoredSceneRuntimeTransforms(readout);
+assertStoredSceneRuntimeTransforms(readout, runtimeBackend.sceneDocument);
+
+const playerPose = readRuntimeTransform(
+  readout,
+  runtimeBackend.launchSettings.playerEntityDefinition,
+  'launch player',
+);
 
 const cameraReceipt = runtimeGateway.createCamera({
-  initialPose: content.runtime.initialCameraPose,
-  projection: content.runtime.cameraProjection,
+  initialPose: {
+    position: playerPose.position,
+    yawDegrees: playerPose.yawDegrees,
+    pitchDegrees: playerPose.pitchDegrees,
+  },
+  projection: runtimeBackend.launchSettings.cameraProjection,
   viewport: { width: 1280, height: 720 },
 });
 if (cameraReceipt?.snapshot === undefined) {
   throw new Error('Standalone host could not create an authoritative RuntimeSession camera.');
+}
+assertPosition(
+  cameraReceipt.snapshot.pose.position,
+  playerPose.position,
+  'launch camera',
+);
+if (
+  cameraReceipt.snapshot.projection.fovYDegrees
+  !== runtimeBackend.launchSettings.cameraProjection.fovYDegrees
+) {
+  throw new Error('Standalone host camera did not retain the Rust-admitted launch projection.');
 }
 
 const fireReceipt = runtimeGateway.submitPrimaryFire({
@@ -96,6 +117,8 @@ console.log(JSON.stringify({
   primaryFireAccepted: fireReceipt.accepted,
   gameplayReactionFrameCount: gameplayReadout.reactionFrameCount,
   challengeRevision: challengeState.revision,
+  launchFovYDegrees: cameraReceipt.snapshot.projection.fovYDegrees,
+  playerStartPosition: cameraReceipt.snapshot.pose.position,
   storedSourcesUnchanged: true,
 }, null, 2));
 
@@ -147,24 +170,71 @@ function hashManifestClosure(manifest) {
   return hash.digest('hex');
 }
 
-function assertStoredSceneRuntimeTransforms(readout) {
+function assertStoredSceneRuntimeTransforms(readout, sceneDocument) {
   const player = readout.entities.find((entity) => entity.definitionStableId === 'actor/demo-player');
   const enemy = readout.entities.find(
     (entity) => entity.definitionStableId === 'actor/generated-tunnel-enemy',
   );
-  assertRuntimeTransform(player, [0, 1.62, 1.5], 'player');
-  assertRuntimeTransform(enemy, [0, 0.5, -2.6], 'enemy');
+  assertRuntimeTransform(
+    player,
+    readStoredSpawnPosition(sceneDocument, 'actor/demo-player'),
+    'player',
+  );
+  assertRuntimeTransform(
+    enemy,
+    readStoredSpawnPosition(sceneDocument, 'actor/generated-tunnel-enemy'),
+    'enemy',
+  );
+}
+
+function readStoredSpawnPosition(sceneDocument, definitionStableId) {
+  const instanceNode = sceneDocument.nodes.find((node) => (
+    node.kind?.kind === 'entityInstance'
+    && node.kind.instance.reference?.kind === 'entityDefinition'
+    && node.kind.instance.reference.stableId === definitionStableId
+  ));
+  if (instanceNode === undefined) {
+    throw new Error(`Standalone host could not find stored ${definitionStableId} scene instance.`);
+  }
+  const spawnMarkerId = instanceNode.kind.instance.spawnMarkerId;
+  if (spawnMarkerId === null) return instanceNode.transform.translation;
+  const marker = sceneDocument.nodes.find((node) => (
+    node.kind?.kind === 'marker' && node.kind.markerId === spawnMarkerId
+  ));
+  if (marker === undefined) {
+    throw new Error(`Standalone host could not resolve stored spawn marker ${spawnMarkerId}.`);
+  }
+  return marker.transform.translation;
+}
+
+function readRuntimeTransform(readout, definitionStableId, label) {
+  const entity = readout.entities.find(
+    (candidate) => candidate.definitionStableId === definitionStableId,
+  );
+  const transform = entity?.capabilities.find((capability) => capability.kind === 'transform');
+  if (transform?.kind !== 'transform') {
+    throw new Error(`Standalone host ${label} has no Rust-authoritative transform.`);
+  }
+  return transform;
 }
 
 function assertRuntimeTransform(entity, expectedPosition, label) {
   const transform = entity?.capabilities.find((capability) => capability.kind === 'transform');
-  const positionMatches = transform?.kind === 'transform'
-    && transform.position.every((component, index) => (
-      Math.abs(component - expectedPosition[index]) <= 0.000_001
-    ));
-  if (!positionMatches) {
+  if (transform?.kind !== 'transform') {
     throw new Error(
       `Standalone host ${label} transform did not come from the stored scene: ${JSON.stringify(transform)}`,
+    );
+  }
+  assertPosition(transform.position, expectedPosition, label);
+}
+
+function assertPosition(actual, expected, label) {
+  const positionMatches = actual.every((component, index) => (
+    Math.abs(component - expected[index]) <= 0.000_001
+  ));
+  if (!positionMatches) {
+    throw new Error(
+      `Standalone host ${label} position did not match stored/admitted state: ${JSON.stringify(actual)} != ${JSON.stringify(expected)}`,
     );
   }
 }

@@ -54,6 +54,7 @@ if (!contentStatus.valid) {
 
 const runtimeBackend = await createDemoRuntimeBackend(demoProjectContent);
 const runtimeGateway = createDemoRuntimeGateway(runtimeBackend);
+const launchSettings = runtimeBackend.available ? runtimeBackend.launchSettings : null;
 
 let runtimeCamera = createRuntimeCamera();
 let enemyPolicyTick = 0;
@@ -132,16 +133,14 @@ function createRuntimeCamera() {
   const fallbackCamera = {
     handle: -1,
     pose: initialPose,
-    projection: demoProjectContent.runtime.cameraProjection,
-    viewport: readViewport(),
   };
-  if (!runtimeGateway.available()) {
+  if (!runtimeGateway.available() || launchSettings === null) {
     return fallbackCamera;
   }
 
   return runtimeGateway.createCamera({
     initialPose,
-    projection: demoProjectContent.runtime.cameraProjection,
+    projection: launchSettings.cameraProjection,
     viewport: readViewport(),
   })?.snapshot ?? fallbackCamera;
 }
@@ -192,7 +191,7 @@ function constrainCameraMovement(input) {
   const receipt = runtimeGateway.applyCollisionConstrainedCameraInput({
     camera: readRuntimeCameraHandle(),
     grid: storedEnvironment.grid,
-    movementMode: 'grounded',
+    movementMode: runtimeBackend.launchSettings.movementMode,
     input: {
       moveForward: inputForAuthority.moveForward,
       moveRight: inputForAuthority.moveRight,
@@ -203,8 +202,8 @@ function constrainCameraMovement(input) {
       moveSpeedUnitsPerSecond: input.moveSpeedUnitsPerSecond * (inputSettings.moveSpeedUnitsPerSecond / 3),
     },
     tick: input.tick,
-    shape: demoProjectContent.runtime.collisionShape,
-    policy: demoProjectContent.runtime.collisionPolicy,
+    shape: runtimeBackend.launchSettings.collisionShape,
+    policy: runtimeBackend.launchSettings.collisionPolicy,
   });
   lastCollisionReceipt = receipt;
   runtimeCamera = receipt.snapshot.after;
@@ -667,6 +666,16 @@ function projectBillboardWorldPoint(position) {
       occluded: false,
     };
   }
+  if (launchSettings === null) {
+    return {
+      xPixels: 0,
+      yPixels: 0,
+      depth: 1,
+      distance,
+      insideViewport: false,
+      occluded: false,
+    };
+  }
   const forward = readAudioForward(camera);
   const right = [forward[2] * -1, 0, forward[0]];
   const rightLength = Math.hypot(right[0], right[2]) || 1;
@@ -678,14 +687,16 @@ function projectBillboardWorldPoint(position) {
     right[0] * forward[1] - right[1] * forward[0],
   ];
   const depth = dot3(relative, forward);
-  const halfHeight = Math.max(depth, 0.001) * Math.tan((55 * Math.PI) / 360);
+  const fovYDegrees = launchSettings.cameraProjection.fovYDegrees;
+  const farClip = launchSettings.cameraProjection.far;
+  const halfHeight = Math.max(depth, 0.001) * Math.tan((fovYDegrees * Math.PI) / 360);
   const halfWidth = halfHeight * (viewport.width / viewport.height);
   const ndcX = dot3(relative, right) / halfWidth;
   const ndcY = dot3(relative, up) / halfHeight;
   return {
     xPixels: ((ndcX + 1) / 2) * viewport.width,
     yPixels: ((1 - ndcY) / 2) * viewport.height,
-    depth: Math.max(0, Math.min(1, depth / 100)),
+    depth: Math.max(0, Math.min(1, depth / farClip)),
     distance,
     insideViewport: depth > 0 && Math.abs(ndcX) <= 1 && Math.abs(ndcY) <= 1,
     occluded: false,
@@ -982,10 +993,10 @@ function readEnemyRenderTarget(visible) {
   const enemyTransform = readEnemyTransform();
   return {
     kind: 'runtime_session.ecrp_render_target.v0',
-    renderLabel: demoProjectContent.runtime.enemyRenderTarget.label,
+    renderLabel: 'runtime-entity-without-render-projection',
     visible,
     position: enemyTransform.position,
-    scale: demoProjectContent.runtime.enemyRenderTarget.scale,
+    scale: [1, 1, 1],
   };
 }
 
@@ -1185,16 +1196,28 @@ function readPlayableLoopState() {
 
 function readEnemyTransform() {
   return readActorCapability('actor/generated-tunnel-enemy', 'transform') ?? {
-    position: demoProjectContent.runtime.enemyRenderTarget.position,
+    position: [0, 0, 0],
     yawDegrees: 0,
     pitchDegrees: 0,
   };
 }
 
 function readPlayerTransform() {
-  const transform = readActorCapability('actor/demo-player', 'transform');
+  const playerDefinition = launchSettings?.playerEntityDefinition;
+  if (playerDefinition === undefined) {
+    return {
+      position: [0, 0, 0],
+      yawDegrees: 0,
+      pitchDegrees: 0,
+    };
+  }
+  const transform = readActorCapability(playerDefinition, 'transform');
   return transform === null
-    ? demoProjectContent.runtime.initialCameraPose
+    ? {
+        position: [0, 0, 0],
+        yawDegrees: 0,
+        pitchDegrees: 0,
+      }
     : {
         position: transform.position,
         yawDegrees: transform.yawDegrees,
