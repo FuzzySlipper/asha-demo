@@ -13,6 +13,7 @@ import {
 import {
   ResolvedPauseContextConsumer,
 } from '@asha/runtime-bridge';
+import { createDemoInputCatalog } from '../input/demo-input-catalog.js';
 import { hudControlToIntent } from '../input/hud-controls.js';
 import { type DemoHudEventSource, type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
 import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
@@ -72,6 +73,8 @@ const pauseContextConsumer = inputSession === null
   : new ResolvedPauseContextConsumer(inputSession);
 let lastProcessedInputSequence = -1;
 let pointerLockWasActive = false;
+let interactionCadenceFrame = 0;
+let lastInteractionTarget = null;
 const initialProjection = runtimeGateway.readProjection();
 
 const surface = await mountAshaRendererAnimatedMeshSurface(canvas, {
@@ -86,6 +89,7 @@ const surface = await mountAshaRendererAnimatedMeshSurface(canvas, {
     moveSpeed: inputSettings.moveSpeedUnitsPerSecond,
     movementAuthority: constrainCameraMovement,
     ...(inputSession === null ? {} : { inputSession }),
+    inputCatalog: createDemoInputCatalog(),
   },
 });
 const rendererProjection = surface.cameraProjection();
@@ -783,6 +787,16 @@ function drainResolvedInputDeliveries() {
       continue;
     }
     if (
+      action.actionId === 'demo.interact'
+      && action.phase === 'pressed'
+      && action.value.kind === 'button'
+      && action.value.pressed
+      && pointerLockWasActive
+    ) {
+      operateSecuritySwitch();
+      continue;
+    }
+    if (
       action.actionId === 'gameplay.primaryFire'
       && action.phase === 'pressed'
       && action.value.kind === 'button'
@@ -793,6 +807,26 @@ function drainResolvedInputDeliveries() {
     }
   }
   pointerLockWasActive = readout.pointerLocked;
+}
+
+function operateSecuritySwitch() {
+  if (menuMode !== 'closed' || readAuthorityPaused()) {
+    return;
+  }
+  try {
+    const receipt = runtimeGateway.submitInteraction();
+    if (receipt === null) {
+      lastRuntimeEvent = 'Interaction blocked: Rust gameplay authority unavailable';
+    } else {
+      lastRuntimeEvent = `Security switch accepted at ${receipt.distanceMillimeters} mm`;
+      lastInteractionTarget = null;
+      void applyLatestRuntimeProjection();
+    }
+  } catch (error) {
+    lastRuntimeEvent = error instanceof Error ? error.message : String(error);
+  }
+  lastEventSource = 'runtime';
+  renderHud();
 }
 
 function handleHudControl(controlId) {
@@ -872,6 +906,7 @@ function renderHud() {
     playerHealth,
     pose,
     runtimeAvailable: runtimeGateway.available(),
+    interactionTarget: lastInteractionTarget,
     animationPlayback: readAnimationHudPlayback(),
     animationSampledCue: lastAnimationSampledCueStatus,
   }));
@@ -1177,6 +1212,23 @@ function readActorCapability(stableId, kind) {
 
 function tickHud() {
   drainResolvedInputDeliveries();
+  interactionCadenceFrame += 1;
+  if (runtimeGateway.available() && menuMode === 'closed' && !readAuthorityPaused()) {
+    try {
+      if (interactionCadenceFrame % 2 === 0) {
+        runtimeGateway.advanceFixedTick();
+        void applyLatestRuntimeProjection();
+      }
+      if (interactionCadenceFrame % 6 === 0) {
+        lastInteractionTarget = runtimeGateway.readInteractionTarget();
+      }
+    } catch (error) {
+      lastRuntimeEvent = error instanceof Error ? error.message : String(error);
+      lastEventSource = 'runtime';
+    }
+  } else {
+    lastInteractionTarget = null;
+  }
   billboardHost?.refreshLayout();
   particleHost?.advance(1 / 60);
   const animationReceipt = animationHost.advance(1 / 60);

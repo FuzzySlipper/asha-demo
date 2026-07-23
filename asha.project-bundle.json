@@ -1,26 +1,142 @@
 {
   "bundleSchemaVersion": 2,
   "protocolVersion": 1,
-  "project": { "id": 4103, "name": "ASHA Demo" },
+  "project": {
+    "id": 4103,
+    "name": "ASHA Demo"
+  },
   "entryScene": 4103,
   "scenes": [
-    { "id": 4103, "schemaVersion": 4, "artifact": "levels/scenes/generated-tunnel-room.scene.json" }
+    {
+      "id": 4103,
+      "schemaVersion": 4,
+      "artifact": "levels/scenes/generated-tunnel-room.scene.json"
+    }
   ],
-  "assetLock": { "artifact": "assets/lock.json", "assetCount": 7 },
-  "generationProvenance": { "provider": "asha.tunnel.enclosed.v2", "seed": 24, "version": 2, "params": "fnv1a64:df54f585b8ea912e" },
+  "assetLock": {
+    "artifact": "assets/lock.json",
+    "assetCount": 9
+  },
+  "generationProvenance": {
+    "provider": "asha.tunnel.enclosed.v2",
+    "seed": 24,
+    "version": 2,
+    "params": "fnv1a64:df54f585b8ea912e"
+  },
   "artifacts": [
-    { "path": "assets/lock.json", "class": "durable", "role": "assetLock", "contentHash": "da358883b612c193" },
-    { "path": "assets/mesh-animation/LICENSE.Kenney-Animated-Characters-Retro.txt", "class": "durable", "role": "resource:license", "contentHash": "1e0784b4aae9cde1" },
-    { "path": "assets/mesh-animation/kenney-retro-character-medium.glb", "class": "durable", "role": "resource:animatedMesh", "contentHash": "bd44b76d0424bd16" },
-    { "path": "assets/presentation/primary-fire-pulse.wav", "class": "durable", "role": "resource:audio", "contentHash": "ce2ca87dbdbe6004" },
-    { "path": "assets/presentation/primary-fire-spark.svg", "class": "durable", "role": "resource:particle", "contentHash": "1f89380b5326d5ee" },
-    { "path": "assets/voxels/generated-tunnel.avxl.json", "class": "durable", "role": "voxelVolumeAsset", "contentHash": "1bf09f2f4d352471" },
-    { "path": "catalogs/actors/close-range-trigger.entity.json", "class": "durable", "role": "projectContent", "contentHash": "77396a636b793474" },
-    { "path": "catalogs/actors/demo-player.entity.json", "class": "durable", "role": "projectContent", "contentHash": "cdc9629924454fc1" },
-    { "path": "catalogs/actors/generated-tunnel-enemy.entity.json", "class": "durable", "role": "projectContent", "contentHash": "3901e2972485e0ff" },
-    { "path": "catalogs/gameplay/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "e4c37966e0343255" },
-    { "path": "catalogs/materials/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "5e7c408857127207" },
-    { "path": "catalogs/presentation/catalog.json", "class": "durable", "role": "projectContent", "contentHash": "3d3d9904b1383a7d" },
-    { "path": "levels/scenes/generated-tunnel-room.scene.json", "class": "durable", "role": "sceneDocument", "contentHash": "16854db479509456" }
+    {
+      "path": "assets/lock.json",
+      "class": "durable",
+      "role": "assetLock",
+      "contentHash": "303b70da4f340c69"
+    },
+    {
+      "path": "assets/mesh-animation/kenney-retro-character-medium.glb",
+      "class": "durable",
+      "role": "resource:animatedMesh",
+      "contentHash": "bd44b76d0424bd16"
+    },
+    {
+      "path": "assets/mesh-animation/LICENSE.Kenney-Animated-Characters-Retro.txt",
+      "class": "durable",
+      "role": "resource:license",
+      "contentHash": "1e0784b4aae9cde1"
+    },
+    {
+      "path": "assets/mesh-static/security-door.gltf",
+      "class": "durable",
+      "role": "resource:animatedMesh",
+      "contentHash": "71824c3b831a06a0"
+    },
+    {
+      "path": "assets/mesh-static/security-switch.gltf",
+      "class": "durable",
+      "role": "resource:animatedMesh",
+      "contentHash": "7d7e578f579eb4a0"
+    },
+    {
+      "path": "assets/presentation/primary-fire-pulse.wav",
+      "class": "durable",
+      "role": "resource:audio",
+      "contentHash": "ce2ca87dbdbe6004"
+    },
+    {
+      "path": "assets/presentation/primary-fire-spark.svg",
+      "class": "durable",
+      "role": "resource:particle",
+      "contentHash": "1f89380b5326d5ee"
+    },
+    {
+      "path": "assets/voxels/generated-tunnel.avxl.json",
+      "class": "durable",
+      "role": "voxelVolumeAsset",
+      "contentHash": "1bf09f2f4d352471"
+    },
+    {
+      "path": "catalogs/actors/close-range-trigger.entity.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "77396a636b793474"
+    },
+    {
+      "path": "catalogs/actors/demo-player.entity.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "cdc9629924454fc1"
+    },
+    {
+      "path": "catalogs/actors/generated-tunnel-enemy.entity.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "3901e2972485e0ff"
+    },
+    {
+      "path": "catalogs/actors/security-door.entity.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "87913c1dd6cdd83a"
+    },
+    {
+      "path": "catalogs/actors/security-switch.entity.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "b5114cd17f629c3e"
+    },
+    {
+      "path": "catalogs/gameplay/catalog.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "26c398ddf510b9cb"
+    },
+    {
+      "path": "catalogs/gameplay/security-door.behavior.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "7c34abf8b12bab4a"
+    },
+    {
+      "path": "catalogs/materials/catalog.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "3253c4c6514d05c3"
+    },
+    {
+      "path": "catalogs/prefabs/security-switch.prefab.json",
+      "class": "durable",
+      "role": "prefabRegistry",
+      "contentHash": "51d57c92f23f8610"
+    },
+    {
+      "path": "catalogs/presentation/catalog.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "6c59375f5c409529"
+    },
+    {
+      "path": "levels/scenes/generated-tunnel-room.scene.json",
+      "class": "durable",
+      "role": "sceneDocument",
+      "contentHash": "4c44a38f85b0a17c"
+    }
   ]
 }

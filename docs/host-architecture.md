@@ -21,6 +21,8 @@ Both modes keep authority upstream:
 - Rendering is mounted through `@asha/renderer-host`; concrete renderer backend
   setup remains host/private, not demo app source.
 - Demo TypeScript collects input and projects HUD/menu/readouts only.
+- Authored TypeScript compiles immutable ProjectContent before runtime and is
+  never invoked by the running game.
 - Demo Rust statically links the close-range challenge module into the same
   native RuntimeSession provider. It does not replace RuntimeSession or engine
   owners.
@@ -60,6 +62,16 @@ stored voxel asset, and presentation catalog are the
 only product topology. There is no Demo-specific bundle decoder, TS bootstrap
 registry, hard-coded Rust project input, runtime generator call, or startup
 interaction used to manufacture the playable state.
+
+The security door is the compact authored-data path beside that advanced
+module. `@asha/game-workspace` creates a generated-contract behavior package;
+Rust validates it with the complete project, lowers stable switch/door
+references to a private plan, and applies closed state-machine, transform, and
+collision verbs directly. `E` is a named input action, but Rust resolves the
+nearby eligible prefab part from authoritative transforms. Delayed closing uses
+the ordinary scheduler and retries without closing collision through an
+occupied doorway. No synthetic Gameplay Module, provider configuration, or
+browser callback is created for this behavior.
 
 The close-range rule is a typed gameplay-fabric Transform inside the ordinary
 authoritative primary-fire transaction. Rust derives range, target, and weapon

@@ -29,12 +29,15 @@ the browser is on another LAN machine.
 
 Open **Project Content**. The browser shows the manifest-authorized scene,
 stored voxel asset, actor definitions, material/presentation
-catalogs, and the typed `demo.primary-fire-effect` and `demo.launch-settings`
-configurations. Select the
+catalogs, the security-switch prefab, the security-door behavior package, and
+the typed `demo.primary-fire-effect` and `demo.launch-settings`
+configurations. The behavior package is inspectable stored data, not a runtime
+callback or opaque provider configuration. Select the
 Generated tunnel room and choose **Open Stored Scene**. The hierarchy and
 viewport should show the stored tunnel environment, player/enemy placements,
-challenge trigger, and the two scene lights. The old blue/red console proof
-placements are intentionally absent because they had no player interaction.
+challenge trigger, security switch and door, and the two scene lights. The old
+blue/red console proof placements are intentionally absent because they had no
+player interaction.
 
 Use the relationship links in Project Content to move between a scene instance,
 its entity definition, material/presentation resources, gameplay
@@ -91,6 +94,9 @@ camera/controller settings therefore come from the state inspected in Studio.
 The transient camera starts at the Rust-materialized
 transform for the EntityDefinition selected by `playerEntityDefinition`; the
 browser host does not keep a second spawn or projection literal.
+Walk to the security switch and press `E` when its contextual prompt appears.
+The stored behavior package opens the stored door, disables its collision, and
+schedules a safe close without running TypeScript as gameplay authority.
 Normal play, death/restart, and pause never write to project files.
 
 Continue editing by reopening the project normally. Before saving, use Studio's

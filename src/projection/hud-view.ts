@@ -27,6 +27,10 @@ interface DemoHudViewInput {
     readonly dead: boolean;
   };
   readonly interaction: any;
+  readonly interactionTarget: {
+    readonly eligible: boolean;
+    readonly distanceMillimeters: number | null;
+  } | null;
   readonly inputSettings: {
     readonly invertY: boolean;
     readonly lookSensitivityDegreesPerPixel: number;
@@ -68,6 +72,7 @@ export interface DemoHudView {
   readonly animationCueLabel: string;
   readonly animationCueStatus: string;
   readonly inputSettings: DemoHudViewInput['inputSettings'];
+  readonly interactionPrompt: string | null;
   readonly locked: boolean;
   readonly lockLabel: string;
   readonly menuTitle: string;
@@ -93,6 +98,7 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     enemyHealth,
     gameplayChallenge,
     interaction,
+    interactionTarget,
     inputSettings,
     lastMovementEvent,
     lastRuntimeEvent,
@@ -106,6 +112,9 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     pose,
     runtimeAvailable,
   } = input;
+  const interactionPrompt = interactionTarget?.eligible === true
+    ? `E  OPERATE SECURITY SWITCH · ${Math.round((interactionTarget.distanceMillimeters ?? 0) / 100) / 10} M`
+    : null;
 
   const eventLabel = runtimeAvailable === false
     ? backendMissingLabel
@@ -139,6 +148,7 @@ export function projectHudView(input: DemoHudViewInput): DemoHudView {
     animationCueLabel: projectAnimationCueLabel(animationSampledCue),
     animationCueStatus: animationSampledCue?.status ?? 'waiting',
     inputSettings,
+    interactionPrompt,
     locked,
     lockLabel: locked ? 'MOUSE CAPTURED' : 'MOUSE FREE',
     menuTitle: projectMenuTitle(menuMode),

@@ -9,6 +9,7 @@ export function readDemoHudElements(): any {
     eventState: document.querySelector('#event-state'),
     exitButton: document.querySelector('#exit-button'),
     invertYInput: document.querySelector('#invert-y-input'),
+    interactionPrompt: document.querySelector('#interaction-prompt'),
     fireButton: document.querySelector('#fire-button'),
     healthFill: document.querySelector('#health-fill'),
     lockButton: document.querySelector('#lock-button'),

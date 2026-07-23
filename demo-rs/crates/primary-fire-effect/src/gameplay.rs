@@ -786,7 +786,10 @@ fn topology() -> GameplayDerivedModuleTopology {
         StandardGameplayEventKind::PrefabPartInteracted.contract(),
         contract("challenge-progressed"),
         GameplayHeaderSelector {
-            required_tags: vec!["prefab-part".to_owned()],
+            required_tags: vec![
+                "prefab-part".to_owned(),
+                "interaction/sensor".to_owned(),
+            ],
             ..selector
         },
         2,

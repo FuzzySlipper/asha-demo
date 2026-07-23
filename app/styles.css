@@ -111,6 +111,22 @@ button:disabled {
   background: #8adccd;
 }
 
+.interaction-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 17%;
+  z-index: 8;
+  transform: translateX(-50%);
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(255, 164, 72, 0.75);
+  border-radius: 0.25rem;
+  background: rgba(10, 15, 21, 0.82);
+  color: #ffd2a0;
+  font: 700 0.78rem/1.2 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
 .hud-panel {
   background: rgba(10, 16, 19, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.16);

@@ -15,6 +15,24 @@
       },
       {
         "dependencies": [],
+        "hash": "71824c3b831a06a0",
+        "id": "mesh/security-door",
+        "label": "Security Door",
+        "material": null,
+        "sourcePath": "assets/mesh-static/security-door.gltf",
+        "version": 1
+      },
+      {
+        "dependencies": [],
+        "hash": "7d7e578f579eb4a0",
+        "id": "mesh/security-switch",
+        "label": "Security Switch",
+        "material": null,
+        "sourcePath": "assets/mesh-static/security-switch.gltf",
+        "version": 1
+      },
+      {
+        "dependencies": [],
         "hash": null,
         "id": "voxel-volume/generated-tunnel",
         "label": "Generated tunnel environment",

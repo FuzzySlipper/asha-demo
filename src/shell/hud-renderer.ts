@@ -3,6 +3,10 @@ export function renderHudElements(elements: any, view: any): void {
     elements.challengeState.textContent = view.challengeLabel;
     elements.challengeState.dataset.status = view.challengeStatus;
   }
+  if (elements.interactionPrompt instanceof HTMLElement) {
+    elements.interactionPrompt.textContent = view.interactionPrompt ?? '';
+    elements.interactionPrompt.hidden = view.interactionPrompt === null;
+  }
   if (elements.lockState instanceof HTMLElement) {
     elements.lockState.textContent = view.lockLabel;
     elements.lockState.dataset.locked = String(view.locked);

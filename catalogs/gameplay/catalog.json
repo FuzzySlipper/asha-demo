@@ -33,7 +33,7 @@
       {
         "configurationId": "demo.launch-settings.default",
         "module": {
-          "artifactHash": "fnv1a64:e2ddb7723704a7ee",
+          "artifactHash": "fnv1a64:ee4160a066f354f3",
           "contractHash": "fnv1a64:e9ce96a5aed84540",
           "moduleId": "demo.launch-settings",
           "namespace": "demo.launch-settings",
@@ -54,14 +54,14 @@
             "fieldId": "farClip",
             "value": {
               "kind": "number",
-              "value": 100.0
+              "value": 100
             }
           },
           {
             "fieldId": "fovYDegrees",
             "value": {
               "kind": "number",
-              "value": 58.0
+              "value": 58
             }
           },
           {
@@ -91,8 +91,8 @@
       {
         "configurationId": "demo.primary-fire-effect.default",
         "module": {
-          "artifactHash": "fnv1a64:b182cae1e3b9a710",
-          "contractHash": "fnv1a64:1b614eb127c2cc3c",
+          "artifactHash": "fnv1a64:c1bb54098f0c9378",
+          "contractHash": "fnv1a64:393890a0db38cb06",
           "moduleId": "demo.primary-fire-effect",
           "namespace": "demo.primary-fire-effect",
           "providerId": "provider.demo.primary-fire-effect",

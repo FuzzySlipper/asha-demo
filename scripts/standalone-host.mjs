@@ -54,12 +54,16 @@ await assertMultipleEntryScenePlayersRejectBeforePublication(content);
 
 const runtimeGateway = await createRuntimeGateway(runtimeBackend);
 const readout = runtimeGateway.readEcrpRuntimeReadout();
-if (readout?.entityCount !== 3 || runtimeBackend.loadReceipt.activeProject.entityCount !== 3) {
+if (readout?.entityCount !== 4 || runtimeBackend.loadReceipt.activeProject.entityCount !== 5) {
   throw new Error(
-    `Standalone host expected three active entry-scene entities and three FPS role entities, saw ${runtimeBackend.loadReceipt.activeProject.entityCount}/${readout?.entityCount ?? 'none'}`,
+    `Standalone host expected five active entry-scene entities and four ECRP runtime entities, saw ${runtimeBackend.loadReceipt.activeProject.entityCount}/${readout?.entityCount ?? 'none'}`,
   );
 }
 assertStoredSceneRuntimeTransforms(readout, runtimeBackend.sceneDocument);
+const initialDoorProjection = readAnimatedMeshProjection(
+  runtimeGateway.readProjection(),
+  'mesh/security-door',
+);
 if (JSON.stringify(runtimeBackend.launchSettings.collisionShape.halfExtents) !== JSON.stringify([0.25, 0.7, 0.25])) {
   throw new Error(
     `Standalone host collision envelope did not derive from Demo Player bounds: ${JSON.stringify(runtimeBackend.launchSettings.collisionShape.halfExtents)}`,
@@ -115,6 +119,87 @@ if (challengeState?.revision < 1) {
   throw new Error('Standalone host did not retain the typed challenge-view readback.');
 }
 
+const interactionTarget = runtimeGateway.readInteractionTarget();
+if (interactionTarget?.eligible !== true || interactionTarget.distanceMillimeters > 2_500) {
+  throw new Error(
+    `Standalone host did not resolve the nearby switch through Rust authority: ${JSON.stringify(interactionTarget)}`,
+  );
+}
+const interactionReceipt = runtimeGateway.submitInteraction();
+if (interactionReceipt === null) {
+  throw new Error('Standalone host could not submit the Rust-resolved security-switch interaction.');
+}
+const openDoorPosition = readTransformUpdate(
+  runtimeGateway.readProjection(),
+  initialDoorProjection.handle,
+  'opened security door',
+);
+assertPosition(
+  openDoorPosition,
+  [
+    initialDoorProjection.position[0],
+    initialDoorProjection.position[1] + 3,
+    initialDoorProjection.position[2],
+  ],
+  'opened security door',
+);
+const lifecycleBeforeRestart = runtimeGateway.readLifecycleStatus();
+const restartReceipt = runtimeGateway.requestSessionRestart({
+  kind: 'runtime.restart_session_intent',
+  source: 'programmatic',
+  requireTerminal: false,
+  expectedSessionHash: lifecycleBeforeRestart.sessionHash,
+});
+if (restartReceipt?.accepted !== true) {
+  throw new Error(
+    `Standalone host could not restart an open authored door: ${JSON.stringify(restartReceipt)}`,
+  );
+}
+const restartedDoorProjection = readAnimatedMeshProjection(
+  runtimeGateway.readProjection(),
+  'mesh/security-door',
+);
+assertPosition(
+  restartedDoorProjection.position,
+  initialDoorProjection.position,
+  'restart-restored security door',
+);
+const restartedInteractionTarget = runtimeGateway.readInteractionTarget();
+if (restartedInteractionTarget?.eligible !== true) {
+  throw new Error('Standalone host restart did not restore the authored interaction program.');
+}
+const restartedInteractionReceipt = runtimeGateway.submitInteraction();
+if (restartedInteractionReceipt === null) {
+  throw new Error('Standalone host could not reopen the security door after restart.');
+}
+const reopenedDoorPosition = readTransformUpdate(
+  runtimeGateway.readProjection(),
+  restartedDoorProjection.handle,
+  'reopened security door',
+);
+assertPosition(
+  reopenedDoorPosition,
+  [
+    restartedDoorProjection.position[0],
+    restartedDoorProjection.position[1] + 3,
+    restartedDoorProjection.position[2],
+  ],
+  'reopened security door',
+);
+for (let fixedTick = 0; fixedTick < 180; fixedTick += 1) {
+  runtimeGateway.advanceFixedTick();
+}
+const reclosedDoorPosition = readTransformUpdate(
+  runtimeGateway.readProjection(),
+  restartedDoorProjection.handle,
+  'reclosed security door',
+);
+assertPosition(
+  reclosedDoorPosition,
+  restartedDoorProjection.position,
+  'reclosed security door',
+);
+
 const storedSourcesAfterPlay = hashManifestClosure(content.projectManifest);
 if (storedSourcesAfterPlay !== storedSourcesBeforePlay) {
   throw new Error('Normal runtime play mutated the canonical project source closure.');
@@ -137,6 +222,8 @@ console.log(JSON.stringify({
   primaryFireAccepted: fireReceipt.accepted,
   gameplayReactionFrameCount: gameplayReadout.reactionFrameCount,
   challengeRevision: challengeState.revision,
+  securitySwitchDistanceMillimeters: interactionReceipt.distanceMillimeters,
+  securityDoorOpenedAndReclosed: true,
   launchFovYDegrees: cameraReceipt.snapshot.projection.fovYDegrees,
   collisionHalfExtents: runtimeBackend.launchSettings.collisionShape.halfExtents,
   playerStartPosition: cameraReceipt.snapshot.pose.position,
@@ -484,6 +571,35 @@ function readRuntimeTransform(readout, definitionStableId, label) {
     throw new Error(`Standalone host ${label} has no Rust-authoritative transform.`);
   }
   return transform;
+}
+
+function readAnimatedMeshProjection(projection, asset) {
+  const operation = projection?.runtimeFrame.scene.ops.find((candidate) => (
+    candidate.op === 'createAnimatedMeshInstance' && candidate.instance.asset === asset
+  ));
+  if (operation?.op !== 'createAnimatedMeshInstance') {
+    throw new Error(
+      `Standalone host did not project animated mesh ${asset}: ${JSON.stringify(projection?.runtimeFrame.scene.ops ?? [])}`,
+    );
+  }
+  return {
+    handle: operation.handle,
+    position: operation.instance.transform.translation,
+  };
+}
+
+function readTransformUpdate(projection, handle, label) {
+  const operation = projection?.runtimeFrame.scene.ops.find((candidate) => (
+    candidate.op === 'update'
+    && candidate.handle === handle
+    && candidate.transform !== null
+  ));
+  if (operation?.op !== 'update' || operation.transform === null) {
+    throw new Error(
+      `Standalone host ${label} did not project a transform update: ${JSON.stringify(projection?.runtimeFrame.scene.ops ?? [])}`,
+    );
+  }
+  return operation.transform.translation;
 }
 
 function assertRuntimeTransform(entity, expectedPosition, label) {

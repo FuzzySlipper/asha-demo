@@ -69,6 +69,28 @@ test('a no-op fire control would fail visible acceptance', async ({ page }) => {
   await expect.poll(() => shots.textContent()).not.toBe(before);
 });
 
+test('the visible contextual switch uses E and moves the Rust-projected security door', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  await page.goto('/');
+  await page.locator('#menu-reset-button').click();
+  const canvas = page.locator('#asha-render-surface');
+  const prompt = page.locator('#interaction-prompt');
+  const event = page.locator('#event-state');
+
+  await expect(prompt).toContainText('E  OPERATE SECURITY SWITCH', { timeout: 10_000 });
+  await canvas.click();
+  await expect.poll(
+    () => page.evaluate(() => document.pointerLockElement?.id ?? null),
+  ).toBe('asha-render-surface');
+  await page.waitForTimeout(250);
+  await page.keyboard.press('KeyE');
+  await expect(event).toContainText('Security switch accepted');
+  await expect(event).not.toContainText(/rejected|failed|unavailable/i);
+  expect(pageErrors).toEqual([]);
+});
+
 test('missing presentation resources fail visibly without inline fallbacks', async ({ browser }) => {
   const resources = [
     'assets/mesh-animation/kenney-retro-character-medium.glb',

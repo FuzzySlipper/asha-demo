@@ -173,6 +173,9 @@ export interface DemoRuntimeGateway {
   readGameplayRuntime(): ComposedGameplayReadout | null;
   readComposedRuntimeSession(): ComposedRuntimeSessionReadout | null;
   readGameplayChallengeState(): DemoGameplayChallengeState | null;
+  readInteractionTarget(): ReturnType<RuntimeBridge['readGameplayPrefabPartInteractionTarget']> | null;
+  submitInteraction(): ReturnType<RuntimeBridge['applyGameplayPrefabPartInteraction']> | null;
+  advanceFixedTick(): ReturnType<RuntimeSessionFacade['tick']> | null;
   requestSessionRestart(
     input: Parameters<RuntimeSessionFacade['requestSessionRestart']>[0],
   ): ReturnType<RuntimeSessionFacade['requestSessionRestart']> | null;
@@ -347,6 +350,33 @@ export function createDemoRuntimeGateway(runtimeBackend: DemoRuntimeBackend): De
         runtimeBackend.challengeViewContract,
         composed.runtimeSessionHash,
       );
+    },
+    readInteractionTarget() {
+      if (bridge === null) return null;
+      const actor = bridge.readFpsRuntimeSession().playerEntity;
+      const composed = bridge.readComposedRuntimeSession();
+      return bridge.readGameplayPrefabPartInteractionTarget({
+        actor,
+        role: 'interaction/switch',
+        maxDistanceMillimeters: 2_500,
+        expectedRuntimeSessionHash: composed.runtimeSessionHash,
+      });
+    },
+    submitInteraction() {
+      if (bridge === null || session === null) return null;
+      const tick = session.tick().tick;
+      const actor = bridge.readFpsRuntimeSession().playerEntity;
+      const composed = bridge.readComposedRuntimeSession();
+      return bridge.applyGameplayPrefabPartInteraction({
+        actor,
+        role: 'interaction/switch',
+        maxDistanceMillimeters: 2_500,
+        tick,
+        expectedRuntimeSessionHash: composed.runtimeSessionHash,
+      });
+    },
+    advanceFixedTick() {
+      return session?.tick() ?? null;
     },
     requestSessionRestart(input) {
       return session?.requestSessionRestart(input) ?? null;

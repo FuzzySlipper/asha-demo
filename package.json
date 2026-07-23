@@ -8,7 +8,7 @@
     "build": "node scripts/build-native-provider.mjs && node scripts/build-ui.mjs",
     "build:native-provider": "node scripts/build-native-provider.mjs",
     "check:architecture": "node scripts/check-source-architecture.mjs",
-    "check:content-boundary": "node scripts/build-ui.mjs && node scripts/check-content-boundary.mjs",
+    "check:content-boundary": "node scripts/build-ui.mjs && node scripts/sync-authored-content.mjs && node scripts/check-content-boundary.mjs",
     "check:demo-rs": "cargo run -q --manifest-path demo-rs/Cargo.toml --bin asha-demo-preflight -- .",
     "check:dependencies": "node scripts/check-dependency-boundary.mjs",
     "check:host": "node scripts/check-host-parity.mjs",
@@ -18,6 +18,7 @@
     "dev": "node scripts/serve-ui.mjs",
     "dev:static": "node scripts/serve-static-ui.mjs",
     "standalone": "node scripts/standalone-host.mjs",
+    "sync:content": "npx tsc -p tsconfig.json && node scripts/sync-authored-content.mjs --write",
     "test:live-ui": "playwright test -c playwright.config.mjs",
     "typecheck": "npm run check:dependencies && npm run check:architecture && npm run check:strict-boundary && npm run check:content-boundary && npm run check:demo-rs && npm run check:host && npm run check:ui && npm run check:standalone",
     "test": "npm run typecheck"

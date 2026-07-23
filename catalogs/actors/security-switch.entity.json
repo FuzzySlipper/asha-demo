@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "documentId": "asha-demo.entity.security-switch",
+  "documentKind": "entityDefinition",
+  "document": {
+    "stableId": "prop/security-switch",
+    "displayName": "Security Switch",
+    "source": {
+      "projectBundle": "asha-demo",
+      "relativePath": "catalogs/actors/security-switch.entity.json"
+    },
+    "tags": [],
+    "metadata": [],
+    "capabilities": [
+      {
+        "kind": "transform",
+        "transform": {
+          "translation": [0, 0, 0],
+          "rotation": [0, 0, 0, 1],
+          "scale": [1, 1, 1]
+        }
+      },
+      { "kind": "bounds", "min": [-0.2, -0.2, -0.1], "max": [0.2, 0.2, 0.1] },
+      { "kind": "render", "visible": true },
+      {
+        "kind": "renderProjection",
+        "projectionId": "security-switch",
+        "visible": true,
+        "appearance": {
+          "resourceId": "asha-demo.security-switch.mesh",
+          "initialClipId": null,
+          "modelScale": [0.4, 0.4, 0.2]
+        }
+      }
+    ]
+  }
+}

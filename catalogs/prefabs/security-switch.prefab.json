@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "documentId": "asha-demo.prefab.security-switch",
+  "documentKind": "prefabRegistry",
+  "document": {
+    "schemaVersion": 1,
+    "definitions": [
+      {
+        "id": 8001,
+        "schemaVersion": 1,
+        "displayName": "Security Switch",
+        "parts": [
+          {
+            "id": 1,
+            "namespace": "switch",
+            "displayName": "Switch",
+            "parent": null,
+            "transform": {
+              "translation": [0, 0, 0],
+              "rotation": [0, 0, 0, 1],
+              "scale": [1, 1, 1]
+            },
+            "source": { "kind": "entityDefinition", "stableId": "prop/security-switch" }
+          }
+        ],
+        "partRoles": [
+          { "role": "interaction/switch", "part": 1 }
+        ],
+        "variant": null
+      }
+    ]
+  }
+}

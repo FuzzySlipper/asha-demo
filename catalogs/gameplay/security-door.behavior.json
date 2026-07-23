@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "documentId": "asha-demo.behavior.security-door",
+  "documentKind": "behaviorPackage",
+  "document": {
+    "schemaVersion": 1,
+    "packageId": "asha-demo.security-door",
+    "provenance": {
+      "sdkId": "@asha/game-workspace",
+      "sdkVersion": 1,
+      "vocabularyHash": "asha.authored-behavior.v1:typed-semantic-refs;symbolic-state;direct-owner-verbs",
+      "sourceModule": "@asha-demo/gameplay",
+      "sourcePath": "src/content/security-door.ts",
+      "sourceHash": "fnv1a64:de6ae6129d22d451"
+    },
+    "stateMachines": [
+      {
+        "machineId": "security-door",
+        "targetSceneInstanceId": "asha-demo.security-door",
+        "initialStateId": "closed",
+        "states": [
+          {
+            "stateId": "closed"
+          },
+          {
+            "stateId": "open"
+          }
+        ],
+        "transitions": [
+          {
+            "transitionId": "close",
+            "fromStateId": "open",
+            "toStateId": "closed"
+          },
+          {
+            "transitionId": "open",
+            "fromStateId": "closed",
+            "toStateId": "open"
+          }
+        ]
+      }
+    ],
+    "behaviors": [
+      {
+        "behaviorId": "security-switch-opens-door",
+        "signal": {
+          "signal": {
+            "semanticId": "asha.signal.prefab-part-interacted",
+            "version": 1
+          },
+          "arguments": [
+            {
+              "name": "part",
+              "value": {
+                "kind": "prefabPart",
+                "sceneInstanceId": "asha-demo.security-switch",
+                "role": "interaction/switch"
+              }
+            }
+          ]
+        },
+        "conditions": [
+          {
+            "predicate": {
+              "semanticId": "asha.predicate.state-is",
+              "version": 1
+            },
+            "arguments": [
+              {
+                "name": "state",
+                "value": {
+                  "kind": "state",
+                  "machineId": "security-door",
+                  "stateId": "closed"
+                }
+              }
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "stepId": "close-when-clear",
+            "afterStepIds": [
+              "open-now"
+            ],
+            "delayTicks": 180,
+            "operations": [
+              {
+                "verb": {
+                  "semanticId": "asha.verb.transition-state",
+                  "version": 1
+                },
+                "arguments": [
+                  {
+                    "name": "machine",
+                    "value": {
+                      "kind": "stateMachine",
+                      "machineId": "security-door"
+                    }
+                  },
+                  {
+                    "name": "transition",
+                    "value": {
+                      "kind": "text",
+                      "value": "close"
+                    }
+                  }
+                ]
+              },
+              {
+                "verb": {
+                  "semanticId": "asha.verb.set-relative-translation",
+                  "version": 1
+                },
+                "arguments": [
+                  {
+                    "name": "entity",
+                    "value": {
+                      "kind": "sceneEntity",
+                      "sceneInstanceId": "asha-demo.security-door"
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "vector3",
+                      "value": [
+                        0,
+                        0,
+                        0
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "verb": {
+                  "semanticId": "asha.verb.set-capability-active",
+                  "version": 1
+                },
+                "arguments": [
+                  {
+                    "name": "active",
+                    "value": {
+                      "kind": "boolean",
+                      "value": true
+                    }
+                  },
+                  {
+                    "name": "capability",
+                    "value": {
+                      "kind": "text",
+                      "value": "collision"
+                    }
+                  },
+                  {
+                    "name": "entity",
+                    "value": {
+                      "kind": "sceneEntity",
+                      "sceneInstanceId": "asha-demo.security-door"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "stepId": "open-now",
+            "afterStepIds": [],
+            "delayTicks": 0,
+            "operations": [
+              {
+                "verb": {
+                  "semanticId": "asha.verb.transition-state",
+                  "version": 1
+                },
+                "arguments": [
+                  {
+                    "name": "machine",
+                    "value": {
+                      "kind": "stateMachine",
+                      "machineId": "security-door"
+                    }
+                  },
+                  {
+                    "name": "transition",
+                    "value": {
+                      "kind": "text",
+                      "value": "open"
+                    }
+                  }
+                ]
+              },
+              {
+                "verb": {
+                  "semanticId": "asha.verb.set-relative-translation",
+                  "version": 1
+                },
+                "arguments": [
+                  {
+                    "name": "entity",
+                    "value": {
+                      "kind": "sceneEntity",
+                      "sceneInstanceId": "asha-demo.security-door"
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "value": {
+                      "kind": "vector3",
+                      "value": [
+                        0,
+                        3,
+                        0
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "verb": {
+                  "semanticId": "asha.verb.set-capability-active",
+                  "version": 1
+                },
+                "arguments": [
+                  {
+                    "name": "active",
+                    "value": {
+                      "kind": "boolean",
+                      "value": false
+                    }
+                  },
+                  {
+                    "name": "capability",
+                    "value": {
+                      "kind": "text",
+                      "value": "collision"
+                    }
+                  },
+                  {
+                    "name": "entity",
+                    "value": {
+                      "kind": "sceneEntity",
+                      "sceneInstanceId": "asha-demo.security-door"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

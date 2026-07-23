@@ -64,6 +64,40 @@
         "sourcePath": "assets/mesh-animation/kenney-retro-character-medium.glb"
       },
       {
+        "assetId": "mesh/security-door",
+        "animatedMesh": {
+          "asset": "mesh/security-door",
+          "runtimeFormat": "glb",
+          "contentHash": "71824c3b831a06a0",
+          "clips": [],
+          "defaultClip": null,
+          "materialSlots": [],
+          "bounds": { "min": [-0.5, -0.5, -0.5], "max": [0.5, 0.5, 0.5] }
+        },
+        "contentHash": "71824c3b831a06a0",
+        "kind": "animatedMesh",
+        "licensePath": null,
+        "resourceId": "asha-demo.security-door.mesh",
+        "sourcePath": "assets/mesh-static/security-door.gltf"
+      },
+      {
+        "assetId": "mesh/security-switch",
+        "animatedMesh": {
+          "asset": "mesh/security-switch",
+          "runtimeFormat": "glb",
+          "contentHash": "7d7e578f579eb4a0",
+          "clips": [],
+          "defaultClip": null,
+          "materialSlots": [],
+          "bounds": { "min": [-0.5, -0.5, -0.5], "max": [0.5, 0.5, 0.5] }
+        },
+        "contentHash": "7d7e578f579eb4a0",
+        "kind": "animatedMesh",
+        "licensePath": null,
+        "resourceId": "asha-demo.security-switch.mesh",
+        "sourcePath": "assets/mesh-static/security-switch.gltf"
+      },
+      {
         "assetId": "audio/asha-primary-fire-pulse",
         "animatedMesh": null,
         "contentHash": "ce2ca87dbdbe6004",
