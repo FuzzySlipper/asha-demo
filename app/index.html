@@ -86,10 +86,13 @@
         <p id="pause-menu-status">Runtime paused. Resume or restart through typed HUD intents.</p>
         <div class="pause-actions">
           <button id="resume-button" type="button" data-control-id="hud-resume" hidden>Resume</button>
+          <button id="save-game-button" type="button">Save Game</button>
+          <button id="load-game-button" type="button">Load Game</button>
           <button id="menu-reset-button" type="button" data-control-id="hud-restart">Restart</button>
           <button id="options-button" type="button" data-control-id="hud-options">Options</button>
           <button id="exit-button" type="button" data-control-id="hud-exit" hidden>Exit</button>
         </div>
+        <p id="save-game-status" class="save-game-status" aria-live="polite"></p>
         <div id="options-pane" class="menu-pane" hidden>
           <strong>Options</strong>
           <label for="move-speed-input">Move speed <output id="move-speed-value">3.0</output> units/s</label>

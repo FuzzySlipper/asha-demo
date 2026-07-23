@@ -16,7 +16,7 @@ asset_roots = ["assets"]
 prefab_roots = ["catalogs/prefabs"]
 behavior_packages = ["catalogs/gameplay"]
 replay_roots = ["replays"]
-catalog_packages = ["catalogs/actors", "catalogs/gameplay", "catalogs/materials", "catalogs/presentation"]
+catalog_packages = ["catalogs/actors", "catalogs/gameplay", "catalogs/input", "catalogs/materials", "catalogs/presentation"]
 policy_packages = []
 
 [runtime]
@@ -29,7 +29,7 @@ backend_profile = "native.napi.launcher.v1"
 [studio]
 workspace_mode = true
 attach_enabled = false
-allowed_source_writes = ["levels/scenes", "assets", "catalogs/actors", "catalogs/gameplay", "catalogs/materials", "catalogs/prefabs", "catalogs/presentation"]
+allowed_source_writes = ["levels/scenes", "assets", "catalogs/actors", "catalogs/gameplay", "catalogs/input", "catalogs/materials", "catalogs/prefabs", "catalogs/presentation"]
 
 [publish]
 command = "npm run build"
@@ -37,7 +37,7 @@ artifact_dir = "dist"
 verify_command = "npm run typecheck"
 
 [dev_resource_profile]
-local_roots = ["assets", "catalogs/actors", "catalogs/gameplay", "catalogs/materials", "catalogs/prefabs", "catalogs/presentation"]
+local_roots = ["assets", "catalogs/actors", "catalogs/gameplay", "catalogs/input", "catalogs/materials", "catalogs/prefabs", "catalogs/presentation"]
 cache_dir = "dist/dev-cache"
 resolution_policy = "prefer-source"
 

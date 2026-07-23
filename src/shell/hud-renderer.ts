@@ -91,3 +91,15 @@ export function renderHudElements(elements: any, view: any): void {
     elements.invertYInput.checked = view.inputSettings.invertY;
   }
 }
+
+export function renderSaveGameControls(
+  elements: any,
+  state: { readonly loadEnabled: boolean; readonly message: string },
+): void {
+  if (elements.loadGameButton instanceof HTMLButtonElement) {
+    elements.loadGameButton.disabled = !state.loadEnabled;
+  }
+  if (elements.saveGameStatus instanceof HTMLElement) {
+    elements.saveGameStatus.textContent = state.message;
+  }
+}

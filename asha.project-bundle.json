@@ -112,7 +112,13 @@
       "path": "catalogs/gameplay/security-door.behavior.json",
       "class": "durable",
       "role": "projectContent",
-      "contentHash": "7c34abf8b12bab4a"
+      "contentHash": "2b4f2acbbb6fd0d1"
+    },
+    {
+      "path": "catalogs/input/demo.input.json",
+      "class": "durable",
+      "role": "projectContent",
+      "contentHash": "ee9819d3b0195434"
     },
     {
       "path": "catalogs/materials/catalog.json",

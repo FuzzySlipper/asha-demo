@@ -143,6 +143,46 @@ assertPosition(
   ],
   'opened security door',
 );
+const pausedForSave = runtimeBackend.session.applyTimeControlCommand({ operation: 'pause' });
+if (!pausedForSave.accepted) {
+  throw new Error(`Standalone host could not pause before save: ${JSON.stringify(pausedForSave)}`);
+}
+const savedGameplay = runtimeGateway.saveGameplayCheckpoint();
+if (!savedGameplay?.accepted || savedGameplay.checkpoint === null) {
+  throw new Error(`Standalone host could not save gameplay: ${JSON.stringify(savedGameplay)}`);
+}
+const restoredGameplay = runtimeGateway.restoreGameplayCheckpoint(savedGameplay.checkpoint);
+if (!restoredGameplay?.accepted) {
+  throw new Error(`Standalone host could not restore gameplay: ${JSON.stringify(restoredGameplay)}`);
+}
+const restoredDoorProjection = readAnimatedMeshProjection(
+  runtimeGateway.readProjection(),
+  'mesh/security-door',
+);
+assertPosition(restoredDoorProjection.position, openDoorPosition, 'restored open security door');
+const resumedAfterRestore = runtimeBackend.session.applyTimeControlCommand({ operation: 'resume' });
+if (!resumedAfterRestore.accepted) {
+  throw new Error(
+    `Standalone host could not resume restored gameplay: ${JSON.stringify(resumedAfterRestore)}`,
+  );
+}
+for (let fixedTick = 0; fixedTick < 180; fixedTick += 1) {
+  runtimeGateway.advanceFixedTick();
+}
+const checkpointClosedDoor = readTransformUpdate(
+  runtimeGateway.readProjection(),
+  restoredDoorProjection.handle,
+  'checkpoint-delayed closed security door',
+);
+assertPosition(
+  checkpointClosedDoor,
+  initialDoorProjection.position,
+  'checkpoint-delayed closed security door',
+);
+const checkpointReopenReceipt = runtimeGateway.submitInteraction();
+if (checkpointReopenReceipt === null) {
+  throw new Error('Standalone host could not reopen the restored security door before restart.');
+}
 const lifecycleBeforeRestart = runtimeGateway.readLifecycleStatus();
 const restartReceipt = runtimeGateway.requestSessionRestart({
   kind: 'runtime.restart_session_intent',

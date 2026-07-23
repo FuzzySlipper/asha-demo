@@ -32,6 +32,9 @@ import type {
   RuntimeActionIntentSource,
   RuntimeSessionActionIntentReceipt,
   RuntimeSessionFacade,
+  RuntimeSessionGameplayCheckpoint,
+  RuntimeSessionGameplayCheckpointRestoreReceipt,
+  RuntimeSessionGameplayCheckpointSaveReceipt,
   RuntimeSessionProjectLoadReceipt,
 } from '@asha/runtime-session';
 import type { DemoProjectContent } from '../content/project-content.js';
@@ -175,6 +178,10 @@ export interface DemoRuntimeGateway {
   readGameplayChallengeState(): DemoGameplayChallengeState | null;
   readInteractionTarget(): ReturnType<RuntimeBridge['readGameplayPrefabPartInteractionTarget']> | null;
   submitInteraction(): ReturnType<RuntimeBridge['applyGameplayPrefabPartInteraction']> | null;
+  saveGameplayCheckpoint(): RuntimeSessionGameplayCheckpointSaveReceipt | null;
+  restoreGameplayCheckpoint(
+    checkpoint: RuntimeSessionGameplayCheckpoint,
+  ): RuntimeSessionGameplayCheckpointRestoreReceipt | null;
   advanceFixedTick(): ReturnType<RuntimeSessionFacade['tick']> | null;
   requestSessionRestart(
     input: Parameters<RuntimeSessionFacade['requestSessionRestart']>[0],
@@ -374,6 +381,12 @@ export function createDemoRuntimeGateway(runtimeBackend: DemoRuntimeBackend): De
         tick,
         expectedRuntimeSessionHash: composed.runtimeSessionHash,
       });
+    },
+    saveGameplayCheckpoint() {
+      return session?.saveGameplayCheckpoint() ?? null;
+    },
+    restoreGameplayCheckpoint(checkpoint) {
+      return session?.restoreGameplayCheckpoint(checkpoint) ?? null;
     },
     advanceFixedTick() {
       return session?.tick() ?? null;

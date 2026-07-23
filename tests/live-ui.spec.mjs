@@ -69,11 +69,69 @@ test('a no-op fire control would fail visible acceptance', async ({ page }) => {
   await expect.poll(() => shots.textContent()).not.toBe(before);
 });
 
-test('the visible contextual switch uses E and moves the Rust-projected security door', async ({ page }) => {
+test('the visible contextual switch rejects a second no-op and survives save, reopen, and restart', async ({ page }) => {
+  test.setTimeout(45_000);
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
   await page.goto('/');
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+  await page.locator('#menu-reset-button').click();
+  const canvas = page.locator('#asha-render-surface');
+  const prompt = page.locator('#interaction-prompt');
+  const event = page.locator('#event-state');
+  const pauseMenu = page.locator('#pause-menu');
+  const saveStatus = page.locator('#save-game-status');
+
+  await expect(prompt).toContainText('E  OPERATE SECURITY SWITCH', { timeout: 10_000 });
+  const closedDoor = await canvas.screenshot();
+  await canvas.click();
+  await expect.poll(
+    () => page.evaluate(() => document.pointerLockElement?.id ?? null),
+  ).toBe('asha-render-surface');
+  await page.waitForTimeout(250);
+  await page.keyboard.press('KeyE');
+  await expect(prompt).toBeHidden();
+  const openDoor = await canvas.screenshot();
+  expect(openDoor.equals(closedDoor)).toBe(false);
+
+  await page.keyboard.press('KeyE');
+  await page.waitForTimeout(250);
+  await expect(event).not.toContainText('Security switch accepted');
+  await expect(prompt).toBeHidden();
+
+  await page.keyboard.press('Escape');
+  await expect(pauseMenu).toBeVisible();
+  await page.waitForTimeout(2_500);
+  await expect(prompt).toBeHidden();
+
+  await page.locator('#save-game-button').click();
+  await expect(saveStatus).toContainText('Game saved');
+  await page.locator('#load-game-button').click();
+  await expect(pauseMenu).toBeVisible({ timeout: 30_000 });
+  await expect(pauseMenu).toHaveAttribute('data-mode', 'paused');
+  await expect(saveStatus).toContainText('Saved game restored through Rust authority');
+  await expect(prompt).toBeHidden();
+  const restoredDoor = await canvas.screenshot();
+  expect(restoredDoor.equals(closedDoor)).toBe(false);
+
+  await page.locator('#resume-button').click();
+  await expect(pauseMenu).toBeHidden();
+  await expect(prompt).toContainText('E  OPERATE SECURITY SWITCH', { timeout: 10_000 });
+  const reclosedDoor = await canvas.screenshot();
+  expect(reclosedDoor.equals(restoredDoor)).toBe(false);
+
+  await page.locator('#reset-button').click();
+  await expect(prompt).toContainText('E  OPERATE SECURITY SWITCH');
+  expect(pageErrors).toEqual([]);
+});
+
+test('the closed security door blocks movement and the opened door permits passage', async ({ page }) => {
+  test.setTimeout(30_000);
+  await page.goto('/');
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
   await page.locator('#menu-reset-button').click();
   const canvas = page.locator('#asha-render-surface');
   const prompt = page.locator('#interaction-prompt');
@@ -84,11 +142,25 @@ test('the visible contextual switch uses E and moves the Rust-projected security
   await expect.poll(
     () => page.evaluate(() => document.pointerLockElement?.id ?? null),
   ).toBe('asha-render-surface');
-  await page.waitForTimeout(250);
+
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(900);
+  await page.keyboard.up('KeyW');
+  await expect(event).toContainText('Blocked z');
+  const blockedDistance = await prompt.textContent();
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(500);
+  await page.keyboard.up('KeyW');
+  await expect(prompt).toHaveText(blockedDistance ?? '');
+  const blockedView = await canvas.screenshot();
+
   await page.keyboard.press('KeyE');
-  await expect(event).toContainText('Security switch accepted');
-  await expect(event).not.toContainText(/rejected|failed|unavailable/i);
-  expect(pageErrors).toEqual([]);
+  await expect(prompt).toBeHidden();
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(900);
+  await page.keyboard.up('KeyW');
+  const passedView = await canvas.screenshot();
+  expect(passedView.equals(blockedView)).toBe(false);
 });
 
 test('missing presentation resources fail visibly without inline fallbacks', async ({ browser }) => {

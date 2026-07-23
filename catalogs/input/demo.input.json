@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "documentId": "asha-demo.input.gameplay",
+  "documentKind": "inputCatalog",
+  "document": {
+    "schemaVersion": 1,
+    "namespace": "demo",
+    "actions": [
+      {
+        "actionId": "demo.interact",
+        "valueKind": "button",
+        "acceptedPhases": ["pressed"]
+      }
+    ],
+    "contexts": [],
+    "bindings": [
+      {
+        "bindingId": "demo.interact.primary",
+        "actionId": "demo.interact",
+        "contextId": "gameplay",
+        "platformKind": "keyboardKey",
+        "control": "KeyE",
+        "scale": 1,
+        "extension": null
+      }
+    ]
+  }
+}

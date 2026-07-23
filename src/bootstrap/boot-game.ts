@@ -9,16 +9,18 @@ import {
 } from '@asha/renderer-host';
 import {
   cameraHandle,
+  validateGeneratedWireValue,
+  type GeneratedWireValue,
 } from '@asha/contracts';
 import {
   ResolvedPauseContextConsumer,
 } from '@asha/runtime-bridge';
-import { createDemoInputCatalog } from '../input/demo-input-catalog.js';
+import type { RuntimeSessionGameplayCheckpoint } from '@asha/runtime-session';
 import { hudControlToIntent } from '../input/hud-controls.js';
 import { type DemoHudEventSource, type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
 import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
 import { readDemoHudElements, reportDemoRendererProjection } from '../shell/hud-elements.js';
-import { renderHudElements } from '../shell/hud-renderer.js';
+import { renderHudElements, renderSaveGameControls } from '../shell/hud-renderer.js';
 import { pulseReticleElement } from '../shell/reticle-renderer.js';
 import {
   loadDemoProjectContent,
@@ -26,6 +28,9 @@ import {
 } from '../content/project-content.js';
 import { createDemoPresentationResources } from '../content/presentation-resources.js';
 import { createDemoParticleBillboardSink } from '../projection/particle-billboard-sink.js';
+
+const DEMO_GAMEPLAY_SAVE_KEY = 'asha-demo.gameplay-save.v1';
+const DEMO_GAMEPLAY_RESTORE_REQUEST_KEY = 'asha-demo.gameplay-restore-request.v1';
 
 export async function bootGame() {
 const elements = readDemoHudElements();
@@ -52,6 +57,7 @@ if (!runtimeBackend.available) {
   throw new Error(message);
 }
 const runtimeGateway = createDemoRuntimeGateway(runtimeBackend);
+const restoredGameplayAtBoot = restoreRequestedGameplayCheckpoint(runtimeGateway);
 const launchSettings = runtimeBackend.launchSettings;
 const presentationResources = createDemoPresentationResources(
   runtimeBackend.projectDocuments,
@@ -60,7 +66,7 @@ const presentationResources = createDemoPresentationResources(
 
 let runtimeCamera = createRuntimeCamera();
 let enemyPolicyTick = 0;
-let menuMode: DemoMenuMode = 'title';
+let menuMode: DemoMenuMode = restoredGameplayAtBoot ? 'paused' : 'title';
 let lastMenuIntent = null;
 let inputSettings = {
   invertY: false,
@@ -89,9 +95,19 @@ const surface = await mountAshaRendererAnimatedMeshSurface(canvas, {
     moveSpeed: inputSettings.moveSpeedUnitsPerSecond,
     movementAuthority: constrainCameraMovement,
     ...(inputSession === null ? {} : { inputSession }),
-    inputCatalog: createDemoInputCatalog(),
   },
 });
+if (restoredGameplayAtBoot && inputSession !== null) {
+  const restoredMenuContext = inputSession.applyInputContextCommand({
+    operation: 'push',
+    contextId: 'menu',
+  });
+  if (!restoredMenuContext.accepted) {
+    throw new Error(
+      `Saved game restored, but its pause menu context could not be rebuilt: ${restoredMenuContext.diagnostics[0]?.message ?? 'unknown input context rejection'}`,
+    );
+  }
+}
 const rendererProjection = surface.cameraProjection();
 if (
   rendererProjection.fovYDegrees !== launchSettings.cameraProjection.fovYDegrees
@@ -275,6 +291,14 @@ elements.menuResetButton?.addEventListener('click', () => {
   handleHudControl('hud-restart');
 });
 
+elements.saveGameButton?.addEventListener('click', () => {
+  saveCurrentGame();
+});
+
+elements.loadGameButton?.addEventListener('click', () => {
+  requestSavedGameLoad();
+});
+
 elements.optionsButton?.addEventListener('click', () => {
   handleHudControl('hud-options');
 });
@@ -294,6 +318,41 @@ elements.lookSensitivityInput?.addEventListener('input', () => {
 elements.invertYInput?.addEventListener('change', () => {
   updateInputSettings({ invertY: Boolean(elements.invertYInput.checked) });
 });
+
+syncSaveGameControls(
+  restoredGameplayAtBoot ? 'Saved game restored through Rust authority.' : '',
+);
+
+function saveCurrentGame() {
+  const receipt = runtimeGateway.saveGameplayCheckpoint();
+  if (receipt === null || !receipt.accepted || receipt.checkpoint === null) {
+    const message = receipt?.diagnostics[0]?.message ?? 'Rust gameplay checkpoint unavailable.';
+    syncSaveGameControls(`Save failed: ${message}`);
+    return;
+  }
+  try {
+    window.localStorage.setItem(DEMO_GAMEPLAY_SAVE_KEY, JSON.stringify(receipt.checkpoint));
+    syncSaveGameControls('Game saved. Project content remains in its normal project source.');
+  } catch (error) {
+    syncSaveGameControls(`Save failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function requestSavedGameLoad() {
+  if (window.localStorage.getItem(DEMO_GAMEPLAY_SAVE_KEY) === null) {
+    syncSaveGameControls('No saved game is available.');
+    return;
+  }
+  window.localStorage.setItem(DEMO_GAMEPLAY_RESTORE_REQUEST_KEY, 'requested');
+  window.location.reload();
+}
+
+function syncSaveGameControls(message: string) {
+  renderSaveGameControls(elements, {
+    loadEnabled: window.localStorage.getItem(DEMO_GAMEPLAY_SAVE_KEY) !== null,
+    message,
+  });
+}
 
 function firePrimary() {
   const playable = readPlayableLoopState();
@@ -1239,9 +1298,13 @@ function tickHud() {
   animationFrame = window.requestAnimationFrame(tickHud);
 }
 
-consumePauseAction('runtime.time.pause', 'startup', false);
-menuMode = 'title';
-lastRuntimeEvent = 'Choose Start when ready';
+if (!restoredGameplayAtBoot || !readAuthorityPaused()) {
+  consumePauseAction('runtime.time.pause', 'startup', false);
+}
+menuMode = restoredGameplayAtBoot ? 'paused' : 'title';
+lastRuntimeEvent = restoredGameplayAtBoot
+  ? 'Saved game restored — resume when ready'
+  : 'Choose Start when ready';
 lastEventSource = 'runtime';
 renderHud();
 tickHud();
@@ -1325,7 +1388,7 @@ function fallbackLifecycleStatus() {
       enemyHealthHash: 'missing-rust-backend:enemy-health',
       replayHash: runtimeBackend.backendHash,
     },
-    nonClaims: ['not_save_load_persistence', 'not_ui_authority', 'not_demo_local_lifecycle'],
+    nonClaims: ['not_ui_authority', 'not_demo_local_lifecycle'],
   };
 }
 
@@ -1399,4 +1462,45 @@ function readAuthoredActorCapability(stableId, kind) {
   }
   return null;
 }
+}
+
+function restoreRequestedGameplayCheckpoint(
+  runtimeGateway: ReturnType<typeof createDemoRuntimeGateway>,
+): boolean {
+  const requested = window.localStorage.getItem(DEMO_GAMEPLAY_RESTORE_REQUEST_KEY) !== null;
+  if (!requested) {
+    return false;
+  }
+  window.localStorage.removeItem(DEMO_GAMEPLAY_RESTORE_REQUEST_KEY);
+  const stored = window.localStorage.getItem(DEMO_GAMEPLAY_SAVE_KEY);
+  if (stored === null) {
+    throw new Error('Load requested, but no saved gameplay checkpoint exists.');
+  }
+
+  let decoded: GeneratedWireValue;
+  try {
+    decoded = JSON.parse(stored) as GeneratedWireValue;
+  } catch (error) {
+    throw new Error(
+      `Saved gameplay checkpoint is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const validation = validateGeneratedWireValue(
+    'projectBundle.RuntimeProjectGameplayCheckpoint',
+    decoded,
+  );
+  if (validation.valid === false) {
+    throw new Error(
+      `Saved gameplay checkpoint is malformed at ${validation.issue.path}: ${validation.issue.message}`,
+    );
+  }
+
+  const receipt = runtimeGateway.restoreGameplayCheckpoint(
+    decoded as unknown as RuntimeSessionGameplayCheckpoint,
+  );
+  if (receipt === null || !receipt.accepted) {
+    const message = receipt?.diagnostics[0]?.message ?? 'Rust gameplay restore unavailable.';
+    throw new Error(`Saved gameplay checkpoint was rejected: ${message}`);
+  }
+  return true;
 }

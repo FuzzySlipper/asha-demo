@@ -309,6 +309,13 @@ button:disabled {
   min-width: 0;
 }
 
+.save-game-status {
+  min-height: 1.25rem;
+  margin: 0;
+  color: #a9c7d8;
+  font-size: 0.8rem;
+}
+
 .menu-pane {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 6px;

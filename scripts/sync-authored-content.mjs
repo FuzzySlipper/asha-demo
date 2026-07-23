@@ -71,6 +71,7 @@ const requiredArtifacts = new Map([
   ['assets/mesh-static/security-switch.gltf', 'resource:animatedMesh'],
   ['catalogs/actors/security-door.entity.json', 'projectContent'],
   ['catalogs/actors/security-switch.entity.json', 'projectContent'],
+  ['catalogs/input/demo.input.json', 'projectContent'],
   [behaviorPath, 'projectContent'],
   ['catalogs/prefabs/security-switch.prefab.json', 'prefabRegistry'],
 ]);

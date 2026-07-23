@@ -11,7 +11,7 @@
       "vocabularyHash": "asha.authored-behavior.v1:typed-semantic-refs;symbolic-state;direct-owner-verbs",
       "sourceModule": "@asha-demo/gameplay",
       "sourcePath": "src/content/security-door.ts",
-      "sourceHash": "fnv1a64:de6ae6129d22d451"
+      "sourceHash": "fnv1a64:eba6917181c9489b"
     },
     "stateMachines": [
       {
@@ -83,7 +83,7 @@
             "afterStepIds": [
               "open-now"
             ],
-            "delayTicks": 180,
+            "delayTicks": 10,
             "operations": [
               {
                 "verb": {
