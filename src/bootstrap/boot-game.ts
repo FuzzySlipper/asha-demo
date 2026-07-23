@@ -19,7 +19,12 @@ import type { RuntimeSessionGameplayCheckpoint } from '@asha/runtime-session';
 import { hudControlToIntent } from '../input/hud-controls.js';
 import { type DemoHudEventSource, type DemoMenuMode, projectHudView } from '../projection/hud-view.js';
 import { createDemoRuntimeBackend, createDemoRuntimeGateway } from '../runtime/demo-runtime-gateway.js';
-import { readDemoHudElements, reportDemoRendererProjection } from '../shell/hud-elements.js';
+import {
+  readDemoHudElements,
+  reportDemoAuthorityPendingActions,
+  reportDemoAuthorityPlayerPosition,
+  reportDemoRendererProjection,
+} from '../shell/hud-elements.js';
 import { renderHudElements, renderSaveGameControls } from '../shell/hud-renderer.js';
 import { pulseReticleElement } from '../shell/reticle-renderer.js';
 import {
@@ -31,6 +36,7 @@ import { createDemoParticleBillboardSink } from '../projection/particle-billboar
 
 const DEMO_GAMEPLAY_SAVE_KEY = 'asha-demo.gameplay-save.v1';
 const DEMO_GAMEPLAY_RESTORE_REQUEST_KEY = 'asha-demo.gameplay-restore-request.v1';
+const DEMO_ENEMY_POLICY_CADENCE_MILLISECONDS = 1_500;
 
 export async function bootGame() {
 const elements = readDemoHudElements();
@@ -65,6 +71,7 @@ const presentationResources = createDemoPresentationResources(
 );
 
 let runtimeCamera = createRuntimeCamera();
+reportDemoAuthorityPlayerPosition(canvas, runtimeCamera.pose.position);
 let enemyPolicyTick = 0;
 let menuMode: DemoMenuMode = restoredGameplayAtBoot ? 'paused' : 'title';
 let lastMenuIntent = null;
@@ -228,6 +235,7 @@ function constrainCameraMovement(input) {
   });
   lastCollisionReceipt = receipt;
   runtimeCamera = receipt.snapshot.after;
+  reportDemoAuthorityPlayerPosition(canvas, receipt.snapshot.after.pose.position);
   lastMovementEvent = paused
     ? 'Movement paused'
     : lifecycle.player.dead
@@ -1057,7 +1065,7 @@ function restartEnemyLoopCadence() {
   }
   enemyLoopTimer = window.setInterval(() => {
     tickEnemyPolicy();
-  }, 750);
+  }, DEMO_ENEMY_POLICY_CADENCE_MILLISECONDS);
 }
 
 function stopEnemyLoopCadence() {
@@ -1272,6 +1280,17 @@ function readActorCapability(stableId, kind) {
 function tickHud() {
   drainResolvedInputDeliveries();
   interactionCadenceFrame += 1;
+  if (runtimeGateway.available() && interactionCadenceFrame % 6 === 0) {
+    const composedRuntime = runtimeGateway.readComposedRuntimeSession();
+    if (composedRuntime !== null) {
+      reportDemoAuthorityPendingActions(
+        canvas,
+        composedRuntime.gameplay.schedulerPendingActionCount,
+        composedRuntime.gameplay.schedulerOutstandingDispatchCount,
+        runtimeGateway.readTimeControlState()?.authorityTick ?? -1,
+      );
+    }
+  }
   if (runtimeGateway.available() && menuMode === 'closed' && !readAuthorityPaused()) {
     try {
       if (interactionCadenceFrame % 2 === 0) {

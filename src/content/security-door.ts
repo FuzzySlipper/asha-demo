@@ -28,7 +28,7 @@ const operateSecurityDoor = authoredBehavior.behavior(
       authoredBehavior.setRelativeTranslation(door, [0, 3, 0]),
       authoredBehavior.setCapabilityActive(door, 'collision', false),
     ]),
-    authoredBehavior.afterTicks('close-when-clear', 'open-now', 10, [
+    authoredBehavior.afterTicks('close-when-clear', 'open-now', 90, [
       authoredBehavior.transitionState('security-door', 'close'),
       authoredBehavior.setRelativeTranslation(door, [0, 0, 0]),
       authoredBehavior.setCapabilityActive(door, 'collision', true),

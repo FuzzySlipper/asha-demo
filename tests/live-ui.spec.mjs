@@ -85,7 +85,7 @@ test('the visible contextual switch rejects a second no-op and survives save, re
   const saveStatus = page.locator('#save-game-status');
 
   await expect(prompt).toContainText('E  OPERATE SECURITY SWITCH', { timeout: 10_000 });
-  const closedDoor = await canvas.screenshot();
+  const closedDoor = await screenshotDoorway(page, canvas);
   await canvas.click();
   await expect.poll(
     () => page.evaluate(() => document.pointerLockElement?.id ?? null),
@@ -93,7 +93,7 @@ test('the visible contextual switch rejects a second no-op and survives save, re
   await page.waitForTimeout(250);
   await page.keyboard.press('KeyE');
   await expect(prompt).toBeHidden();
-  const openDoor = await canvas.screenshot();
+  const openDoor = await screenshotDoorway(page, canvas);
   expect(openDoor.equals(closedDoor)).toBe(false);
 
   await page.keyboard.press('KeyE');
@@ -113,17 +113,27 @@ test('the visible contextual switch rejects a second no-op and survives save, re
   await expect(pauseMenu).toHaveAttribute('data-mode', 'paused');
   await expect(saveStatus).toContainText('Saved game restored through Rust authority');
   await expect(prompt).toBeHidden();
-  const restoredDoor = await canvas.screenshot();
+  const restoredDoor = await screenshotDoorway(page, canvas);
   expect(restoredDoor.equals(closedDoor)).toBe(false);
+  await expect.poll(() => readAuthoredSchedulerState(page)).toMatchObject({
+    pending: 1,
+    outstanding: 0,
+  });
 
   await page.locator('#resume-button').click();
   await expect(pauseMenu).toBeHidden();
-  await expect(prompt).toContainText('E  OPERATE SECURITY SWITCH', { timeout: 10_000 });
-  const reclosedDoor = await canvas.screenshot();
-  expect(reclosedDoor.equals(restoredDoor)).toBe(false);
+  await page.waitForTimeout(750);
+  await expect.poll(() => readAuthoredSchedulerState(page)).toMatchObject({
+    pending: 1,
+    outstanding: 0,
+  });
 
   await page.locator('#reset-button').click();
   await expect(prompt).toContainText('E  OPERATE SECURITY SWITCH');
+  await expect.poll(() => readAuthoredSchedulerState(page)).toMatchObject({
+    pending: 0,
+    outstanding: 0,
+  });
   expect(pageErrors).toEqual([]);
 });
 
@@ -144,24 +154,68 @@ test('the closed security door blocks movement and the opened door permits passa
   ).toBe('asha-render-surface');
 
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(750);
   await page.keyboard.up('KeyW');
   await expect(event).toContainText('Blocked z');
-  const blockedDistance = await prompt.textContent();
+  const blockedZ = await readAuthorityPlayerZ(canvas);
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(150);
   await page.keyboard.up('KeyW');
-  await expect(prompt).toHaveText(blockedDistance ?? '');
+  expect(await readAuthorityPlayerZ(canvas)).toBeCloseTo(blockedZ, 4);
   const blockedView = await canvas.screenshot();
 
   await page.keyboard.press('KeyE');
   await expect(prompt).toBeHidden();
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(900);
-  await page.keyboard.up('KeyW');
+  try {
+    await expect.poll(
+      () => readAuthorityPlayerZ(canvas),
+      {
+        message: 'Rust-authoritative player position should cross the far face of the doorway',
+        timeout: 2_000,
+        intervals: [50, 100, 100],
+      },
+    ).toBeLessThan(-1.2);
+  } finally {
+    await page.keyboard.up('KeyW');
+  }
   const passedView = await canvas.screenshot();
   expect(passedView.equals(blockedView)).toBe(false);
 });
+
+async function readAuthorityPlayerZ(canvas) {
+  const encoded = await canvas.getAttribute('data-authority-player-position');
+  return Number(encoded?.split(',')[2] ?? Number.POSITIVE_INFINITY);
+}
+
+async function screenshotDoorway(page, canvas) {
+  const box = await canvas.boundingBox();
+  if (box === null) {
+    throw new Error('renderer canvas has no visible bounds');
+  }
+  return page.screenshot({
+    clip: {
+      x: box.x + box.width * 0.34,
+      y: box.y + box.height * 0.18,
+      width: box.width * 0.3,
+      height: box.height * 0.55,
+    },
+  });
+}
+
+async function readAuthoredSchedulerState(page) {
+  const canvas = page.locator('#asha-render-surface');
+  const [pending, outstanding, tick] = await Promise.all([
+    canvas.getAttribute('data-authority-pending-actions'),
+    canvas.getAttribute('data-authority-outstanding-dispatches'),
+    canvas.getAttribute('data-authority-tick'),
+  ]);
+  return {
+    pending: Number(pending ?? Number.POSITIVE_INFINITY),
+    outstanding: Number(outstanding ?? Number.POSITIVE_INFINITY),
+    tick: Number(tick ?? -1),
+  };
+}
 
 test('missing presentation resources fail visibly without inline fallbacks', async ({ browser }) => {
   const resources = [

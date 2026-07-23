@@ -112,7 +112,7 @@
       "path": "catalogs/gameplay/security-door.behavior.json",
       "class": "durable",
       "role": "projectContent",
-      "contentHash": "2b4f2acbbb6fd0d1"
+      "contentHash": "b04fc72aa3f32599"
     },
     {
       "path": "catalogs/input/demo.input.json",
@@ -142,7 +142,7 @@
       "path": "levels/scenes/generated-tunnel-room.scene.json",
       "class": "durable",
       "role": "sceneDocument",
-      "contentHash": "4c44a38f85b0a17c"
+      "contentHash": "af7d03ad12525346"
     }
   ]
 }

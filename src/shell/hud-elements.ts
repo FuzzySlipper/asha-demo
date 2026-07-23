@@ -46,6 +46,28 @@ export function reportDemoRendererProjection(
   canvas.dataset.cameraFovYDegrees = String(fovYDegrees);
 }
 
+/**
+ * Inspectable projection of the last Rust-accepted player pose. This is not a
+ * second movement state: callers supply the pose returned by Rust authority.
+ */
+export function reportDemoAuthorityPlayerPosition(
+  canvas: HTMLCanvasElement,
+  position: readonly [number, number, number],
+): void {
+  canvas.dataset.authorityPlayerPosition = position.join(',');
+}
+
+export function reportDemoAuthorityPendingActions(
+  canvas: HTMLCanvasElement,
+  pendingActionCount: number,
+  outstandingDispatchCount: number,
+  authorityTick: number,
+): void {
+  canvas.dataset.authorityPendingActions = String(pendingActionCount);
+  canvas.dataset.authorityOutstandingDispatches = String(outstandingDispatchCount);
+  canvas.dataset.authorityTick = String(authorityTick);
+}
+
 export function reportDemoBootFailure(message: string): void {
   const eventState = document.querySelector<HTMLElement>('#event-state');
   if (eventState !== null) {

@@ -8,10 +8,10 @@
     "provenance": {
       "sdkId": "@asha/game-workspace",
       "sdkVersion": 1,
-      "vocabularyHash": "asha.authored-behavior.v1:typed-semantic-refs;symbolic-state;direct-owner-verbs",
+      "vocabularyHash": "asha.authored-behavior.v1:published-event-signals;typed-arguments;symbolic-state;direct-owner-verbs",
       "sourceModule": "@asha-demo/gameplay",
       "sourcePath": "src/content/security-door.ts",
-      "sourceHash": "fnv1a64:eba6917181c9489b"
+      "sourceHash": "fnv1a64:4046bcde5420c358"
     },
     "stateMachines": [
       {
@@ -45,7 +45,7 @@
         "behaviorId": "security-switch-opens-door",
         "signal": {
           "signal": {
-            "semanticId": "asha.signal.prefab-part-interacted",
+            "semanticId": "asha.prefab.part-interacted",
             "version": 1
           },
           "arguments": [
@@ -83,7 +83,7 @@
             "afterStepIds": [
               "open-now"
             ],
-            "delayTicks": 10,
+            "delayTicks": 90,
             "operations": [
               {
                 "verb": {
